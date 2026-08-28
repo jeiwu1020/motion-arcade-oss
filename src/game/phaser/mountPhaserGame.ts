@@ -18,3 +18,37 @@ export function mountPhaserGame(
     game.destroy(true)
   }
 }
+
+interface LazyPhaserMount {
+  readonly ready: Promise<void>
+  unmount(): void
+}
+
+async function resolveLazyMount(
+  parent: HTMLElement,
+  factoryPromise: Promise<PhaserGameFactory>,
+  state: { cancelled: boolean; cleanup?: () => void },
+): Promise<void> {
+  const factory = await factoryPromise
+  if (state.cancelled) return
+  state.cleanup = mountPhaserGame(parent, factory)
+}
+
+mountPhaserGame.lazy = function lazyMountPhaserGame(
+  parent: HTMLElement,
+  factoryPromise: Promise<PhaserGameFactory>,
+): LazyPhaserMount {
+  const state: { cancelled: boolean; cleanup?: () => void } = {
+    cancelled: false,
+  }
+  const ready = resolveLazyMount(parent, factoryPromise, state)
+
+  return {
+    ready,
+    unmount() {
+      if (state.cancelled) return
+      state.cancelled = true
+      state.cleanup?.()
+    },
+  }
+}

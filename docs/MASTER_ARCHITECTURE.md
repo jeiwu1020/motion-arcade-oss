@@ -1,140 +1,192 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 0 architecture freeze draft  
-Date: 2026-08-28  
-Target: iPhone Safari landscape first
+Status: Phase 1A implementation boundary
 
-This document freezes the boundaries needed to begin Phase 1. It does not freeze game rules, detection thresholds, visual direction, or a four-person tracking promise.
+Date: 2026-08-28
+
+Primary target: iPhone Safari, landscape
+
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. It contains no formal game and no real camera, microphone, MediaPipe, or Web Audio provider.
 
 ## 1. Product constraints
 
-- The primary setting is a therapist-led psychiatric occupational-therapy group of about 12 participants, usually 18–60+ years old, in a roughly 60-minute session.
-- One therapist operates a landscape phone fixed to a tripod. The phone uses its front camera and microphone and mirrors its display to a projector. Participants do not hold the phone.
-- Body motion, hand motion, and live audio signal measurements are possible inputs.
-- The first release must support one to four teams. Team count is a session/gameplay concern and is independent of how many bodies are tracked simultaneously.
-- The product must support solo versus CPU, two-player formats, and one-to-four-team formats. A team may be represented by one current participant, alternating participants, or aggregated actions.
-- The first release is not required to track four people simultaneously. Multi-pose capacity remains a performance-gated capability.
-- Accessibility is expressed as capabilities and control adaptations, never as psychiatric or medical diagnoses in gameplay code.
+- Motion Arcade is a therapist-operated browser platform for psychiatric occupational-therapy groups of roughly 12 participants, ages about 18–60+, with varied physical and cognitive capabilities.
+- A therapist operates a landscape phone on a tripod. Participants do not hold it. The phone display is projected.
+- Future inputs include body movement, hand movement, and live audio signal measurements.
+- The first release must support one to four teams. Team count is independent from simultaneous human tracking count.
+- Supported session patterns include solo versus CPU, two-player activities, and one-to-four-team formats.
+- Four-person real tracking is a future performance tier, not a first-release promise.
+- Adaptation is expressed by capability and control requirements, never diagnosis labels.
+- A typical session lasts about 60 minutes, so lifecycle cleanup, thermal behavior, recoverability, and therapist control matter as much as peak-frame demos.
 
 ## 2. Browser and mobile constraints
 
-- Logical game viewport: `1280 × 720` (16:9).
-- Phaser scale mode: `FIT`, centered. Letterboxing is acceptable; cropping gameplay is not.
-- The document uses `viewport-fit=cover`, dynamic viewport units, and `env(safe-area-inset-*)`. Critical DOM HUD controls live inside the computed safe region.
-- Safari browser chrome can change the visual viewport while a session is running. Layout must tolerate `resize`, `orientationchange`, and `visualViewport` changes without resetting game state.
-- Camera and microphone requests require HTTPS (localhost is acceptable for development), an explicit therapist action, clear denied/unavailable states, and track cleanup on stop.
-- The front camera is requested with `facingMode: "user"` as a preference, not an exact constraint. The camera video element uses `autoplay`, `muted`, and `playsinline`; iOS WebKit can otherwise stall on the first frame.
-- Audio context creation/resume is tied to a therapist gesture. It must be suspended or closed when not required.
-- Browser feature support is capability-detected. A worker path or GPU delegate is an optimization, not a universal assumption.
+- Logical playfield: `1280 × 720`.
+- Phaser scaling: `FIT` with `CENTER_BOTH`; letterboxing is acceptable and cropping is forbidden.
+- `viewport-fit=cover`, `100dvh`, and all four `env(safe-area-inset-*)` values define the safe DOM boundary.
+- The full-screen play/test shell is separate from the homepage shell. Persistent home navigation does not shrink formal gameplay.
+- The playfield parent has explicit grid dimensions and no padding, allowing Phaser ScaleManager to measure it correctly.
+- Safari browser chrome, orientation changes, Dynamic Island/notches, and visual viewport changes must not reset provider or game state.
+- Any future camera/microphone request requires HTTPS, an explicit therapist gesture, readable denied/unavailable recovery, and immediate track cleanup.
+- Future camera video uses `autoplay`, `muted`, and `playsinline`; `facingMode: "user"` remains a preference rather than a guarantee.
+- A future `AudioContext` is created/resumed from a therapist gesture and closed when unused.
+
+Phase 1A browser evidence at `852 × 393`:
+
+- document: `852 × 393`, no horizontal or vertical document overflow;
+- playfield region: approximately `561.8 × 342.6`;
+- displayed canvas: approximately `559.8 × 314.9`, exactly preserving 16:9;
+- therapist panel: approximately `272.6 × 383.4`, scrolling internally rather than cropping the playfield.
 
 ## 3. Privacy constraints
 
-Hard rules:
+Hard application rules:
 
-- Camera frames remain in the browser process. No frame upload, video recording, screenshots of patients, face storage, Vercel Function processing, or identity recognition.
-- Microphone input is never recorded or transcribed. Only ephemeral real-time features such as level, pitch estimate, and sustained-duration are emitted.
-- No patient account or patient-name field exists by default.
-- Raw sensor frames and landmarks are not persisted. Debug logging must exclude frames, audio samples, landmarks, device labels, and stable person identifiers.
-- Session/player identifiers are short-lived random identifiers. Any future persistence requires a separate privacy and clinical-governance review.
-- Sensor tracks are stopped immediately when leaving a game, switching to test input, or ending a session.
+- Camera frames remain local to the browser. No uploads, recordings, patient screenshots, face storage, Vercel Function processing, or identity recognition.
+- Microphone data is never recorded or transcribed. Only ephemeral level, pitch, confidence/voicing, and duration features may be derived.
+- No patient accounts or patient names exist by default.
+- Raw frames, audio samples, landmarks, device labels, and stable patient identifiers are excluded from persistence and debug logs.
+- Application-owned analytics remain disabled.
+- Real sensor tracks must stop on provider switch, route exit, game stop, page hide where appropriate, and session end.
 
-The initial Vercel deployment is static. It has no backend, database, upload endpoint, analytics payload containing sensor data, or AI API.
+MediaPipe requires a more precise statement than “everything stays local.” Google's current terms state raw task input is processed on-device, while also documenting Google-bound SDK performance/utilization metrics. See [MediaPipe Web Privacy and Telemetry Audit](./MEDIAPIPE_PRIVACY_TELEMETRY.md). Production must distinguish:
+
+1. raw patient media;
+2. model/WASM downloads;
+3. SDK telemetry/metrics;
+4. Motion Arcade analytics, which remain disabled.
+
+No production claim of “no third-party network communication” is allowed without version-specific verification.
 
 ## 4. React / Phaser boundary
 
 React/DOM owns:
 
-- application shell, home/category browsing, game selection, therapist controls, permission onboarding, settings, accessibility, and text-heavy HUD/overlays;
-- session orchestration and provider selection;
-- creation and destruction of the Phaser instance.
+- application routing/shell, homepage, category discovery, therapist controls, settings, accessibility, permissions onboarding, and debug tooling;
+- input-provider selection and configuration;
+- Phaser creation/destruction and loading/error UI.
+
+Framework-independent runtime owns:
+
+- normalized input contracts, player state, adaptation, calibration boundaries, provider lifecycle, teams, registry validation, and future game simulation.
 
 Phaser owns:
 
-- 2D playfield rendering, cameras, animation playback, visual effects, and scene orchestration;
-- a disposable projection of simulation state.
+- the 2D playfield view, cameras, animation/tweens, effects, and scene presentation;
+- a disposable projection of normalized state.
 
-Framework-independent game core owns rules, scoring, timers, progression, and serializable simulation state. Phaser scenes must stay thin and must not become the source of truth. A scene reads a game-state snapshot and normalized motion frame through a bridge, then emits game commands. React never mutates Phaser display objects directly.
+Phaser scenes must not become the source of truth and must not listen for keyboard, mouse, sliders, camera, microphone, or MediaPipe events.
 
 ```text
-React shell / therapist UI
-          │ lifecycle + session configuration
+React shell / therapist controls
+          │ configures
           ▼
-Game Runtime Coordinator ─── Normalized Motion Frames
-          │                         │
-          ├── Game Core / simulation│
-          │                         │
-          └── Phaser adapter ◄──────┘
-                    │
-                    ▼
-             Phaser scenes/view
+MotionInputProvider ──► immutable MotionInputSnapshot
+                                  │
+                       ┌──────────┴──────────┐
+                       ▼                     ▼
+                 game core (future)   Phaser view adapter
 ```
+
+### Lazy-loading boundary
+
+- `App.tsx` lazy-loads the Developer Input Lab only when entered.
+- `PhaserCanvas` then dynamically imports the Phaser game factory.
+- The home shell has no Phaser import or canvas.
+- Async loading is cancellable. An unmount before module resolution creates no game.
+- Cleanup is idempotent and calls `game.destroy(true)` once.
+- React StrictMode cannot leave duplicate Phaser instances.
+
+The production build currently emits the home shell, a small Lab chunk, and a separate Phaser/game-factory chunk.
 
 ## 5. Sensor architecture
 
+Real sensors are deferred, but their ownership is frozen:
+
 ```text
-Game Registry sensor requirements
-                  │
-                  ▼
-           Sensor Manager
-       ┌──────────┼──────────┐
-       ▼          ▼          ▼
-    Camera     Microphone   Test/Replay
-       │          │          │
-       ▼          ▼          │
-Pose/Hand Tasks  Web Audio   │
-       └──────┬───┘          │
-              ▼              │
-       Motion Analysis ◄─────┘
-              │
-              ▼
-      Normalized Action Frame
+Game control scheme sensor requirements
+                   │
+                   ▼
+              Sensor Manager
+        ┌──────────┼──────────┐
+        ▼          ▼          ▼
+      Camera     Microphone   Test/Replay
+        │          │          │
+        ▼          ▼          │
+   Pose / Hands  Web Audio    │
+        └──────┬────┘         │
+               ▼              │
+        Motion Analysis ◄─────┘
+               │
+               ▼
+       Normalized Action Snapshot
 ```
 
-`SensorManager` is the sole owner of real sensor acquisition and task lifecycle. It receives the selected game's declarative `sensorRequirements` and starts only what the game needs. Pose, hands, gesture recognition, and audio must never run permanently together across all games.
+`SensorManager` will be the sole owner of real acquisition. It starts only the sensors declared by the selected control scheme; Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
 
-Responsibilities:
+Future responsibilities:
 
-- permission request and human-readable failure state;
-- local `MediaStreamTrack` ownership and cleanup;
-- lazy loading of MediaPipe WASM/model assets;
-- coordinating the inference scheduler and quality manager;
-- publishing raw observations only to motion-analysis modules, never to games;
-- reporting coarse health/capability status without exposing raw media.
+- permission and readable failure state;
+- stream/task/worker lifecycle and disposal;
+- same-origin version-pinned model/WASM loading where approved;
+- inference scheduling and quality management;
+- coarse health/capability reporting without raw media exposure.
+
+Phase 1A's `KeyboardMouseTestInputProvider` requests no sensors, imports no MediaPipe code, and presents the same provider interface.
 
 ## 6. Motion Action architecture
 
-Games must not import MediaPipe, `MediaStream`, Web Audio nodes, DOM keyboard/mouse events, or raw landmarks. The only gameplay input is the normalized contract in [MOTION_INPUT_CONTRACT_DRAFT.md](./MOTION_INPUT_CONTRACT_DRAFT.md).
-
-Pipeline:
+The normative contract is [Motion Input Contract](./MOTION_INPUT_CONTRACT.md).
 
 ```text
-physical/test device event
-  → provider observation
-  → calibration + feature extraction
-  → analyzer / temporal state machine
-  → ability-profile transform
-  → normalized action frame
-  → game core
+physical or simulated observation
+  → source coordinate canonicalization
+  → calibration / feature extraction
+  → analyzer temporal state machine
+  → per-player ability transform
+  → normalized action snapshot
+  → game
 ```
 
-Motion actions carry monotonic timestamps, player identity, active/value semantics, confidence/quality, and freshness. Render FPS does not change action timestamps. Edge actions such as `JUMP` or `CLAP` have explicit pulse/hold semantics so a lower inference rate cannot accidentally retrigger them every render frame.
+Implemented guarantees:
+
+- configuration and calibration belong to each logical player;
+- one-to-four simulated player states are independent;
+- action phases preserve started/active/ended edges across differing update/render rates;
+- repeated browser keydown events do not retrigger held actions;
+- continuous values remain continuous;
+- normalized points contain no browser pixels;
+- `VOICE_PITCH` is calibrated `0..1`, not Hertz;
+- raw Hz, voicing, and pitch stability are optional diagnostic telemetry, never required gameplay input.
+
+### Coordinate freeze
+
+- Sided limb actions refer to the participant's anatomical side.
+- World movement and playfield coordinates refer to the projected game's visual direction.
+- A mirrored front-camera preview never changes action names.
+- Mirrored source coordinates are flipped exactly once before normalized actions.
+- Games never compensate for camera mirroring.
+
+### Developer test provider
+
+The provider owns all keyboard and pointer bindings, simulated voice/cadence, pulse timing, player selection, and profile gating. The dedicated [Developer Test Mode](./DEVELOPER_TEST_MODE.md) documents operation and production safety.
 
 ## 7. Team architecture concept
 
-The following concepts are separate types:
+These are separate identities:
 
-- `TeamId`: one of one to four configured teams.
-- `PlayerId`: a logical participant/control channel for the current game.
-- `SensorTrackId`: a currently tracked body/hand/audio source.
-- `TeamMembership`: maps logical players to teams for the current round.
+- `TeamId`: one of one to four configured teams;
+- `PlayerId`: a logical control channel for the current activity;
+- `SensorTrackId`: a future currently tracked physical source;
+- `TeamMembership`: session mapping between players and teams.
 
-A game declares `supportedTeams` separately from `simultaneousPlayers`. For example, a four-team relay can support four teams while requiring only one tracked body at a time. Team modes may later include `simultaneous`, `relay`, `turnBased`, and `sharedScore`, but each game's accepted modes are registry data rather than assumptions in the global shell.
+`supportedTeams` and `simultaneousPlayers` are separate registry fields. A four-team relay can use one player channel/body at a time. No code equates team count with MediaPipe `numPoses`.
 
-No architecture code equates `teamCount` with MediaPipe `numPoses`.
+Possible future modes include simultaneous, relay, turn-based, and shared-score; games declare support rather than relying on global assumptions.
 
 ## 8. Adaptive control architecture
 
-Named starting profiles:
+Capability presets:
 
 - `STANDARD`
 - `LOW_MOTION`
@@ -144,204 +196,172 @@ Named starting profiles:
 - `RIGHT_SIDE`
 - `SLOW_RESPONSE`
 
-Profiles are presets over neutral capability settings, such as action threshold, required range, hold duration, cooldown, debounce window, reaction window, input-side remapping, and unavailable-action fallback. A therapist may adjust a preset per session without changing the game implementation.
+`ResolvedAbilityProfile` composes presets into posture, body range, allowed anatomical sides, movement scale, and response-time scale. The current left/right filter gates sided limb actions while leaving projected movement direction unchanged.
 
-Rules:
+`PlayerCalibration` is separate and reserves measured neutral position, reach range, left/right usable extent, voice floor/ceiling, and movement baseline. Phase 1A does not perform calibration or encode medical assumptions.
 
-- Core gameplay never contains diagnosis names.
-- Games declare compatible profiles and required action capabilities.
-- The mapping layer may transform an observed movement into the same game action with a smaller range or longer window.
-- Side-specific profiles do not silently mirror game visuals; side mapping is explicit and testable.
-- Adaptive parameters are session configuration and remain local unless a later product decision adds approved persistence.
+Each game control scheme declares compatible profiles. Core gameplay uses capability descriptions only; diagnosis-specific modes and filters are prohibited.
 
 ## 9. Game Registry architecture
 
-Every game is registered declaratively. `App.tsx` must not accumulate a hard-coded game catalog.
+Physical requirements belong to a control scheme, not globally to a game:
 
 ```ts
-interface GameRegistration {
+interface GameControlScheme {
   id: string
-  title: string
-  description: string
-  category: string
-  tags: readonly string[]
+  label: string
+  requiredActions: readonly MotionActionId[]
+  optionalActions?: readonly MotionActionId[]
   inputTypes: readonly MotionInputType[]
   bodyAreas: readonly BodyArea[]
-  activityLevel: ActivityLevel
-  difficulty: DifficultyBand
-  supportsSeated: boolean
+  posture: readonly SupportedPosture[]
+  activityLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+  supportedAbilityProfiles: readonly AbilityProfileId[]
   supportsSingleSide: boolean
+  sensorRequirements: SensorRequirements
+}
+
+interface GameRegistration {
+  id: GameId
+  title: string
+  description: string
+  category: GameCategory
+  subcategory?: SportsSubcategory
+  tags: readonly string[]
+  difficulty: {
+    cognitiveComplexity: 'LOW' | 'MEDIUM' | 'HIGH'
+    reactionDemand: 'LOW' | 'MEDIUM' | 'HIGH'
+  }
   supportedTeams: readonly (1 | 2 | 3 | 4)[]
   simultaneousPlayers: { min: number; max: number }
-  sensorRequirements: SensorRequirements
-  supportedAbilityProfiles: readonly AbilityProfileId[]
+  controlSchemes: readonly GameControlScheme[]
   load: () => Promise<GameModule>
 }
 ```
 
-The registry provides metadata validation, unique-ID enforcement, shell discovery/filtering, compatibility checks, and lazy game module loading. `sensorRequirements` describes required and optional pose/hands/audio capabilities. It does not start them.
+Stable categories are `SPORTS`, `PARTY`, `VOICE`, and `HAND`. Sports subcategories are `RACKET_BALL`, `BALL`, `TRACK_FIELD`, `AQUATIC`, and `OTHER`.
 
-## 10. Input Providers & Developer Test Mode
+Difficulty is multidimensional:
 
-Developer test mode is a permanent architecture capability, not a temporary keyboard hack.
+- cognitive complexity belongs to the game;
+- reaction demand belongs to the game;
+- physical activity belongs to each control scheme.
 
-All providers implement the same `MotionInputProvider` contract:
+Validation catches duplicate game IDs, empty schemes/actions, invalid team counts, impossible player ranges, missing action input types, invalid category/subcategory combinations, seated/profile mismatches, and single-side declaration mismatches. Phase 1A uses test fixtures only; it registers no fake or formal game.
 
-- `MediaPipeMotionInputProvider`: real camera/microphone pipelines.
-- `KeyboardMouseTestInputProvider`: configurable desktop input with no permission request and no MediaPipe initialization.
-- `ReplayMotionInputProvider`: future deterministic, timestamped action sequences.
+## 10. Worker and performance strategy
 
-Keyboard and pointer bindings belong inside the test provider. Individual games never listen to DOM keys or pointer events. The provider supports, at minimum, all movement, body, arm/sport, locomotion, hand, and voice actions in the contract. Continuous controls include run cadence, voice level, pitch, sustained voice duration, motion intensity, and optional pointer/hand position.
+Phaser render cadence and inference cadence are independent.
 
-A future developer panel can select provider, simulated player count, ability profile, left/right side, continuous values, action triggers, reset, and a normalized-state overlay. The same overlay can inspect real provider output without revealing raw frames.
+- Phaser targets display refresh and consumes the latest immutable snapshot.
+- `InferenceScheduler` will allow at most one in-flight call per task and drop stale intermediate frames rather than queue them.
+- `QualityManager` will observe inference time, render time, dropped frames, tracking confidence, visibility, thermal symptoms, and device capability.
+- Quality can lower inference resolution/rate, model complexity, active tracker count, or optional sensor features without changing render FPS.
+- MediaPipe Web video calls are synchronous on their current thread. A worker spike should use transferable `ImageBitmap`, close it after inference, and post serializable results.
+- Safari compatibility requires a throttled main-thread fallback; worker/GPU support is never assumed.
+- `MediaStreamTrackProcessor` is not a baseline dependency.
+- Audio begins with `AnalyserNode`; `AudioWorklet` is considered only after profiling.
 
-Production safety:
+Sensor and Phaser modules remain lazy. Four-body tracking must not be optimized or promised before one-body device measurements.
 
-- `real` is the production default.
-- Test input is available automatically in `import.meta.env.DEV`.
-- A non-development build requires an explicit build-time `VITE_ENABLE_TEST_INPUT=true` gate before a query parameter or protected debug menu can select it.
-- A normal production build ignores test-mode URL parameters and does not show test controls.
-- Selecting test input must not request camera/microphone permissions or load MediaPipe code/models.
+## 11. Folder structure
 
-Acceptance target: a future Bowling, Runner, voice-controlled, badminton, party, or other game can run from test/replay input without changing that game's code.
-
-## 11. Worker and performance strategy
-
-Phaser rendering and MediaPipe inference use independent schedules.
-
-- Phaser targets the display refresh rate and consumes the latest immutable motion frame.
-- `InferenceScheduler` uses a configurable target rate and permits at most one in-flight inference per task. When inference is busy, intermediate camera frames are dropped rather than queued.
-- `QualityManager` observes inference duration, render frame time, thermal symptoms, dropped frames, tracking quality, and visibility. It can reduce input resolution, inference rate, model complexity, active trackers, or optional features.
-- The worker candidate uses transferable `ImageBitmap` frames and posts serializable landmark/results data back. Transferred bitmaps are closed after use.
-- MediaPipe Web calls are synchronous and block their current thread. A worker is therefore preferred after a capability spike, but the architecture keeps a throttled main-thread fallback for Safari/device combinations where worker image transfer or GPU delegation is unreliable.
-- Do not depend on `MediaStreamTrackProcessor`; its availability/context differs across browsers. `HTMLVideoElement → createImageBitmap()` is the conservative first worker bridge to validate.
-- Models/WASM are version-pinned, same-origin where practical, lazy-loaded by sensor requirement, cached, and explicitly disposed.
-- Audio level and a basic pitch estimator can begin with `AnalyserNode` time/frequency data. Move sustained low-latency processing to `AudioWorklet` only after profiling.
-
-Phase 1 must measure one pose first. Four simultaneous poses remain a later quality tier, not a baseline promise.
-
-## 12. Folder structure
+Current Phase 1A structure and planned destinations:
 
 ```text
 src/
-  app/                         # React shell, routes, app composition
-  components/                  # shared accessible DOM components
-  design-system/               # tokens and primitives
+  app/                         # shell policy, build gates
+  components/                  # future shared accessible DOM components
+  design-system/               # future tokens/primitives
   motion/
-    contracts/                 # normalized action/provider types
-    providers/                 # real, test, future replay providers
-    sensors/
-      camera/
-      pose/
-      hands/
-      gestures/
-      audio/
-    calibration/
-    analysis/                  # landmark/audio feature analyzers
-    mapping/                   # features → normalized actions
-    runtime/                   # SensorManager, scheduler, quality manager
-    workers/
+    contracts/                 # implemented normalized types
+    adaptive/                  # implemented profile resolution/gating
+    coordinates/               # implemented canonical transforms
+    providers/                 # implemented test provider/coordinator
+    sensors/                   # future camera/pose/hands/audio ownership
+    calibration/               # future measured range logic
+    analysis/                  # future temporal feature analyzers
+    mapping/                   # future features → actions
+    runtime/                   # future SensorManager/scheduler/quality
+    workers/                   # future worker entry points
   game/
-    core/                      # renderer-independent simulation contracts
-    phaser/                    # Phaser boot, scenes, and adapters
-    registry/
-    teams/
-    scoring/
-    difficulty/
-    adaptive/
-  games/                       # lazy-loaded game modules; empty in Phase 0
+    core/                      # future renderer-independent simulation
+    phaser/                    # implemented lazy boot and test view
+    registry/                  # implemented schema/validation
+    teams/ scoring/ difficulty/ adaptive/  # future gameplay systems
+  games/                       # formal lazy game modules; intentionally empty
   therapist/
-    controls/
-    presets/
-    session/
-    debug/                     # gated developer controls and overlay
-  config/
-  hooks/
-  utils/
-  types/
-tests/
-  unit/
-  integration/
-  browser/
-  visual/
+    test-lab/                  # implemented gated panel and overlay
+    controls/ presets/ session/ # future therapist workflow
+  config/ hooks/ utils/ types/  # future shared infrastructure
 docs/
 ```
 
-Changes from the proposed split:
+Narrow unit/integration tests are colocated with their modules to keep contract behavior visible. Browser/visual/device suites may move to top-level test folders when automation infrastructure grows.
 
-- Added `motion/contracts` and `motion/providers` so normalized input and source implementations cannot collapse into sensor code.
-- Grouped physical inputs beneath `motion/sensors`; `audio` is a sensor source even though it uses Web Audio instead of MediaPipe.
-- Split `analysis` from `mapping`: feature extraction/temporal detection and adaptive action normalization have different tests and change rates.
-- Added `motion/runtime` for lifecycle/performance policy and `therapist/debug` for the explicitly gated test panel.
-- Kept game simulation in `game/core` and Phaser in `game/phaser`, following the renderer-disposable boundary.
-- Tests are top-level by scope, while narrow unit tests may remain next to tiny modules when locality is clearer.
+## 12. Testing strategy
 
-Phase 0 creates only folders needed by the scaffold. The rest are an agreed destination shape, not placeholder files.
+Implemented Phase 1A tests cover:
 
-## 13. Testing strategy
+- provider safe/idempotent start-stop and absence of media permission calls;
+- keyboard phases, release, key-repeat behavior, continuous values, pointer normalization, click/drag/velocity, and one-to-four-player independence;
+- separate player profiles and predictable side gating;
+- canonical mirrored/non-mirrored coordinates, world direction, and anatomical labels;
+- normalized voice clamp and sustained duration;
+- registry valid/invalid fixtures and useful validation errors;
+- provider switching;
+- lazy Phaser cancellation, unmount, and idempotent StrictMode-style cleanup;
+- build-time test-mode gate.
 
-Unit:
+Browser QA covers shell/Lab navigation, keyboard, pointer, sliders, players, profiles, canvas mount/unmount, console, media element absence, desktop layout, and `852 × 393` landscape overflow/FIT behavior.
 
-- motion analyzers and temporal state machines;
-- calibration and range normalization;
-- action mapping, profile transforms, cooldowns, and freshness;
-- game metadata validation and team/player distinctions;
-- deterministic test/replay provider sequences.
+Required device matrix remains:
 
-Integration:
+1. iPhone Safari landscape;
+2. iPad Safari;
+3. Android Chrome;
+4. desktop Chrome.
 
-- sensor start/stop, permission failure, task lazy loading, and track disposal;
-- game load/start/pause/stop and Phaser mount/unmount;
-- provider switching without changing game code;
-- registry requirements activating only required sensors.
+Emulation cannot replace real safe-area, permission, camera, microphone, projector, thermal, or 60-minute memory tests.
 
-Browser:
+## 13. Deployment strategy
 
-- iPhone Safari landscape, then iPad Safari, Android Chrome, and desktop Chrome;
-- permissions, denied permission recovery, `playsinline`, resize/orientation, navigation, background/foreground, and projector-like aspect ratios;
-- development mode starting with zero sensor permission prompts;
-- console errors and WebGL context loss handling.
+- Vite outputs static assets to `dist`; Vercel provides HTTPS and static deployment. No Function, backend, database, login, or upload path is required.
+- A future client-side deep router will add Vercel's documented SPA rewrite only when needed.
+- Test controls are automatic in development. Production requires the explicit non-secret build flag `VITE_ENABLE_TEST_INPUT=true`.
+- Query strings alone cannot enable test input.
+- `.env` and `.env.*` are ignored, while `.env.example` documents safe public flags.
+- No secret may be stored in a `VITE_*` variable because Vite bundles it into browser code.
+- MediaPipe models/WASM should be version-pinned and self-hosted when approved; this does not eliminate documented SDK metrics.
+- Preview deployment QA must never use patient imagery or audio.
 
-Visual:
+## 14. Technical risks
 
-- screenshot QA at representative landscape viewports;
-- safe-area/notch simulation, overflow, letterboxing, DOM HUD obstruction, text size, and reduced motion.
+1. MediaPipe's documented metrics behavior requires clinical privacy/legal review and informed-consent planning.
+2. iPhone thermal pressure and memory may degrade a 60-minute session.
+3. Worker, GPU delegate, `ImageBitmap`, and Safari behavior vary by OS/device version.
+4. Overlapping people can swap track identity; pose-array indices cannot represent participant identity.
+5. Camera framing, lighting, clothing, mobility aids, seating, and projector delay affect motion reliability.
+6. Pitch estimation requires a voiced/unvoiced gate, stability confidence, calibration, and varied-room testing.
+7. Permission denial, backgrounding, Safari audio suspension, and camera interruption require therapist-friendly recovery.
+8. Safe-area and browser-chrome behavior require physical iOS device testing.
+9. Phaser, WASM, and models can make first use slow; lazy loading and readiness UI are mandatory.
+10. Client-visible test-mode opt-in is a safety gate, not authentication.
+11. Clinical usability needs large text, low cognitive load, predictable pause/reset, and therapist control beyond technical correctness.
 
-Performance tests record render FPS separately from inference Hz and include long-session thermal/memory observations.
+## 15. Decisions intentionally deferred
 
-## 14. Deployment strategy
+- first formal game and its rules;
+- real camera/microphone permissions and UI;
+- Pose, Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
+- final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
+- MediaPipe metrics acceptance, blocking policy, consent language, and production legal approval;
+- real calibration activity, thresholds, confidence/freshness policy, and lost-tracking UX;
+- multi-person identity continuity and four-person device tier;
+- team relay/turn/shared-control details;
+- replay file format and long-term regression corpus;
+- production authentication/protection beyond the build-time test-mode gate;
+- persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
+- formal art, audio assets, and production game scenes.
 
-- Vite produces static assets in `dist`; Vercel detects the Vite framework and provides HTTPS, previews, and production deployment.
-- No Vercel Functions are required for Phase 0 or local sensor processing.
-- A future client-side router needs the documented SPA rewrite only when deep routes are introduced.
-- MediaPipe WASM/model files should be pinned and served from the same deployment/CDN origin when feasible. Cache immutable versioned assets; do not use an unpinned `@latest` production URL.
-- Permissions Policy should remain restrictive (`camera=(self)`, `microphone=(self)`) if headers are added. Never authorize unrelated origins.
-- Preview deploys are for application QA. Real patient imagery must not be used in remote debugging artifacts or screenshots.
-
-## 15. Technical risks
-
-1. iPhone thermal pressure and memory can reduce sustained inference quality during a 60-minute session.
-2. Worker + MediaPipe + GPU delegate behavior varies; workerizing does not guarantee that all result objects are transferable.
-3. Multiple people may overlap or swap tracking identities. Team identity must not depend on unstable pose-array indices.
-4. Camera framing, projector delay, room lighting, loose clothing, mobility aids, and seated posture can change detection reliability.
-5. Pitch is not a direct Web Audio API output; the estimator and confidence/voicing gate require validation across voices and room noise.
-6. Safari permission denial and audio-context suspension need therapist-friendly recovery without reloading a game.
-7. Safe-area/browser-chrome behavior changes across iOS versions. Device testing remains mandatory.
-8. Phaser and MediaPipe bundles/models can make first load slow; route and sensor lazy loading are required.
-9. Clinical usability requires large text, low cognitive load, predictable recovery, and a therapist-controlled pause/reset path; technical success alone is insufficient.
-
-## 16. Decisions intentionally deferred
-
-- exact first game and its rules;
-- exact pose/hand/gesture models and inference resolution/rates;
-- Gesture Recognizer versus custom landmark analyzers per gesture;
-- thresholds, calibration exercises, confidence policy, and lost-tracking UX;
-- precise team turn/relay/shared-control modes;
-- four-person simultaneous tracking support and minimum device tier;
-- production availability and protection mechanism for test mode beyond the build gate;
-- full replay file format and long-term regression corpus;
-- session persistence, analytics, PWA/offline behavior, and content update strategy;
-- visual design, formal art, audio assets, and game-specific scene composition;
-- any backend, account, database, networking, or AI service.
-
-Phase 1 should implement only the normalized provider boundary, developer provider, registry schema/validation, and one-device performance spike before a formal game.
+Phase 1A stops at this boundary. It does not authorize Phase 1B/Phase 2 sensor or formal-game work.

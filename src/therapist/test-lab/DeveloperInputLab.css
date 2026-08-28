@@ -1,0 +1,431 @@
+.test-lab-shell {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding-block: max(0.55rem, env(safe-area-inset-top))
+    max(0.55rem, env(safe-area-inset-bottom));
+  padding-inline: max(0.55rem, env(safe-area-inset-left))
+    max(0.55rem, env(safe-area-inset-right));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(18rem, 25vw, 23rem);
+  gap: 0.65rem;
+  overflow: hidden;
+  background: #060d16;
+}
+
+.test-field-region {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.55rem;
+}
+
+.test-lab-topbar {
+  min-width: 0;
+  min-height: 3rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.test-lab-topbar h1,
+.test-lab-topbar span {
+  display: block;
+  margin: 0;
+}
+
+.test-lab-topbar h1 {
+  overflow: hidden;
+  color: #f4fbff;
+  font-size: clamp(1rem, 2vw, 1.45rem);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lab-kicker {
+  margin-bottom: 0.1rem !important;
+  color: #6fe3c4;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.back-button,
+.test-control-panel button,
+.home-primary-button {
+  border: 1px solid #31516a;
+  border-radius: 0.65rem;
+  color: #eaf5ff;
+  background: #102131;
+  cursor: pointer;
+  font-weight: 720;
+}
+
+.back-button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.back-button:hover,
+.test-control-panel button:hover {
+  border-color: #6fe3c4;
+  background: #173247;
+}
+
+.no-sensors-badge,
+.provider-badge {
+  border: 1px solid #2e665e;
+  border-radius: 999px;
+  padding: 0.38rem 0.65rem;
+  color: #8ff2d7;
+  background: #0d2b29;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.test-field-stack {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #233f53;
+  border-radius: 0.9rem;
+  background: #07131f;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 38%);
+}
+
+.phaser-canvas-host {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: size layout paint;
+  touch-action: none;
+}
+
+.phaser-canvas-host canvas {
+  display: block;
+}
+
+.phaser-load-error {
+  position: absolute;
+  inset: 1rem;
+  color: #ff9aad;
+}
+
+.field-hint {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.6rem;
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.5rem;
+  color: #a9c1d1;
+  background: rgb(4 14 23 / 78%);
+  font-size: 0.64rem;
+  pointer-events: none;
+}
+
+.action-debug {
+  position: absolute;
+  z-index: 3;
+  left: 0.65rem;
+  bottom: 0.65rem;
+  width: min(23rem, 42%);
+  max-height: 46%;
+  overflow: hidden;
+  border: 1px solid rgb(111 227 196 / 35%);
+  border-radius: 0.7rem;
+  padding: 0.55rem;
+  color: #d9e9f3;
+  background: rgb(4 14 23 / 88%);
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 30%);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.debug-heading,
+.debug-player,
+.debug-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.debug-heading {
+  color: #f6fbff;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.action-debug .provider-badge {
+  padding: 0.18rem 0.4rem;
+  font-size: 0.58rem;
+}
+
+.debug-player {
+  margin: 0.35rem 0 0.4rem;
+  color: #f8be62;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.debug-player span {
+  overflow: hidden;
+  color: #9fb4c3;
+  font-size: 0.58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-action-list {
+  max-height: 8.6rem;
+  overflow: hidden;
+}
+
+.debug-action-row {
+  min-height: 1rem;
+  color: #a9c1d1;
+  font-size: 0.56rem;
+}
+
+.debug-action-row code {
+  flex: 1;
+  overflow: hidden;
+  color: #dceaf3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-action-row output {
+  color: #6fe3c4;
+  font-variant-numeric: tabular-nums;
+}
+
+.debug-action-row span {
+  width: 2.8rem;
+  color: #8099aa;
+  text-align: right;
+}
+
+.debug-action-row span[data-phase='started'],
+.debug-action-row span[data-phase='active'] {
+  color: #f8be62;
+}
+
+.test-control-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #233f53;
+  border-radius: 0.9rem;
+  padding: 0.75rem;
+  color: #c7d7e2;
+  background: #0b1825;
+  scrollbar-width: thin;
+}
+
+.control-panel-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.control-panel-heading div span,
+.test-control-panel label,
+.control-section legend {
+  color: #91a9ba;
+  font-size: 0.67rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.control-panel-heading div strong {
+  display: block;
+  color: #6fe3c4;
+  font-size: 1.4rem;
+}
+
+.test-control-panel select {
+  min-height: 2rem;
+  border: 1px solid #31516a;
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.45rem;
+  color: #edf7ff;
+  background: #102131;
+}
+
+.control-panel-heading label,
+.two-column-controls label,
+.slider-stack label {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.control-section {
+  min-width: 0;
+  margin: 0.72rem 0 0;
+  border: 0;
+  border-top: 1px solid #20384a;
+  padding: 0.65rem 0 0;
+}
+
+.control-section legend {
+  padding: 0 0.35rem 0 0;
+}
+
+.segmented-grid,
+.trigger-grid {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.segmented-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.pointer-modes {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.segmented-grid button,
+.trigger-grid button {
+  min-height: 2.15rem;
+  padding: 0.35rem;
+  font-size: 0.68rem;
+}
+
+.segmented-grid button[aria-pressed='true'] {
+  border-color: #6fe3c4;
+  color: #061710;
+  background: #6fe3c4;
+}
+
+.two-column-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.slider-stack {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.slider-stack label > span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.slider-stack output {
+  color: #6fe3c4;
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-stack input {
+  width: 100%;
+  accent-color: #6fe3c4;
+}
+
+.trigger-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.binding-help {
+  margin-top: 0.7rem;
+  color: #8fa6b6;
+  font-size: 0.65rem;
+}
+
+.binding-help summary {
+  color: #c7d7e2;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.binding-help p {
+  margin: 0.3rem 0 0;
+}
+
+@media (max-height: 32rem) and (orientation: landscape) {
+  .test-lab-shell {
+    grid-template-columns: minmax(0, 1fr) clamp(16rem, 32vw, 18rem);
+    gap: 0.4rem;
+    padding-block: max(0.3rem, env(safe-area-inset-top))
+      max(0.3rem, env(safe-area-inset-bottom));
+    padding-inline: max(0.35rem, env(safe-area-inset-left))
+      max(0.35rem, env(safe-area-inset-right));
+  }
+
+  .test-field-region {
+    gap: 0.3rem;
+  }
+
+  .test-lab-topbar {
+    min-height: 2.25rem;
+  }
+
+  .lab-kicker,
+  .no-sensors-badge {
+    display: none !important;
+  }
+
+  .test-lab-topbar h1 {
+    font-size: 1rem;
+  }
+
+  .back-button {
+    min-height: 2rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .test-control-panel {
+    padding: 0.55rem;
+  }
+
+  .control-section {
+    margin-top: 0.5rem;
+    padding-top: 0.45rem;
+  }
+
+  .segmented-grid button,
+  .trigger-grid button {
+    min-height: 1.8rem;
+    font-size: 0.6rem;
+  }
+
+  .action-debug {
+    width: min(20rem, 48%);
+    max-height: 50%;
+    padding: 0.4rem;
+  }
+
+  .field-hint {
+    display: none;
+  }
+}
+
+@media (orientation: portrait), (max-width: 42rem) {
+  .test-lab-shell {
+    height: auto;
+    min-height: 100dvh;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(22rem, 62dvh) auto;
+    overflow: visible;
+  }
+
+  .test-control-panel {
+    overflow: visible;
+  }
+}

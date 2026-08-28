@@ -1,6 +1,7 @@
 # Phase 0 — Skills, Plugins, and API Research
 
-Snapshot date: 2026-08-28  
+Snapshot date: 2026-08-28
+
 Research order: official documentation, then official repositories. No deprecated `openai/skills` content or unverified third-party skill was installed.
 
 ## 1. Relevant session and local capabilities
@@ -96,6 +97,8 @@ Registry and official-source check at the snapshot date:
 Phaser's official installation path is `npm install phaser` and ES-module import. Vite's official `react-ts` template supplies the React/TypeScript build setup. The project keeps the template TypeScript line rather than independently jumping to a newer major during Phase 0.
 
 ## 5. MediaPipe Tasks Vision findings
+
+Phase 1A adds the Web-package-specific [MediaPipe Privacy and Telemetry Audit](./MEDIAPIPE_PRIVACY_TELEMETRY.md). It records that raw task input remaining on-device does not mean the SDK makes no Google-bound requests; production privacy claims must use the more precise audit language.
 
 Official Web setup installs `@mediapipe/tasks-vision` and supports CPU or GPU delegates. The architecture should lazy-load and pin WASM/model assets rather than use an unpinned production CDN URL.
 

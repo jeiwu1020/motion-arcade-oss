@@ -1,8 +1,8 @@
 # Motion Arcade
 
-Phase 0 architecture scaffold for a therapist-operated, browser-based motion game platform.
+Phase 1A input foundation for a therapist-operated, browser-based motion game platform.
 
-This repository intentionally contains no formal game. Its small Phaser scene proves that React, TypeScript, Vite, and Phaser 4 can build and that a `1280 × 720` logical canvas can mount with `FIT` scaling.
+This repository intentionally contains no formal game and no real sensor implementation. The Developer Input Lab proves that one to four logical players can control a lazy-loaded `1280 × 720` Phaser view entirely through normalized keyboard, pointer, voice, and adaptive-profile simulation.
 
 ## Commands
 
@@ -15,10 +15,12 @@ npm test
 npm run build
 ```
 
-## Phase 0 documents
+## Architecture documents
 
 - [Master architecture](./docs/MASTER_ARCHITECTURE.md)
-- [Motion input contract draft](./docs/MOTION_INPUT_CONTRACT_DRAFT.md)
+- [Motion input contract](./docs/MOTION_INPUT_CONTRACT.md)
+- [Developer test mode](./docs/DEVELOPER_TEST_MODE.md)
+- [MediaPipe privacy and telemetry audit](./docs/MEDIAPIPE_PRIVACY_TELEMETRY.md)
 - [Skills and API research](./docs/SKILLS_AND_RESEARCH.md)
 
 ## Non-negotiable boundaries
@@ -28,5 +30,8 @@ npm run build
 - Team count (one to four) is independent of simultaneous body tracking count.
 - Real, simulated, and future replay input share one provider contract. Test input is developer-gated and must not request real sensor permissions.
 - The first target is iPhone Safari in landscape. The logical playfield uses `FIT`; critical UI remains inside safe-area insets.
+- Raw MediaPipe task input and MediaPipe SDK telemetry are separate privacy concerns; production sensor work must follow the documented audit.
 
-Phase 1 must not begin until the documented architecture decisions and open questions have been reviewed.
+Development exposes the Input Lab automatically. A production build hides it unless built explicitly with `VITE_ENABLE_TEST_INPUT=true`. `VITE_*` variables are client-visible and must never hold secrets.
+
+Phase 1A stops at the normalized simulation boundary. Do not begin formal games or real MediaPipe/Web Audio providers without an explicitly reviewed next phase.

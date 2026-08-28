@@ -1,8 +1,12 @@
 import Phaser from 'phaser'
 
-import { PhaseZeroScene } from './PhaseZeroScene'
+import { DeveloperInputLabScene } from './DeveloperInputLabScene'
+import type { TestLabMotionBridge } from './TestLabMotionBridge'
 
-export function createPhaserGame(parent: HTMLElement): Phaser.Game {
+export function createPhaserGame(
+  parent: HTMLElement,
+  bridge: TestLabMotionBridge,
+): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -13,6 +17,6 @@ export function createPhaserGame(parent: HTMLElement): Phaser.Game {
       width: 1280,
       height: 720,
     },
-    scene: [PhaseZeroScene],
+    scene: [new DeveloperInputLabScene(bridge)],
   })
 }
