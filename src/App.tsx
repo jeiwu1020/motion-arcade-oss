@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { TEST_INPUT_ENABLED } from './app/testModeGate'
+import { homeCategories } from './app/homeCategories'
+import type { GameCategory } from './game/registry/types'
 import './App.css'
 
 const DeveloperInputLab = lazy(
@@ -40,77 +42,54 @@ function App() {
 }
 
 function HomeScreen({ onOpenLab }: { readonly onOpenLab: () => void }) {
+  const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
+
   return (
     <main className="home-shell">
-      <nav className="home-nav" aria-label="Application status">
-        <span className="home-wordmark">Motion Arcade</span>
-        <span className="phase-badge">Phase 1A · foundation</span>
-      </nav>
+      <header className="home-nav">
+        <a className="home-brand" href="#top" aria-label="Motion Arcade 首頁">
+          <img className="home-brand-mark" src="/assets/home/motion_arcade_mark.svg" alt="" />
+          <span>
+            <strong>Motion Arcade</strong>
+            <small>動感遊樂場</small>
+          </span>
+        </a>
+        {TEST_INPUT_ENABLED ? (
+          <button className="developer-lab-link" type="button" onClick={onOpenLab}>
+            Developer Input Lab
+          </button>
+        ) : null}
+      </header>
 
-      <section className="home-hero">
+      <section className="home-hero" id="top" aria-labelledby="home-title">
         <div className="home-copy">
-          <p className="home-eyebrow">Browser-based adaptive movement platform</p>
-          <h1>
-            One input contract.
-            <br />
-            Many ways to participate.
-          </h1>
-          <p className="home-summary">
-            The application shell starts without Phaser or sensor libraries. The
-            developer-only lab proves keyboard, pointer, voice simulation, and
-            per-player adaptations through normalized actions.
-          </p>
-          {TEST_INPUT_ENABLED ? (
-            <button
-              className="home-primary-button"
-              type="button"
-              onClick={onOpenLab}
-            >
-              Open Developer Input Lab
-              <span aria-hidden="true">→</span>
-            </button>
-          ) : (
-            <p className="production-mode-note">
-              Developer input controls are disabled in this production build.
-            </p>
-          )}
-        </div>
-
-        <div className="architecture-card" aria-label="Input architecture summary">
-          <div className="architecture-node source-node">
-            <span>Provider</span>
-            <strong>TEST</strong>
-          </div>
-          <span className="architecture-arrow">↓</span>
-          <div className="architecture-node contract-node">
-            <span>Stable boundary</span>
-            <strong>Normalized Actions</strong>
-          </div>
-          <span className="architecture-arrow">↓</span>
-          <div className="architecture-node output-node">
-            <span>Consumers</span>
-            <strong>React · Phaser</strong>
-          </div>
-          <p>No camera · no microphone · no permissions</p>
+          <p className="home-eyebrow">MOTION ARCADE</p>
+          <h1 id="home-title">今天想玩什麼？</h1>
+          <p>動起來，找到今天想玩的遊戲。</p>
         </div>
       </section>
 
-      <section className="home-foundation-grid" aria-label="Phase 1A capabilities">
-        <article>
-          <span>01</span>
-          <h2>Per-player adaptation</h2>
-          <p>Four simulated players keep separate profiles, sides, and state.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h2>Canonical coordinates</h2>
-          <p>Mirroring is resolved before games see world or hand positions.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h2>Lazy playfield</h2>
-          <p>Phaser loads only when the full-screen test shell is entered.</p>
-        </article>
+      <section className="category-section" aria-label="遊戲分類">
+        <div className="category-rail">
+          {homeCategories.map((category) => {
+            const isSelected = category.id === selectedCategory
+
+            return (
+              <button
+                className="category-card"
+                data-selected={isSelected}
+                aria-pressed={isSelected}
+                type="button"
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+              >
+                <img src={category.artSrc} alt="" />
+                <span className="category-card-scrim" aria-hidden="true" />
+                <span className="category-card-label">{category.title}</span>
+              </button>
+            )
+          })}
+        </div>
       </section>
     </main>
   )
