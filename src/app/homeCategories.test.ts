@@ -15,6 +15,8 @@ describe('home category metadata', () => {
     for (const category of homeCategories) {
       expect(category.title.trim()).not.toBe('')
       expect(category.artSrc).toMatch(/_v2\.webp$/)
+      expect(typeof category.objectPosition).toBe('string')
+      expect(category.objectPosition.trim()).not.toBe('')
       expect('gameCount' in category).toBe(false)
     }
   })

@@ -1,9 +1,30 @@
 :root {
+  --ma-bg: #f4f6f4;
+  --ma-surface: #e8eced;
+  --ma-ink: #13233f;
+  --ma-primary: #2f8cff;
+  --ma-focus: #2f8cff;
+  --ma-white: #fff;
+  --ma-bg-strong: rgb(244 246 244 / 94%);
+  --ma-bg-mid: rgb(244 246 244 / 64%);
+  --ma-bg-soft: rgb(244 246 244 / 18%);
+  --ma-text-muted: rgb(19 35 63 / 70%);
+  --ma-text-soft: rgb(19 35 63 / 75%);
+  --ma-surface-translucent: rgb(255 255 255 / 58%);
+  --ma-card-fill: rgb(19 35 63 / 88%);
+  --ma-scrim: rgb(9 23 40 / 78%);
+  --ma-card-radius: clamp(1.25rem, 2.5vw, 2.25rem);
+  --ma-space-2: clamp(0.55rem, 1.25vw, 1rem);
+  --ma-space-3: 0.65rem;
+  --ma-card-shadow: 0 0.75rem 1.75rem rgb(19 35 63 / 15%);
+  --ma-card-shadow-selected: 0 1.15rem 2.3rem rgb(19 35 63 / 30%);
+  --ma-transition-fast: 180ms cubic-bezier(0.2, 0.75, 0.25, 1);
+  --ma-transition-medium: 220ms cubic-bezier(0.2, 0.75, 0.25, 1);
   font-family:
     "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  color: #13233f;
-  background: #f4f6f4;
+  color: var(--ma-ink);
+  background: var(--ma-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -20,7 +41,7 @@
 
 html {
   min-height: 100%;
-  background: #f4f6f4;
+  background: var(--ma-bg);
 }
 
 body {
@@ -29,7 +50,7 @@ body {
   min-height: 100dvh;
   margin: 0;
   overflow-x: hidden;
-  background: #f4f6f4;
+  background: var(--ma-bg);
 }
 
 button,

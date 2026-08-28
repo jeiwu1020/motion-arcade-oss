@@ -51,7 +51,7 @@ function HomeScreen({ onOpenLab }: { readonly onOpenLab: () => void }) {
           <img className="home-brand-mark" src="/assets/home/motion_arcade_mark.svg" alt="" />
           <span>
             <strong>Motion Arcade</strong>
-            <small>動感遊樂場</small>
+            <small>體感遊樂園</small>
           </span>
         </a>
         {TEST_INPUT_ENABLED ? (
@@ -83,7 +83,11 @@ function HomeScreen({ onOpenLab }: { readonly onOpenLab: () => void }) {
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
               >
-                <img src={category.artSrc} alt="" />
+                <img
+                  src={category.artSrc}
+                  alt=""
+                  style={{ objectPosition: category.objectPosition }}
+                />
                 <span className="category-card-scrim" aria-hidden="true" />
                 <span className="category-card-label">{category.title}</span>
               </button>
