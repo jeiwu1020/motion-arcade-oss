@@ -17,8 +17,8 @@ export interface ResolvedAbilityProfile {
   readonly posture: 'FLEXIBLE' | 'SEATED'
   readonly bodyRange: 'FULL_BODY' | 'UPPER_BODY'
   readonly allowedAnatomicalSides: readonly AnatomicalSide[]
-  readonly movementScale: number
-  readonly responseTimeScale: number
+  readonly requiredMotionRangeScale: number
+  readonly reactionWindowScale: number
 }
 
 const ANATOMICAL_ACTION_SIDE: Readonly<
@@ -63,8 +63,8 @@ export function resolveAbilityProfile(
         ? 'UPPER_BODY'
         : 'FULL_BODY',
     allowedAnatomicalSides,
-    movementScale: profileIds.includes('LOW_MOTION') ? 0.6 : 1,
-    responseTimeScale: profileIds.includes('SLOW_RESPONSE') ? 1.75 : 1,
+    requiredMotionRangeScale: profileIds.includes('LOW_MOTION') ? 0.6 : 1,
+    reactionWindowScale: profileIds.includes('SLOW_RESPONSE') ? 1.75 : 1,
   }
 }
 

@@ -94,6 +94,8 @@ Each player has two composable controls:
 
 For example, Player 1 can remain `STANDARD` while Player 2 is `SEATED + RIGHT_SIDE`. A right-side profile suppresses left-sided strike, reach, arm-swing, and hand-position actions without changing `MOVE_LEFT`/`MOVE_RIGHT` world direction.
 
+Profile metadata does not disadvantage the simulated game output. `LOW_MOTION` exposes a smaller `requiredMotionRangeScale` for a future physical adapter, but the Phaser proof moves at the same normalized speed. `SLOW_RESPONSE` exposes a `reactionWindowScale` for future interaction timing, but does not slow the proof animation.
+
 ## Trigger buttons
 
 The panel exposes common pulse actions including jump, squat, left/right strike, throw, hand open, pinch, and voice trigger. The keyboard table covers the additional Phase 0 action set.

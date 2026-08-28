@@ -216,6 +216,124 @@ describe('KeyboardMouseTestInputProvider', () => {
     expect(state(provider, 'player-1', 'JUMP').phase).toBe('active')
   })
 
+  it('removes actions and old keyboard bindings when the request is reconfigured', async () => {
+    const { keyboard, provider } = setup()
+    const initialRequest = request()
+    await provider.start({ ...initialRequest, actions: ['JUMP', 'RUN'] })
+
+    keyboard.dispatchEvent(new InputEventForTest('keydown', { code: 'KeyW' }))
+    provider.triggerAction('player-1', 'JUMP')
+    expect(state(provider, 'player-1', 'JUMP').phase).toBe('started')
+
+    await provider.start({ ...initialRequest, actions: ['STRIKE_RIGHT'] })
+
+    const actions = provider.getSnapshot().players[0]?.actions ?? {}
+    expect(actions).not.toHaveProperty('JUMP')
+    expect(actions).not.toHaveProperty('RUN')
+    expect(actions.STRIKE_RIGHT).toMatchObject({ value: 0, phase: 'idle' })
+
+    keyboard.dispatchEvent(new InputEventForTest('keydown', { code: 'KeyW' }))
+    expect(provider.getSnapshot().players[0]?.actions).not.toHaveProperty('JUMP')
+
+    await provider.start({ ...initialRequest, actions: ['JUMP'] })
+    provider.update(200)
+    expect(state(provider, 'player-1', 'JUMP')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+  })
+
+  it('reconciles disallowed action state and bookkeeping when a profile changes', async () => {
+    const { keyboard, provider } = setup()
+    const initialRequest = request()
+    await provider.start({
+      ...initialRequest,
+      actions: ['STRIKE_LEFT', 'STRIKE_RIGHT'],
+    })
+
+    keyboard.dispatchEvent(new InputEventForTest('keydown', { code: 'KeyJ' }))
+    provider.triggerAction('player-1', 'STRIKE_LEFT')
+
+    await provider.start({
+      ...initialRequest,
+      actions: ['STRIKE_LEFT', 'STRIKE_RIGHT'],
+      players: [
+        {
+          ...initialRequest.players[0]!,
+          abilityProfile: resolveAbilityProfile(['RIGHT_SIDE']),
+        },
+      ],
+    })
+
+    expect(state(provider, 'player-1', 'STRIKE_LEFT')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+    provider.update(200)
+    expect(state(provider, 'player-1', 'STRIKE_LEFT')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+
+    await provider.start({
+      ...initialRequest,
+      actions: ['STRIKE_LEFT', 'STRIKE_RIGHT'],
+    })
+    keyboard.dispatchEvent(new InputEventForTest('keydown', { code: 'KeyJ' }))
+    expect(state(provider, 'player-1', 'STRIKE_LEFT').phase).toBe('started')
+  })
+
+  it('resets transient input state across stop and restart', async () => {
+    const { keyboard, pointer, provider } = setup()
+    await provider.start(request())
+
+    keyboard.dispatchEvent(new InputEventForTest('keydown', { code: 'ShiftLeft' }))
+    provider.setContinuousValue('player-1', 'VOICE_LEVEL', 0.8)
+    pointer.dispatchEvent(
+      new InputEventForTest('pointerdown', { clientX: 100, clientY: 50 }),
+    )
+    pointer.dispatchEvent(
+      new InputEventForTest('pointermove', { clientX: 300, clientY: 150 }),
+    )
+
+    await provider.stop()
+
+    expect(state(provider, 'player-1', 'RUN')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+    expect(state(provider, 'player-1', 'VOICE_LEVEL')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+    expect(state(provider, 'player-1', 'VOICE_SUSTAINED_DURATION')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+    expect(state(provider, 'player-1', 'POINTER_DRAG')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+    expect(state(provider, 'player-1', 'POINTER_VELOCITY').value).toEqual({
+      x: 0,
+      y: 0,
+      magnitude: 0,
+    })
+
+    await provider.start(request())
+    provider.update(500)
+
+    expect(state(provider, 'player-1', 'RUN')).toMatchObject({ value: 0, phase: 'idle' })
+    expect(state(provider, 'player-1', 'VOICE_LEVEL')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+    expect(state(provider, 'player-1', 'POINTER_DRAG')).toMatchObject({
+      value: 0,
+      phase: 'idle',
+    })
+  })
+
   it('keeps continuous voice values normalized and computes sustained time', async () => {
     const { provider } = setup()
     await provider.start(request())

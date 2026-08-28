@@ -33,4 +33,14 @@ describe('ability profiles', () => {
     expect(actionAllowedForProfile('HAND_POSITION_RIGHT', leftOnly)).toBe(false)
     expect(actionAllowedForProfile('REACH_RIGHT', leftOnly)).toBe(false)
   })
+
+  it('describes physical adaptation without changing game-facing action semantics', () => {
+    const lowMotion = resolveAbilityProfile(['LOW_MOTION'])
+    const slowResponse = resolveAbilityProfile(['SLOW_RESPONSE'])
+
+    expect(lowMotion.requiredMotionRangeScale).toBe(0.6)
+    expect(lowMotion.reactionWindowScale).toBe(1)
+    expect(slowResponse.requiredMotionRangeScale).toBe(1)
+    expect(slowResponse.reactionWindowScale).toBe(1.75)
+  })
 })

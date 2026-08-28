@@ -196,7 +196,7 @@ Capability presets:
 - `RIGHT_SIDE`
 - `SLOW_RESPONSE`
 
-`ResolvedAbilityProfile` composes presets into posture, body range, allowed anatomical sides, movement scale, and response-time scale. The current left/right filter gates sided limb actions while leaving projected movement direction unchanged.
+`ResolvedAbilityProfile` composes presets into posture, body range, allowed anatomical sides, required motion range scale, and reaction window scale. `requiredMotionRangeScale` describes how much physical movement a future sensor adapter may require to produce the same normalized action; it must not slow or weaken game output. `reactionWindowScale` reserves a future gameplay timing adjustment for forgiving response windows; it must not automatically slow animation playback. The current left/right filter gates sided limb actions while leaving projected movement direction unchanged.
 
 `PlayerCalibration` is separate and reserves measured neutral position, reach range, left/right usable extent, voice floor/ceiling, and movement baseline. Phase 1A does not perform calibration or encode medical assumptions.
 
@@ -305,6 +305,7 @@ Implemented Phase 1A tests cover:
 
 - provider safe/idempotent start-stop and absence of media permission calls;
 - keyboard phases, release, key-repeat behavior, continuous values, pointer normalization, click/drag/velocity, and one-to-four-player independence;
+- request/profile reconciliation and neutral stop/restart behavior, including stale key, pulse, pointer, and voice runtime cleanup;
 - separate player profiles and predictable side gating;
 - canonical mirrored/non-mirrored coordinates, world direction, and anatomical labels;
 - normalized voice clamp and sustained duration;

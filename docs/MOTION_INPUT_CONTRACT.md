@@ -132,6 +132,13 @@ Available capability presets:
 
 Profiles can compose. `SEATED + RIGHT_SIDE` is valid. `LEFT_SIDE` and `RIGHT_SIDE` gate anatomical limb actions such as sided strike, reach, arm swing, and hand position. They do not reverse projected world movement. No diagnosis name is a valid profile or gameplay filter.
 
+Resolved profile metadata is descriptive at the normalized-action boundary:
+
+- `requiredMotionRangeScale` describes the physical range a future sensor adapter may need before emitting the same game-facing normalized value. `LOW_MOTION` therefore does not slow a character or reduce a normalized action value.
+- `reactionWindowScale` reserves a future timing-window adjustment for forgiving interactions. `SLOW_RESPONSE` does not automatically slow Phaser animation playback.
+
+The Developer Input Lab consumes normalized action values consistently across profiles; it displays the selected profile for diagnostics only.
+
 ## 7. Canonical coordinates and sides
 
 ### Anatomical semantics
@@ -223,6 +230,8 @@ All values are `false` for the Developer Input Lab. A future capability-negotiat
 `KeyboardMouseTestInputProvider` owns all DOM bindings and simulated values. It supports one to four independent players, profile changes, hold/release phases, non-retriggering pulses, continuous values, pointer position/click/drag/velocity, and left-hand/right-hand/generic-pointer routing.
 
 The React control panel writes provider values. The Phaser test scene only reads `MotionInputSnapshot`; it contains no key, mouse, or slider knowledge.
+
+`start(request)` reconciles the action set exactly: removed actions and players disappear from the snapshot, and their pressed-key and pulse bookkeeping is discarded. A profile change immediately neutralizes actions that the new profile disallows. `stop()` is idempotent and resets transient actions, pointer history/drag state, pulse timers, pressed keys, and voice-sustained runtime state; a subsequent start is neutral until new input arrives.
 
 ## 11. Teams are outside this contract
 

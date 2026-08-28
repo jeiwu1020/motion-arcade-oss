@@ -47,10 +47,10 @@ interface MutablePlayerState {
   request: MotionPlayerRequest
   actions: Partial<Record<MotionActionId, MotionActionState>>
   voiceSustainedMs: number
-  previousPointer?: {
+  previousPointer: {
     point: NormalizedPoint2D
     timestampMs: number
-  }
+  } | undefined
 }
 
 const KEY_BINDINGS: Readonly<Record<string, MotionActionId>> = {
@@ -183,6 +183,22 @@ export class KeyboardMouseTestInputProvider implements MotionInputProvider {
     this.#pressedKeys.clear()
     this.#pulseExpiryMs.clear()
     this.#pointerDown = false
+    this.#elapsedMs = 0
+    for (const player of this.#players.values()) {
+      player.voiceSustainedMs = 0
+      player.previousPointer = undefined
+      for (const [actionId, action] of Object.entries(player.actions) as Array<
+        [MotionActionId, MotionActionState]
+      >) {
+        player.actions[actionId] = this.#nextActionState(
+          action,
+          zeroValue(actionId),
+          'idle',
+          true,
+        )
+      }
+    }
+    this.#emit()
   }
 
   isRunning(): boolean {
@@ -287,6 +303,7 @@ export class KeyboardMouseTestInputProvider implements MotionInputProvider {
         )
       }
     }
+    this.#pruneRuntimeBookkeeping()
     this.#emit()
   }
 
@@ -359,32 +376,89 @@ export class KeyboardMouseTestInputProvider implements MotionInputProvider {
 
     for (const request of requests) {
       const existing = this.#players.get(request.playerId)
-      const actions: Partial<Record<MotionActionId, MotionActionState>> =
-        existing?.actions ?? {}
+      const actions: Partial<Record<MotionActionId, MotionActionState>> = {}
       for (const actionId of this.#requestedActions) {
-        if (!actions[actionId]) {
-          actions[actionId] = {
-            id: actionId,
-            value: zeroValue(actionId),
-            phase: 'idle',
-            confidence: 1,
-            timestampMs: this.#now(),
-            sequence: ++this.#actionSequence,
-          }
+        const previous = existing?.actions[actionId]
+        if (previous && actionAllowedForProfile(actionId, request.abilityProfile)) {
+          actions[actionId] = previous
+        } else if (previous) {
+          actions[actionId] = this.#nextActionState(
+            previous,
+            zeroValue(actionId),
+            'idle',
+            true,
+          )
+        } else {
+          actions[actionId] = this.#createIdleAction(actionId)
         }
       }
       this.#players.set(request.playerId, {
         request,
         actions,
-        voiceSustainedMs: existing?.voiceSustainedMs ?? 0,
-        ...(existing?.previousPointer
-          ? { previousPointer: existing.previousPointer }
-          : {}),
+        voiceSustainedMs:
+          existing &&
+          this.#requestedActions.has('VOICE_LEVEL') &&
+          this.#requestedActions.has('VOICE_SUSTAINED_DURATION')
+            ? existing.voiceSustainedMs
+            : 0,
+        previousPointer:
+          existing?.previousPointer && this.#hasPointerRuntimeAction()
+            ? existing.previousPointer
+            : undefined,
       })
     }
 
     if (!this.#activePlayerId || !requestedIds.has(this.#activePlayerId)) {
       this.#activePlayerId = requests[0]?.playerId
+    }
+    this.#pruneRuntimeBookkeeping()
+  }
+
+  #createIdleAction(actionId: MotionActionId): MotionActionState {
+    return {
+      id: actionId,
+      value: zeroValue(actionId),
+      phase: 'idle',
+      confidence: 1,
+      timestampMs: this.#now(),
+      sequence: ++this.#actionSequence,
+    }
+  }
+
+  #hasPointerRuntimeAction(): boolean {
+    return (
+      this.#requestedActions.has('HAND_POSITION_LEFT') ||
+      this.#requestedActions.has('HAND_POSITION_RIGHT') ||
+      this.#requestedActions.has('POINTER_POSITION') ||
+      this.#requestedActions.has('POINTER_VELOCITY')
+    )
+  }
+
+  #pruneRuntimeBookkeeping(): void {
+    for (const [code, pressed] of this.#pressedKeys) {
+      const player = this.#players.get(pressed.playerId)
+      if (
+        !player ||
+        !this.#requestedActions.has(pressed.actionId) ||
+        !actionAllowedForProfile(pressed.actionId, player.request.abilityProfile)
+      ) {
+        this.#pressedKeys.delete(code)
+      }
+    }
+
+    for (const pulseKey of this.#pulseExpiryMs.keys()) {
+      const separator = pulseKey.lastIndexOf(':')
+      const playerId = pulseKey.slice(0, separator)
+      const actionId = pulseKey.slice(separator + 1) as MotionActionId
+      const player = this.#players.get(playerId)
+      if (
+        separator < 0 ||
+        !player ||
+        !this.#requestedActions.has(actionId) ||
+        !actionAllowedForProfile(actionId, player.request.abilityProfile)
+      ) {
+        this.#pulseExpiryMs.delete(pulseKey)
+      }
     }
   }
 
@@ -520,7 +594,7 @@ export class KeyboardMouseTestInputProvider implements MotionInputProvider {
   }
 
   readonly #onPointerUp = (rawEvent: Event): void => {
-    if (!this.#activePlayerId) return
+    if (!this.#running || !this.#activePlayerId) return
     const event = rawEvent as PointerLikeEvent
     const changed = this.#updatePointer(this.#activePlayerId, event)
     this.#pointerDown = false

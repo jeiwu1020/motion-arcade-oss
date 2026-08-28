@@ -126,9 +126,8 @@ export class DeveloperInputLabScene extends Phaser.Scene {
 
     const left = numericValue(action(player, 'MOVE_LEFT'))
     const right = numericValue(action(player, 'MOVE_RIGHT'))
-    const movementScale = player.abilityProfile.movementScale
     this.#avatar.x = Phaser.Math.Clamp(
-      this.#avatar.x + (right - left) * 520 * movementScale * (delta / 1000),
+      this.#avatar.x + (right - left) * 520 * (delta / 1000),
       120,
       WORLD_WIDTH - 120,
     )
@@ -140,7 +139,7 @@ export class DeveloperInputLabScene extends Phaser.Scene {
       this.tweens.add({
         targets: this.#avatar,
         y: 405,
-        duration: 210 * player.abilityProfile.responseTimeScale,
+        duration: 210,
         yoyo: true,
         ease: 'Sine.Out',
       })
