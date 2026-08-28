@@ -8,7 +8,7 @@ interface SchedulerOptions<TFrame, TResult> {
   readonly targetHz: number
   readonly infer: (frame: TFrame, timestampMs: number) => Promise<TResult>
   readonly onResult?: ((result: TResult) => void) | undefined
-  readonly onError?: ((error: unknown) => void) | undefined
+  readonly onError?: ((error: unknown) => void | Promise<void>) | undefined
 }
 
 export class InferenceScheduler<TFrame, TResult> {
@@ -87,7 +87,7 @@ export class InferenceScheduler<TFrame, TResult> {
       return true
     } catch (error) {
       if (this.running && generation === this.generation) {
-        this.options.onError?.(error)
+        await this.options.onError?.(error)
       }
       return false
     } finally {

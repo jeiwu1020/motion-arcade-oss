@@ -39,6 +39,7 @@ interface PoseSensorSessionOptions {
   readonly createBackend: () => PoseInferenceBackend
   readonly createScheduler: (
     backend: PoseInferenceBackend,
+    onFatalInferenceError: (error: unknown) => Promise<void>,
   ) => SessionScheduler
   readonly documentTarget?: LifecycleDocument
   readonly windowTarget?: LifecycleWindow
@@ -49,6 +50,7 @@ export class PoseSensorSession {
   private state: PoseSessionState = 'READY'
   private backend: PoseInferenceBackend | null = null
   private scheduler: SessionScheduler | null = null
+  private cleanupPromise: Promise<void> | null = null
   private disposed = false
   private operationGeneration = 0
   private readonly documentTarget: LifecycleDocument
@@ -69,6 +71,7 @@ export class PoseSensorSession {
 
   async start(): Promise<void> {
     if (this.disposed) throw new Error('Pose sensor session is disposed.')
+    await this.cleanupPromise
     if (this.state === 'RUNNING' || this.state === 'STARTING') return
 
     const generation = ++this.operationGeneration
@@ -81,34 +84,37 @@ export class PoseSensorSession {
       this.backend = backend
       await backend.initialize()
       if (generation !== this.operationGeneration) {
-        await backend.close()
+        if (this.backend === backend) {
+          this.backend = null
+          await backend.close()
+        }
         return
       }
 
-      const scheduler = this.options.createScheduler(backend)
+      const scheduler = this.options.createScheduler(
+        backend,
+        (error) => this.fail(error),
+      )
       this.scheduler = scheduler
       scheduler.start()
       this.setState('RUNNING')
     } catch (error) {
       if (generation !== this.operationGeneration) return
-      this.options.camera.stop()
-      await this.backend?.close()
-      this.backend = null
-      this.scheduler = null
+      await this.releaseResources()
       this.setState('ERROR')
       throw error
     }
   }
 
   async stop(nextState: 'STOPPED' | 'SUSPENDED' = 'STOPPED'): Promise<void> {
-    this.operationGeneration += 1
-    this.scheduler?.stop()
-    this.scheduler = null
-    this.options.camera.stop()
-    const backend = this.backend
-    this.backend = null
-    await backend?.close()
+    await this.releaseResources()
     this.setState(nextState)
+  }
+
+  async fail(_error: unknown): Promise<void> {
+    if (this.state === 'ERROR' && !this.cleanupPromise) return
+    await this.releaseResources()
+    this.setState('ERROR')
   }
 
   async tick(
@@ -149,6 +155,26 @@ export class PoseSensorSession {
   private setState(state: PoseSessionState): void {
     this.state = state
     this.options.onStateChange?.(state)
+  }
+
+  private releaseResources(): Promise<void> {
+    if (this.cleanupPromise) return this.cleanupPromise
+
+    this.operationGeneration += 1
+    const scheduler = this.scheduler
+    this.scheduler = null
+    scheduler?.stop()
+
+    this.options.camera.stop()
+    const backend = this.backend
+    this.backend = null
+    const cleanup = Promise.resolve(backend?.close())
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.cleanupPromise === cleanup) this.cleanupPromise = null
+      })
+    this.cleanupPromise = cleanup
+    return cleanup
   }
 
   private readonly handleVisibilityChange = () => {

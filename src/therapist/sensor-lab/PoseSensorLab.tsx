@@ -120,6 +120,29 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const [telemetry, setTelemetry] = useState(INITIAL_TELEMETRY)
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
 
+  const handleSessionStateChange = useCallback((state: PoseSessionState) => {
+    setSessionState(state)
+    if (state !== 'ERROR') return
+
+    canvasRef.current
+      ?.getContext('2d')
+      ?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+    inferenceDurationsRef.current = []
+    inferenceTimesRef.current = []
+    setCameraSettings(null)
+    setTelemetry((current) => ({
+      ...current,
+      actualHz: 0,
+      meanInferenceMs: 0,
+      p95InferenceMs: 0,
+      poseDetected: false,
+      lastResultAt: null,
+      lastResultAgeMs: null,
+      modelStatus: 'ERROR',
+      workerStatus: 'CLOSED',
+    }))
+  }, [])
+
   const handleInferenceResult = useCallback((result: PoseInferenceResult) => {
     if (canvasRef.current) drawPoseFrame(canvasRef.current, result.frame)
     const now = performance.now()
@@ -148,10 +171,19 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     const video = videoRef.current
     if (!video) return
     const camera = new CameraController(video)
-    const session = new PoseSensorSession({
+    let activeSession: PoseSensorSession | null = null
+    const onSessionStateChange = (state: PoseSessionState) => {
+      if (activeSession && sessionRef.current === activeSession) {
+        handleSessionStateChange(state)
+      }
+    }
+    activeSession = new PoseSensorSession({
       camera,
       createBackend: () => new AdaptivePoseBackend(),
-      createScheduler: (backend: PoseInferenceBackend) => {
+      createScheduler: (
+        backend: PoseInferenceBackend,
+        onFatalInferenceError,
+      ) => {
         const targetHz = backend.mode === 'WORKER' ? 20 : 12
         return new InferenceScheduler<ImageBitmap, PoseInferenceResult>({
           targetHz,
@@ -165,13 +197,15 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
           onResult: handleInferenceResult,
           onError: (inferenceError) => {
             setError(errorDetails(inferenceError))
-            setSessionState('ERROR')
+            return onFatalInferenceError(inferenceError)
           },
         })
       },
-      onStateChange: setSessionState,
+      onStateChange: onSessionStateChange,
     })
+    const session = activeSession
     sessionRef.current = session
+    handleSessionStateChange(session.getState())
 
     let animationFrame = 0
     let renderWindowStartedAt = performance.now()
@@ -205,10 +239,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
 
     return () => {
       cancelAnimationFrame(animationFrame)
-      sessionRef.current = null
+      if (sessionRef.current === session) sessionRef.current = null
       void session.dispose()
     }
-  }, [handleInferenceResult])
+  }, [handleInferenceResult, handleSessionStateChange])
 
   const startCamera = async () => {
     const session = sessionRef.current
@@ -222,11 +256,19 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     }
 
     setError(null)
+    inferenceDurationsRef.current = []
+    inferenceTimesRef.current = []
     setTelemetry((current) => ({
       ...current,
+      actualHz: 0,
+      meanInferenceMs: 0,
+      p95InferenceMs: 0,
+      droppedInferenceFrames: 0,
       modelStatus: 'LOADING',
       workerStatus: 'STARTING',
       poseDetected: false,
+      lastResultAt: null,
+      lastResultAgeMs: null,
     }))
     try {
       await session.start()
@@ -269,7 +311,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   }
 
   const restartCamera = async () => {
-    await stopCamera()
+    const session = sessionRef.current
+    if (session?.getState() === 'RUNNING' || session?.getState() === 'STARTING') {
+      await stopCamera()
+    }
     await startCamera()
   }
 
@@ -306,9 +351,17 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             </div>
             {sessionState !== 'RUNNING' ? (
               <div className="pose-preview-state">
-                <strong>{sessionState === 'SUSPENDED' ? '相機已暫停' : '相機尚未啟動'}</strong>
-                <span>
+                <strong>
                   {sessionState === 'SUSPENDED'
+                    ? '相機已暫停'
+                    : sessionState === 'ERROR'
+                      ? '感測器已停止'
+                      : '相機尚未啟動'}
+                </strong>
+                <span>
+                  {sessionState === 'ERROR'
+                    ? '感測器錯誤已自動釋放相機，請點擊重新啟動。'
+                    : sessionState === 'SUSPENDED'
                     ? '為保護隱私，請點擊重新啟動。'
                     : '只有按下啟動相機後才會要求權限。'}
                 </span>

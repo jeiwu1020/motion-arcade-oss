@@ -51,17 +51,32 @@ function createHarness() {
       droppedInferenceFrames: 0,
     })),
   }
+  let fatalInferenceError: ((error: unknown) => Promise<void>) | undefined
   const documentTarget = new LifecycleTarget()
   const windowTarget = new LifecycleTarget()
   const session = new PoseSensorSession({
     camera,
     createBackend: () => backend,
-    createScheduler: () => scheduler,
+    createScheduler: (_backend, onFatalError) => {
+      fatalInferenceError = onFatalError
+      return scheduler
+    },
     documentTarget,
     windowTarget,
   })
 
-  return { camera, backend, scheduler, documentTarget, windowTarget, session }
+  return {
+    camera,
+    backend,
+    scheduler,
+    documentTarget,
+    windowTarget,
+    session,
+    triggerFatalInferenceError: async (error: unknown) => {
+      if (!fatalInferenceError) throw new Error('Fatal inference callback missing.')
+      await fatalInferenceError(error)
+    },
+  }
 }
 
 function deferred<T>() {
@@ -70,6 +85,10 @@ function deferred<T>() {
     resolve = done
   })
   return { promise, resolve }
+}
+
+async function flushLifecycleCleanup(): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
 }
 
 describe('PoseSensorSession', () => {
@@ -118,7 +137,7 @@ describe('PoseSensorSession', () => {
 
     documentTarget.visibilityState = 'hidden'
     documentTarget.dispatch('visibilitychange')
-    await Promise.resolve()
+    await flushLifecycleCleanup()
 
     expect(scheduler.stop).toHaveBeenCalledOnce()
     expect(camera.stop).toHaveBeenCalledOnce()
@@ -131,7 +150,7 @@ describe('PoseSensorSession', () => {
     await session.start()
     documentTarget.visibilityState = 'hidden'
     documentTarget.dispatch('visibilitychange')
-    await Promise.resolve()
+    await flushLifecycleCleanup()
     documentTarget.visibilityState = 'visible'
     documentTarget.dispatch('visibilitychange')
     await Promise.resolve()
@@ -153,5 +172,91 @@ describe('PoseSensorSession', () => {
     expect(second.scheduler.stop).toHaveBeenCalledOnce()
     expect(second.camera.stop).toHaveBeenCalledOnce()
     expect(second.backend.close).toHaveBeenCalledOnce()
+  })
+
+  it('fails closed when a runtime inference error occurs', async () => {
+    const { camera, backend, scheduler, session, triggerFatalInferenceError } =
+      createHarness()
+    await session.start()
+
+    await triggerFatalInferenceError(new Error('inference failed'))
+
+    expect(scheduler.stop).toHaveBeenCalledOnce()
+    expect(camera.stop).toHaveBeenCalledOnce()
+    expect(backend.close).toHaveBeenCalledOnce()
+    expect(session.getState()).toBe('ERROR')
+  })
+
+  it('makes fatal inference cleanup idempotent', async () => {
+    const { camera, backend, scheduler, session, triggerFatalInferenceError } =
+      createHarness()
+    await session.start()
+    await triggerFatalInferenceError(new Error('inference failed'))
+    await triggerFatalInferenceError(new Error('inference failed again'))
+
+    expect(scheduler.stop).toHaveBeenCalledOnce()
+    expect(camera.stop).toHaveBeenCalledOnce()
+    expect(backend.close).toHaveBeenCalledOnce()
+  })
+
+  it('starts fresh resources after an inference failure', async () => {
+    const camera = {
+      start: vi.fn(async () => ({} as MediaStream)),
+      stop: vi.fn(),
+      getSettings: vi.fn(() => ({ width: 1280, height: 720 })),
+    }
+    const backends = [
+      {
+        mode: 'WORKER' as const,
+        initialize: vi.fn(async () => undefined),
+        infer: vi.fn(),
+        close: vi.fn(async () => undefined),
+      },
+      {
+        mode: 'WORKER' as const,
+        initialize: vi.fn(async () => undefined),
+        infer: vi.fn(),
+        close: vi.fn(async () => undefined),
+      },
+    ]
+    const schedulers = [
+      { start: vi.fn(), stop: vi.fn(), tick: vi.fn(), getStats: vi.fn() },
+      { start: vi.fn(), stop: vi.fn(), tick: vi.fn(), getStats: vi.fn() },
+    ]
+    let fatalInferenceError: ((error: unknown) => Promise<void>) | undefined
+    const session = new PoseSensorSession({
+      camera,
+      createBackend: () => backends.shift()!,
+      createScheduler: (_backend, onFatalError) => {
+        fatalInferenceError = onFatalError
+        return schedulers.shift()!
+      },
+      documentTarget: new LifecycleTarget(),
+      windowTarget: new LifecycleTarget(),
+    })
+
+    await session.start()
+    await fatalInferenceError!(new Error('inference failed'))
+    await session.start()
+
+    expect(camera.start).toHaveBeenCalledTimes(2)
+    expect(session.getState()).toBe('RUNNING')
+  })
+
+  it('does not automatically reacquire the camera after an error', async () => {
+    const {
+      camera,
+      documentTarget,
+      session,
+      triggerFatalInferenceError,
+    } = createHarness()
+    await session.start()
+    await triggerFatalInferenceError(new Error('inference failed'))
+    documentTarget.visibilityState = 'visible'
+    documentTarget.dispatch('visibilitychange')
+    await Promise.resolve()
+
+    expect(camera.start).toHaveBeenCalledOnce()
+    expect(session.getState()).toBe('ERROR')
   })
 })

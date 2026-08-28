@@ -39,8 +39,18 @@ async function initialize(
     return
   }
 
+  let fileset
   try {
-    const fileset = await FilesetResolver.forVisionTasks(wasmBaseUrl, true)
+    fileset = await FilesetResolver.forVisionTasks(wasmBaseUrl, true)
+  } catch {
+    postError(
+      'WORKER_INIT_FAILED',
+      'Pose worker runtime could not be initialized.',
+    )
+    return
+  }
+
+  try {
     landmarker = await PoseLandmarker.createFromOptions(fileset, {
       baseOptions: { modelAssetPath: modelAssetUrl },
       runningMode: 'VIDEO',
@@ -51,11 +61,10 @@ async function initialize(
       outputSegmentationMasks: false,
     })
     workerScope.postMessage({ type: 'READY' })
-  } catch (error) {
-    const diagnostic = error instanceof Error ? error.message : 'Unknown runtime error.'
+  } catch {
     postError(
       'MODEL_LOAD_FAILED',
-      `Pose Landmarker Lite worker initialization failed: ${diagnostic}`,
+      'Pose Landmarker Lite model could not be initialized.',
     )
   }
 }

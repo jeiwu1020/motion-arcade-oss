@@ -43,6 +43,22 @@ facing preference; actual track width, height, frame rate, and facing mode are
 shown when the browser provides them. The video uses `muted`, `playsInline`,
 `srcObject`, and explicit `play()` handling.
 
+## Phase 1B.1 runtime stabilization
+
+Fatal runtime inference errors are fail-closed. `InferenceScheduler.onError`
+awaits the session-owned failure transition, which stops the scheduler, stops
+camera tracks, detaches the video source through `CameraController`, closes the
+backend/worker, and only then publishes the `ERROR` session state. The React
+lab observes that state callback; it does not create a React-only error state.
+The overlay and inference telemetry are cleared, and a user must explicitly
+restart to create a fresh camera, backend, and scheduler.
+
+Worker runtime/bootstrap failures are reported as `WORKER_INIT_FAILED`, which
+can select the throttled main-thread fallback. Model creation failures are
+reported as `MODEL_LOAD_FAILED` and are not silently hidden by fallback. This
+classification is intentionally narrow and does not turn arbitrary runtime
+errors into fallback behavior.
+
 ## MediaPipe model and assets
 
 - Package: `@mediapipe/tasks-vision@1.0.1` (pinned; Apache-2.0 code)

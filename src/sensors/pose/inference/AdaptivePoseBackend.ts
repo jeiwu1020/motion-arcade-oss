@@ -7,10 +7,26 @@ import type {
 import { PoseWorkerClient } from './PoseWorkerClient'
 import type { PoseBackendMode, PoseInferenceResult } from '../poseTypes'
 
+interface AdaptivePoseBackendOptions {
+  readonly workerAvailable?: (() => boolean) | undefined
+  readonly createWorkerBackend?: (() => PoseInferenceBackend) | undefined
+  readonly createFallbackBackend?: (() => PoseInferenceBackend) | undefined
+}
+
 export class AdaptivePoseBackend implements PoseInferenceBackend {
   private backend: PoseInferenceBackend | null = null
   private selectedMode: PoseBackendMode = 'WORKER'
   private reportedFallbackReason: string | null = null
+  private readonly workerAvailable: () => boolean
+  private readonly createWorkerBackend: () => PoseInferenceBackend
+  private readonly createFallbackBackend: () => PoseInferenceBackend
+
+  constructor(options: AdaptivePoseBackendOptions = {}) {
+    this.workerAvailable = options.workerAvailable ?? (() => typeof Worker !== 'undefined')
+    this.createWorkerBackend = options.createWorkerBackend ?? (() => new PoseWorkerClient())
+    this.createFallbackBackend =
+      options.createFallbackBackend ?? (() => new MainThreadPoseBackend())
+  }
 
   get mode(): PoseBackendMode {
     return this.selectedMode
@@ -23,12 +39,12 @@ export class AdaptivePoseBackend implements PoseInferenceBackend {
   async initialize(): Promise<void> {
     if (this.backend) return
 
-    if (typeof Worker === 'undefined') {
+    if (!this.workerAvailable()) {
       await this.initializeFallback('Web Worker is unavailable.')
       return
     }
 
-    const workerBackend = new PoseWorkerClient()
+    const workerBackend = this.createWorkerBackend()
     try {
       await workerBackend.initialize()
       this.backend = workerBackend
@@ -62,7 +78,7 @@ export class AdaptivePoseBackend implements PoseInferenceBackend {
   }
 
   private async initializeFallback(reason: string): Promise<void> {
-    const fallback = new MainThreadPoseBackend()
+    const fallback = this.createFallbackBackend()
     await fallback.initialize()
     this.backend = fallback
     this.selectedMode = 'MAIN_THREAD_FALLBACK'
