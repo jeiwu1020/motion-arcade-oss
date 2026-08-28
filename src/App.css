@@ -1,0 +1,147 @@
+.app-shell {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-block: max(0.75rem, env(safe-area-inset-top))
+    max(0.75rem, env(safe-area-inset-bottom));
+  padding-inline: max(0.75rem, env(safe-area-inset-left))
+    max(0.75rem, env(safe-area-inset-right));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.app-header,
+.phase-zero-note {
+  width: min(100%, 80rem);
+  margin-inline: auto;
+}
+
+.app-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-header h1,
+.app-header p,
+.phase-zero-note p {
+  margin: 0;
+}
+
+.app-header h1 {
+  color: var(--text-strong);
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.eyebrow {
+  margin-bottom: 0.25rem !important;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.status-row span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.playfield-panel {
+  width: min(100%, 80rem);
+  min-width: 0;
+  min-height: 0;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: #070b16;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 24%);
+}
+
+.phaser-canvas-host {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 12rem;
+  overflow: hidden;
+  contain: size layout paint;
+}
+
+.phase-zero-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.phase-zero-note details {
+  max-width: 52rem;
+}
+
+.phase-zero-note summary {
+  cursor: pointer;
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.phase-zero-note details p {
+  margin-top: 0.35rem;
+}
+
+.privacy-note {
+  text-align: right;
+}
+
+@media (max-width: 48rem) {
+  .app-header {
+    align-items: start;
+  }
+
+  .status-row span:first-child {
+    display: none;
+  }
+
+  .phase-zero-note {
+    align-items: start;
+  }
+}
+
+@media (max-height: 32rem) and (orientation: landscape) {
+  .app-shell {
+    gap: 0.45rem;
+    padding-block: max(0.4rem, env(safe-area-inset-top))
+      max(0.4rem, env(safe-area-inset-bottom));
+  }
+
+  .eyebrow,
+  .privacy-note {
+    display: none;
+  }
+
+  .app-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .phase-zero-note {
+    font-size: 0.7rem;
+  }
+}

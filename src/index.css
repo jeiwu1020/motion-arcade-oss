@@ -1,0 +1,40 @@
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #d9e2f2;
+  background: #0d1220;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --surface-raised: #151d2f;
+  --border: #2a3650;
+  --text-strong: #f6f8fc;
+  --text-muted: #aab6ca;
+  --accent: #74d8c8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: #0d1220;
+}
+
+body {
+  min-width: 20rem;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% -20%, rgb(70 100 150 / 25%), transparent 45%),
+    #0d1220;
+}
+
+button,
+summary {
+  font: inherit;
+}
