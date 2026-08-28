@@ -1,6 +1,6 @@
 # MediaPipe Web Privacy and Telemetry Audit
 
-Status: Phase 1A pre-sensor audit
+Status: Phase 1A baseline plus Phase 1B sensor-spike audit
 
 Audited package: `@mediapipe/tasks-vision@1.0.1`
 
@@ -139,3 +139,21 @@ Before a real provider is approved:
 - Model redistribution and update policy require license review for each selected production model.
 
 These uncertainties are pre-production blockers for a clinical real-sensor release, not blockers for the permission-free Phase 1A simulator.
+
+## 8. Phase 1B Pose Landmarker spike (2026-08-28)
+
+The Phase 1B implementation keeps the existing package pin (`@mediapipe/tasks-vision@1.0.1`), stores the official Pose Landmarker Lite task locally, and copies the package's exact WASM/runtime files to the same-origin `/vendor/mediapipe/wasm/` directory. The application has no sensor backend, upload route, recording API, persistence, or application-owned analytics.
+
+The exact worker task was exercised with a disposable blank-canvas harness (no camera, person, microphone, or patient data). The first development run exposed a Vite serving issue for a public WASM loader; the repository now serves only the whitelisted generated MediaPipe loader modules directly in development. A subsequent pinned-worker run reached the package's loader initialization but the available browser connector became unavailable due to its usage limit before a complete Pose initialization/network capture could be repeated. Accordingly, this section records observations and limits rather than claiming a successful real-camera Pose run.
+
+Observed / configured boundaries for the exact spike:
+
+| Question | Phase 1B observation |
+|---|---|
+| Same-origin assets | Model path and WASM root are absolute Motion Arcade `/vendor/...` paths; the build copies the installed 1.0.1 files, with no CDN runtime URL. |
+| Camera startup | No camera request occurred on HOME or Lab mount. The connector left `getUserMedia()` pending only after the explicit start click; Stop returned the Lab to a stopped state. |
+| Third-party metrics | The installed bundle still contains the previously audited `https://odml.pa.googleapis.com/v1/log` metrics destination. A complete successful Pose-task browser network capture was **not available** in this run, so no new Pose-specific absence claim is made. |
+| Raw image/video upload | No Motion Arcade upload path exists. The blank-canvas harness supplied one local `ImageBitmap`; no camera/video blob or landmark array was sent to an application endpoint. The official MediaPipe terms' on-device input statement and separate SDK-metrics statement remain applicable. |
+| Browser/device | Localhost desktop browser connector; no physical camera and no iPhone Safari were available. |
+
+The prior controlled FaceDetector audit remains the only completed network observation of a task initialization: same-origin WASM/model GETs and an attempted Google metrics POST, blocked in that disposable test. It remains the governing warning for production consent/legal review. Phase 1B must not be described as “no third-party traffic” until the exact Pose task, browser, delegate, and deployment are captured with network tooling.

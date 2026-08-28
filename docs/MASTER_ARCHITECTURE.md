@@ -1,12 +1,12 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 1A implementation boundary
+Status: Phase 1B implementation boundary (sensor spike; no analyzer)
 
 Date: 2026-08-28
 
 Primary target: iPhone Safari, landscape
 
-Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. It contains no formal game and no real camera, microphone, MediaPipe, or Web Audio provider.
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds a gated, diagnostic-only camera/Pose Sensor Lab that stops at raw `PoseSensorFrame`; there is still no formal game, Motion Analyzer, normalized pose action, microphone, Hands, Voice, or Web Audio provider.
 
 ## 1. Product constraints
 
@@ -91,17 +91,18 @@ MotionInputProvider ──► immutable MotionInputSnapshot
 ### Lazy-loading boundary
 
 - `App.tsx` lazy-loads the Developer Input Lab only when entered.
+- `App.tsx` lazy-loads the gated Pose Sensor Lab only when entered.
 - `PhaserCanvas` then dynamically imports the Phaser game factory.
 - The home shell has no Phaser import or canvas.
 - Async loading is cancellable. An unmount before module resolution creates no game.
 - Cleanup is idempotent and calls `game.destroy(true)` once.
 - React StrictMode cannot leave duplicate Phaser instances.
 
-The production build currently emits the home shell, a small Lab chunk, and a separate Phaser/game-factory chunk.
+The production build currently emits the home shell, a small Developer Input Lab chunk, a separate Phaser/game-factory chunk, and a separate Pose Sensor Lab/MediaPipe chunk. HOME does not initialize MediaPipe, a Worker, or camera access.
 
 ## 5. Sensor architecture
 
-Real sensors are deferred, but their ownership is frozen:
+Real sensors are deferred to the selected control scheme, but Phase 1B now proves the narrow camera/Pose ownership boundary:
 
 ```text
 Game control scheme sensor requirements
@@ -123,6 +124,8 @@ Game control scheme sensor requirements
 ```
 
 `SensorManager` will be the sole owner of real acquisition. It starts only the sensors declared by the selected control scheme; Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
+
+Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path is diagnostic-only and ends at a MediaPipe-independent `PoseSensorFrame`. It has no Motion Analyzer or action mapping and is not a replacement for the future `SensorManager`.
 
 Future responsibilities:
 
@@ -353,8 +356,8 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 ## 15. Decisions intentionally deferred
 
 - first formal game and its rules;
-- real camera/microphone permissions and UI;
-- Pose, Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
+- production camera/microphone permissions and UI;
+- Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
 - final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
 - MediaPipe metrics acceptance, blocking policy, consent language, and production legal approval;
 - real calibration activity, thresholds, confidence/freshness policy, and lost-tracking UX;
@@ -365,4 +368,4 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
 - formal art, audio assets, and production game scenes.
 
-Phase 1A stops at this boundary. It does not authorize Phase 1B/Phase 2 sensor or formal-game work.
+Phase 1B stops at the diagnostic `PoseSensorFrame` boundary. It does not authorize Motion Analyzer, Phase 1C, or formal-game work.

@@ -93,6 +93,13 @@
   font-weight: 750;
 }
 
+.developer-lab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
 .home-hero {
   min-height: 0;
   display: flex;

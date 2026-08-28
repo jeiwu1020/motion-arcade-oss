@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { TEST_INPUT_ENABLED } from './app/testModeGate'
+import { REAL_SENSOR_LAB_ENABLED } from './app/realSensorLabGate'
 import { homeCategories } from './app/homeCategories'
 import type { GameCategory } from './game/registry/types'
 import './App.css'
@@ -8,17 +9,32 @@ import './App.css'
 const DeveloperInputLab = lazy(
   () => import('./therapist/test-lab/DeveloperInputLab'),
 )
+const PoseSensorLab = lazy(
+  () => import('./therapist/sensor-lab/PoseSensorLab'),
+)
 
-type AppScreen = 'HOME' | 'TEST_LAB'
+type AppScreen = 'HOME' | 'TEST_LAB' | 'POSE_SENSOR_LAB'
 
 function screenFromLocation(): AppScreen {
-  return TEST_INPUT_ENABLED && window.location.hash === '#test-lab'
-    ? 'TEST_LAB'
-    : 'HOME'
+  if (TEST_INPUT_ENABLED && window.location.hash === '#test-lab') {
+    return 'TEST_LAB'
+  }
+  if (
+    REAL_SENSOR_LAB_ENABLED &&
+    window.location.hash === '#pose-sensor-lab'
+  ) {
+    return 'POSE_SENSOR_LAB'
+  }
+  return 'HOME'
 }
 
 function navigate(screen: AppScreen): void {
-  window.location.hash = screen === 'TEST_LAB' ? 'test-lab' : ''
+  window.location.hash =
+    screen === 'TEST_LAB'
+      ? 'test-lab'
+      : screen === 'POSE_SENSOR_LAB'
+        ? 'pose-sensor-lab'
+        : ''
 }
 
 function App() {
@@ -38,10 +54,29 @@ function App() {
     )
   }
 
-  return <HomeScreen onOpenLab={() => navigate('TEST_LAB')} />
+  if (screen === 'POSE_SENSOR_LAB' && REAL_SENSOR_LAB_ENABLED) {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <PoseSensorLab onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
+  return (
+    <HomeScreen
+      onOpenLab={() => navigate('TEST_LAB')}
+      onOpenPoseLab={() => navigate('POSE_SENSOR_LAB')}
+    />
+  )
 }
 
-function HomeScreen({ onOpenLab }: { readonly onOpenLab: () => void }) {
+function HomeScreen({
+  onOpenLab,
+  onOpenPoseLab,
+}: {
+  readonly onOpenLab: () => void
+  readonly onOpenPoseLab: () => void
+}) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
 
   return (
@@ -54,10 +89,19 @@ function HomeScreen({ onOpenLab }: { readonly onOpenLab: () => void }) {
             <small>體感遊樂園</small>
           </span>
         </a>
-        {TEST_INPUT_ENABLED ? (
-          <button className="developer-lab-link" type="button" onClick={onOpenLab}>
-            Developer Input Lab
-          </button>
+        {TEST_INPUT_ENABLED || REAL_SENSOR_LAB_ENABLED ? (
+          <div className="developer-lab-actions">
+            {TEST_INPUT_ENABLED ? (
+              <button className="developer-lab-link" type="button" onClick={onOpenLab}>
+                Developer Input Lab
+              </button>
+            ) : null}
+            {REAL_SENSOR_LAB_ENABLED ? (
+              <button className="developer-lab-link" type="button" onClick={onOpenPoseLab}>
+                Pose Sensor Lab
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </header>
 

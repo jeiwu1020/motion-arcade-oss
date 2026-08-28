@@ -4,11 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "prepare:mediapipe": "node scripts/copy-mediapipe-wasm.mjs",
+    "predev": "npm run prepare:mediapipe",
     "dev": "vite",
+    "prebuild": "npm run prepare:mediapipe",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
+    "prepreview": "npm run prepare:mediapipe",
     "preview": "vite preview"
   },
   "dependencies": {
