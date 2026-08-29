@@ -666,7 +666,7 @@ function TelemetryRow({
 }: {
   readonly label: string
   readonly value: string
-  readonly tone?: TelemetryTone
+  readonly tone?: TelemetryTone | undefined
 }) {
   return (
     <div className={tone ? `pose-telemetry-row-${tone}` : undefined}>
