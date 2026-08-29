@@ -1,6 +1,6 @@
 # Motion Input Contract
 
-Status: Phase 1C implemented boundary
+Status: Phase 1D.1 calibration contract boundary
 
 Contract version: `1.0-phase-1a`
 
@@ -117,7 +117,9 @@ Consequently, Player 1 may be `STANDARD` while Player 2 is `SEATED + RIGHT_SIDE`
 
 `ResolvedAbilityProfile` expresses intended adaptation. `PlayerCalibration` stores measured usable range for that participant. The two concepts are deliberately separate.
 
-Reserved calibration fields include neutral position, reachable range, left/right usable extent, voice floor/ceiling, and movement baseline. Phase 1A defines this type boundary but does not perform real calibration.
+Phase 1D.1 defines canonical `PlayerCalibration` version 1. It stores only body-relative MOVE/LEAN/SQUAT ranges, dimensionless anatomical left/right REACH capability, step completeness, and aggregate quality metadata. Skipped/unavailable measurements are `null`; raw landmarks, frames, pixels, images, and streams are prohibited. The original Phase 1A reserved fields remain accepted as a deprecated compatibility branch for existing provider behavior and must not be emitted by new calibration code.
+
+The Phase 1D.1 calibration result is session-local and is not yet provided to the Pose analyzer. Phase 1D.2 will define how measured ranges may safely affect detection. Ability profiles and calibration remain separate concepts.
 
 ## 6. Ability profile semantics
 
@@ -242,4 +244,4 @@ The React control panel writes provider values. The Phaser test scene only reads
 
 The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame.
 
-The temporary standing baseline is in-memory session state, is reset on provider start/stop, and is not `PlayerCalibration`. Replay serialization, general capability negotiation, multi-person tracking continuity, and production calibration remain deferred. These additions must extend the provider boundary without exposing raw sensors to games.
+The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D.1 separately collects an in-memory formal calibration result in the developer Lab but does not change provider thresholds or state machines. Replay serialization, calibration persistence/consumption, general capability negotiation, multi-person tracking continuity, and production onboarding remain deferred. These additions must extend the provider boundary without exposing raw sensors to games.

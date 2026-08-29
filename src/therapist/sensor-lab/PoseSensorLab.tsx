@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { resolveAbilityProfile } from '../../motion/adaptive/profiles'
+import {
+  PoseCalibrationSession,
+  type PoseCalibrationSnapshot,
+} from '../../motion/calibration/PoseCalibrationSession'
 import type { MotionInputRequest } from '../../motion/contracts/motion'
+import { PoseFeatureExtractor } from '../../motion/pose/PoseFeatureExtractor'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
 import type { PoseMotionAnalyzerSnapshot } from '../../motion/pose/poseMotionTypes'
 import { CameraController, CameraControllerError } from '../../sensors/camera/CameraController'
@@ -22,6 +27,7 @@ import {
   PoseSquatDiagnosticTracker,
   type SquatDiagnosticSnapshot,
 } from './PoseSquatDiagnosticTracker'
+import { PoseCalibrationPanel } from './PoseCalibrationPanel'
 import './PoseSensorLab.css'
 
 interface PoseSensorLabProps {
@@ -151,6 +157,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const sessionRef = useRef<PoseSensorSession | null>(null)
   const motionProviderRef = useRef<PoseMotionInputProvider | null>(null)
   const squatDiagnosticRef = useRef(new PoseSquatDiagnosticTracker())
+  const calibrationExtractorRef = useRef(new PoseFeatureExtractor())
+  const calibrationSessionRef = useRef(new PoseCalibrationSession())
   const inferenceDurationsRef = useRef<number[]>([])
   const inferenceTimesRef = useRef<number[]>([])
   const [sessionState, setSessionState] = useState<PoseSessionState>('READY')
@@ -159,13 +167,21 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const [analyzerDiagnostics, setAnalyzerDiagnostics] =
     useState<PoseMotionAnalyzerSnapshot | null>(null)
   const [squatDiagnostics, setSquatDiagnostics] = useState<SquatDiagnosticSnapshot>(
-    () => squatDiagnosticRef.current.getSnapshot(),
+    () => new PoseSquatDiagnosticTracker().getSnapshot(),
+  )
+  const [calibrationSnapshot, setCalibrationSnapshot] = useState<PoseCalibrationSnapshot>(
+    () => new PoseCalibrationSession().getSnapshot(),
   )
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
 
   const resetSquatDiagnostics = useCallback(() => {
     squatDiagnosticRef.current.reset()
     setSquatDiagnostics(squatDiagnosticRef.current.getSnapshot())
+  }, [])
+
+  const resetCalibration = useCallback(() => {
+    calibrationSessionRef.current.reset()
+    setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
   }, [])
 
   const handleSessionStateChange = useCallback((state: PoseSessionState) => {
@@ -176,6 +192,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
         motionProviderRef.current?.getDiagnostics() ?? null,
       )
       resetSquatDiagnostics()
+      resetCalibration()
     }
     if (state !== 'ERROR') return
 
@@ -201,13 +218,18 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       motionProviderRef.current?.getDiagnostics() ?? null,
     )
     resetSquatDiagnostics()
-  }, [resetSquatDiagnostics])
+    resetCalibration()
+  }, [resetCalibration, resetSquatDiagnostics])
 
   const handleInferenceResult = useCallback((result: PoseInferenceResult) => {
     if (canvasRef.current) drawPoseFrame(canvasRef.current, result.frame)
     motionProviderRef.current?.ingest(result.frame)
     squatDiagnosticRef.current.ingest(result.frame)
+    calibrationSessionRef.current.ingest(
+      calibrationExtractorRef.current.extract(result.frame),
+    )
     setSquatDiagnostics(squatDiagnosticRef.current.getSnapshot())
+    setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
     setAnalyzerDiagnostics(
       motionProviderRef.current?.getDiagnostics() ?? null,
     )
@@ -330,6 +352,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
 
     setError(null)
     resetSquatDiagnostics()
+    resetCalibration()
     inferenceDurationsRef.current = []
     inferenceTimesRef.current = []
     setTelemetry((current) => ({
@@ -385,6 +408,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       motionProviderRef.current?.stop(),
     ])
     resetSquatDiagnostics()
+    resetCalibration()
     const canvas = canvasRef.current
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
     setCameraSettings(null)
@@ -476,8 +500,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     <main className="pose-lab-shell">
       <header className="pose-lab-header">
         <div>
-          <p>PHASE 1C · LOCAL MOTION ANALYZER DIAGNOSTIC</p>
-          <h1>Pose + Motion Analyzer Lab</h1>
+          <p>PHASE 1D.1 · LOCAL POSE CALIBRATION</p>
+          <h1>Pose Calibration + Motion Analyzer Lab</h1>
         </div>
         <button type="button" className="pose-button pose-button-quiet" onClick={onExit}>
           返回首頁
@@ -486,7 +510,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
 
       <div className="pose-lab-layout">
         <section className="pose-preview-panel" aria-label="相機與姿勢預覽">
-          <div className="pose-preview-stage">
+          <div className="pose-guided-layout">
+            <div className="pose-preview-stage">
             <div
               className="pose-media-layer"
               style={{ aspectRatio: `${sourceWidth} / ${sourceHeight}`, transform: MIRRORED_PREVIEW_TRANSFORM }}
@@ -515,6 +540,25 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                 </span>
               </div>
             ) : null}
+            </div>
+
+            <PoseCalibrationPanel
+              snapshot={calibrationSnapshot}
+              cameraRunning={sessionState === 'RUNNING'}
+              onAdvance={() => {
+                calibrationSessionRef.current.advance()
+                setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
+              }}
+              onRetry={() => {
+                calibrationSessionRef.current.retry()
+                setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
+              }}
+              onSkip={() => {
+                calibrationSessionRef.current.skip()
+                setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
+              }}
+              onReset={resetCalibration}
+            />
           </div>
 
           <div className="pose-controls">

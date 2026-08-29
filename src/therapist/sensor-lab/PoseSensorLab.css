@@ -60,6 +60,13 @@
   padding: 0.75rem;
 }
 
+.pose-guided-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.82fr);
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
 .pose-preview-stage {
   position: relative;
   min-height: 18rem;
@@ -134,6 +141,214 @@
 .pose-preview-state span {
   color: var(--text-muted);
   font-size: 0.86rem;
+}
+
+.pose-calibration {
+  border: 3px solid rgb(255 255 255 / 18%);
+  border-radius: 1rem;
+  padding: clamp(0.9rem, 2vw, 1.4rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(12rem, 0.8fr);
+  gap: 1rem 1.25rem;
+  background: #0b1428;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.pose-guided-layout .pose-calibration {
+  grid-template-columns: 1fr;
+}
+
+.pose-guided-layout .pose-calibration-progress {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.pose-guided-layout .pose-calibration-progress li {
+  min-height: 4rem;
+  padding: 0.4rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.pose-calibration-ready {
+  border-color: #53f7ae;
+  background: linear-gradient(135deg, rgb(20 76 61 / 94%), #0b1428 72%);
+  box-shadow: 0 0 1.8rem rgb(83 247 174 / 18%);
+}
+
+.pose-calibration-collecting {
+  border-color: #ffd166;
+  background: linear-gradient(135deg, rgb(77 58 13 / 90%), #0b1428 72%);
+}
+
+.pose-calibration-problem {
+  border-color: #ff8b58;
+  background: linear-gradient(135deg, rgb(92 36 20 / 92%), #0b1428 72%);
+  box-shadow: 0 0 1.5rem rgb(255 125 88 / 17%);
+}
+
+.pose-calibration-copy > span,
+.pose-calibration-copy h2,
+.pose-calibration-copy p {
+  margin: 0;
+}
+
+.pose-calibration-copy > span {
+  color: #a7dcff;
+  font-size: clamp(0.82rem, 1.6vw, 1rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.pose-calibration-copy h2 {
+  margin-top: 0.2rem;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 950;
+  line-height: 1.08;
+}
+
+.pose-calibration-copy p {
+  max-width: 28ch;
+  margin-top: 0.55rem;
+  color: #eaf2ff;
+  font-size: clamp(1.05rem, 2.5vw, 1.65rem);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.pose-calibration-state {
+  width: fit-content;
+  margin-top: 0.8rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  display: block;
+  color: #101727;
+  background: #ffd166;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 950;
+}
+
+.pose-calibration-ready .pose-calibration-state {
+  background: #72f2b7;
+}
+
+.pose-calibration-problem .pose-calibration-state {
+  color: #270908;
+  background: #ff9a72;
+}
+
+.pose-calibration-sides {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.pose-calibration-sides strong {
+  border: 2px solid rgb(255 255 255 / 20%);
+  border-radius: 0.7rem;
+  padding: 0.65rem;
+  color: #fff1bf;
+  background: rgb(255 209 102 / 12%);
+  font-size: clamp(0.95rem, 1.8vw, 1.25rem);
+  text-align: center;
+}
+
+.pose-calibration-sides strong.is-complete {
+  border-color: #53f7ae;
+  color: #d8ffec;
+  background: rgb(83 247 174 / 18%);
+}
+
+.pose-calibration-progress {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+  list-style: none;
+}
+
+.pose-calibration-progress li {
+  min-height: 2.5rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  color: #aebbd0;
+  background: rgb(255 255 255 / 4%);
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  font-weight: 800;
+}
+
+.pose-calibration-progress-complete {
+  border-color: rgb(83 247 174 / 58%) !important;
+  color: #86ffc3 !important;
+  background: rgb(83 247 174 / 12%) !important;
+}
+
+.pose-calibration-progress-collecting {
+  border-color: #ffd166 !important;
+  color: #fff1bf !important;
+  background: rgb(255 209 102 / 12%) !important;
+}
+
+.pose-calibration-progress-skipped {
+  color: #d2d8e2 !important;
+  background: rgb(255 255 255 / 8%) !important;
+}
+
+.pose-calibration-review {
+  grid-column: 1 / -1;
+  border-radius: 0.7rem;
+  padding: 0.8rem 1rem;
+  color: #d8ffec;
+  background: rgb(83 247 174 / 12%);
+}
+
+.pose-calibration-review strong {
+  font-size: 1.25rem;
+}
+
+.pose-calibration-review p {
+  margin: 0.2rem 0 0;
+  color: #d8e6fa;
+}
+
+.pose-calibration-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.pose-calibration-actions .pose-button {
+  min-width: 7.5rem;
+  min-height: 3.2rem;
+  padding: 0.75rem 1.1rem;
+  font-size: 1rem;
+}
+
+.pose-calibration-diagnostics {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.pose-calibration-diagnostics summary {
+  cursor: pointer;
+}
+
+.pose-calibration-diagnostics pre {
+  max-height: 16rem;
+  overflow: auto;
+  white-space: pre-wrap;
 }
 
 .pose-controls {
@@ -465,7 +680,7 @@
   }
 
   .pose-lab-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(13.5rem, 17rem);
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.55rem;
   }
 
@@ -480,8 +695,33 @@
   }
 
   .pose-telemetry {
-    max-height: calc(100dvh - 4rem);
+    max-height: none;
     overflow-y: auto;
+  }
+
+  .pose-guided-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.82fr);
+  }
+
+  .pose-calibration {
+    padding: 0.6rem;
+    gap: 0.4rem;
+  }
+
+  .pose-calibration-copy h2 {
+    font-size: clamp(1.7rem, 5vw, 2.6rem);
+  }
+
+  .pose-calibration-copy p {
+    font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+  }
+
+  .pose-guided-layout .pose-calibration-progress li {
+    min-height: 3.4rem;
+  }
+
+  .pose-calibration-actions .pose-button {
+    min-height: 2.75rem;
   }
 
   .pose-analyzer-status {
@@ -539,5 +779,28 @@
 
   .pose-telemetry {
     max-height: none;
+  }
+
+  .pose-calibration {
+    grid-template-columns: 1fr;
+    grid-row: 1;
+  }
+
+  .pose-guided-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pose-calibration-progress {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .pose-calibration-progress li {
+    min-height: 4rem;
+    padding: 0.4rem;
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    font-size: 0.72rem;
+    text-align: center;
   }
 }

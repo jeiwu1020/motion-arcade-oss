@@ -70,18 +70,62 @@ export interface MotionActionState {
   readonly sequence: number
 }
 
-export interface PlayerCalibration {
-  readonly neutralPosition?: NormalizedPoint2D
-  readonly reachableRange?: {
-    readonly min: NormalizedPoint2D
-    readonly max: NormalizedPoint2D
-  }
-  readonly leftUsableExtent?: number
-  readonly rightUsableExtent?: number
-  readonly voiceFloorHz?: number
-  readonly voiceCeilingHz?: number
-  readonly movementBaseline?: number
-}
+export type PlayerCalibrationStatus = 'COMPLETE' | 'PARTIAL'
+export type PlayerCalibrationStep = 'NEUTRAL' | 'MOVE' | 'LEAN' | 'REACH' | 'SQUAT'
+export type PlayerCalibrationStepStatus = 'COMPLETE' | 'SKIPPED'
+
+export type PlayerCalibration =
+  | {
+      readonly version: 1
+      readonly status: PlayerCalibrationStatus
+      readonly pose: {
+        readonly move: {
+          readonly leftRangeBodyUnits: number | null
+          readonly rightRangeBodyUnits: number | null
+        }
+        readonly lean: {
+          readonly leftRangeBodyUnits: number | null
+          readonly rightRangeBodyUnits: number | null
+        }
+        readonly reach: {
+          readonly leftCapability: number | null
+          readonly rightCapability: number | null
+        }
+        readonly squat: {
+          readonly comfortableDepthBodyUnits: number | null
+        }
+      }
+      readonly steps: Readonly<Record<PlayerCalibrationStep, PlayerCalibrationStepStatus>>
+      readonly quality: {
+        readonly meanTrackingConfidence: number
+        readonly validSampleCount: number
+        readonly completedAtTimestampMs: number
+      }
+    }
+  | {
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly neutralPosition?: NormalizedPoint2D
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly reachableRange?: {
+        readonly min: NormalizedPoint2D
+        readonly max: NormalizedPoint2D
+      }
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly leftUsableExtent?: number
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly rightUsableExtent?: number
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly voiceFloorHz?: number
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly voiceCeilingHz?: number
+      /** @deprecated Reserved Phase 1A compatibility shape. New calibration must use version 1. */
+      readonly movementBaseline?: number
+      readonly version?: never
+      readonly status?: never
+      readonly pose?: never
+      readonly steps?: never
+      readonly quality?: never
+    }
 
 export interface MotionPlayerRequest {
   readonly playerId: PlayerId

@@ -1,12 +1,12 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 1C implementation boundary (standing Pose Motion Analyzer; no formal game)
+Status: Phase 1D.1 implementation boundary (session-only standing Pose calibration; no formal game)
 
 Date: 2026-08-29
 
 Primary target: iPhone Safari, landscape
 
-Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local standing baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. There is still no formal game, microphone, Hands, Voice, multi-person assignment, or Web Audio provider.
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds a canonical normalized `PlayerCalibration` v1 result and guided STANDARD standing calibration in the gated Pose Lab. Calibration is collected only and does not yet modify analyzer behavior. There is still no formal game, microphone, Hands, Voice, multi-person assignment, or Web Audio provider.
 
 ## 1. Product constraints
 
@@ -102,7 +102,7 @@ The production build currently emits the home shell, a small Developer Input Lab
 
 ## 5. Sensor architecture
 
-Real sensor selection remains deferred to a future `SensorManager`, but Phase 1C now proves the camera/Pose-to-normalized-action boundary:
+Real sensor selection remains deferred to a future `SensorManager`, but Phase 1C proves the camera/Pose-to-normalized-action boundary and Phase 1D.1 adds a parallel derived-feature calibration branch:
 
 ```text
 Game control scheme sensor requirements
@@ -125,7 +125,7 @@ Game control scheme sensor requirements
 
 `SensorManager` will be the sole owner of real acquisition. It starts only the sensors declared by the selected control scheme; Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
 
-Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`, without moving camera or MediaPipe ownership into the analyzer. It is not a replacement for the future `SensorManager`.
+Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`; it does not duplicate camera/MediaPipe ownership and does not feed calibration back into the analyzer yet. Neither branch replaces the future `SensorManager`.
 
 Future responsibilities:
 
@@ -138,6 +138,8 @@ Future responsibilities:
 Phase 1A's `KeyboardMouseTestInputProvider` requests no sensors, imports no MediaPipe code, and presents the same provider interface.
 
 Phase 1C analyzer details, thresholds, state machines, limitations, and manual QA are documented in [Phase 1C Motion Analyzer](./PHASE_1C_MOTION_ANALYZER.md).
+
+Phase 1D.1 calibration architecture, normalized measurements, privacy, and manual QA are documented in [Phase 1D.1 Pose Calibration](./PHASE_1D_CALIBRATION.md).
 
 ## 6. Motion Action architecture
 
@@ -206,7 +208,7 @@ Capability presets:
 
 `ResolvedAbilityProfile` composes presets into posture, body range, allowed anatomical sides, required motion range scale, and reaction window scale. `requiredMotionRangeScale` describes how much physical movement a future sensor adapter may require to produce the same normalized action; it must not slow or weaken game output. `reactionWindowScale` reserves a future gameplay timing adjustment for forgiving response windows; it must not automatically slow animation playback. The current left/right filter gates sided limb actions while leaving projected movement direction unchanged.
 
-`PlayerCalibration` is separate and reserves measured neutral position, reach range, left/right usable extent, voice floor/ceiling, and movement baseline. Phase 1A does not perform calibration or encode medical assumptions.
+`PlayerCalibration` remains separate from `ResolvedAbilityProfile`. Phase 1D.1 defines version 1 with normalized MOVE, LEAN, anatomical REACH, comfortable SQUAT ranges, per-step availability, and quality metadata. The result is session-only and contains no raw landmarks or saved body measurements. Analyzer consumption is explicitly deferred to Phase 1D.2.
 
 Each game control scheme declares compatible profiles. Core gameplay uses capability descriptions only; diagnosis-specific modes and filters are prohibited.
 
@@ -287,7 +289,7 @@ src/
     coordinates/               # implemented canonical transforms
     providers/                 # implemented test provider/coordinator
     pose/                      # implemented Phase 1C features/analyzer/provider
-    calibration/               # future measured range logic
+    calibration/               # implemented Phase 1D.1 feature-based calibration session
     runtime/                   # future SensorManager/scheduler/quality
     workers/                   # future worker entry points
   sensors/                     # implemented camera/Pose acquisition; future Hands/audio
@@ -369,7 +371,7 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
 - final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
 - MediaPipe metrics acceptance, blocking policy, consent language, and production legal approval;
-- production calibration activity, control-scheme-specific thresholds, and patient-facing lost-tracking UX;
+- production onboarding, calibration persistence, control-scheme-specific thresholds, and patient-facing lost-tracking UX;
 - multi-person identity continuity and four-person device tier;
 - team relay/turn/shared-control details;
 - replay file format and long-term regression corpus;
@@ -377,4 +379,4 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
 - formal art, audio assets, and production game scenes.
 
-Phase 1C stops at normalized standing motion semantics and its gated diagnostic Lab. It does not authorize deferred actions, multi-person tracking, production calibration, or formal-game work.
+Phase 1D.1 stops at session-only normalized calibration collection and its gated diagnostic Lab. It does not authorize calibration-driven detector changes, deferred actions, multi-person tracking, production onboarding, or formal-game work.
