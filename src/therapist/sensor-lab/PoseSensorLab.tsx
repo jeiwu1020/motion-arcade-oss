@@ -18,6 +18,10 @@ import {
   type PoseSensorFrame,
   type PoseSessionState,
 } from '../../sensors/pose/poseTypes'
+import {
+  PoseSquatDiagnosticTracker,
+  type SquatDiagnosticSnapshot,
+} from './PoseSquatDiagnosticTracker'
 import './PoseSensorLab.css'
 
 interface PoseSensorLabProps {
@@ -137,11 +141,16 @@ function formatNumber(value: number, digits = 1): string {
   return Number.isFinite(value) ? value.toFixed(digits) : '—'
 }
 
+function formatDiagnosticNumber(value: number | null, digits = 2): string {
+  return value === null ? '—' : value.toFixed(digits)
+}
+
 export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sessionRef = useRef<PoseSensorSession | null>(null)
   const motionProviderRef = useRef<PoseMotionInputProvider | null>(null)
+  const squatDiagnosticRef = useRef(new PoseSquatDiagnosticTracker())
   const inferenceDurationsRef = useRef<number[]>([])
   const inferenceTimesRef = useRef<number[]>([])
   const [sessionState, setSessionState] = useState<PoseSessionState>('READY')
@@ -149,7 +158,15 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const [telemetry, setTelemetry] = useState(INITIAL_TELEMETRY)
   const [analyzerDiagnostics, setAnalyzerDiagnostics] =
     useState<PoseMotionAnalyzerSnapshot | null>(null)
+  const [squatDiagnostics, setSquatDiagnostics] = useState<SquatDiagnosticSnapshot>(
+    () => squatDiagnosticRef.current.getSnapshot(),
+  )
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
+
+  const resetSquatDiagnostics = useCallback(() => {
+    squatDiagnosticRef.current.reset()
+    setSquatDiagnostics(squatDiagnosticRef.current.getSnapshot())
+  }, [])
 
   const handleSessionStateChange = useCallback((state: PoseSessionState) => {
     setSessionState(state)
@@ -158,6 +175,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       setAnalyzerDiagnostics(
         motionProviderRef.current?.getDiagnostics() ?? null,
       )
+      resetSquatDiagnostics()
     }
     if (state !== 'ERROR') return
 
@@ -182,11 +200,14 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     setAnalyzerDiagnostics(
       motionProviderRef.current?.getDiagnostics() ?? null,
     )
-  }, [])
+    resetSquatDiagnostics()
+  }, [resetSquatDiagnostics])
 
   const handleInferenceResult = useCallback((result: PoseInferenceResult) => {
     if (canvasRef.current) drawPoseFrame(canvasRef.current, result.frame)
     motionProviderRef.current?.ingest(result.frame)
+    squatDiagnosticRef.current.ingest(result.frame)
+    setSquatDiagnostics(squatDiagnosticRef.current.getSnapshot())
     setAnalyzerDiagnostics(
       motionProviderRef.current?.getDiagnostics() ?? null,
     )
@@ -308,6 +329,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     }
 
     setError(null)
+    resetSquatDiagnostics()
     inferenceDurationsRef.current = []
     inferenceTimesRef.current = []
     setTelemetry((current) => ({
@@ -344,6 +366,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       }))
     } catch (startupError) {
       await motionProviderRef.current?.stop()
+      resetSquatDiagnostics()
       setAnalyzerDiagnostics(
         motionProviderRef.current?.getDiagnostics() ?? null,
       )
@@ -361,6 +384,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       sessionRef.current?.stop(),
       motionProviderRef.current?.stop(),
     ])
+    resetSquatDiagnostics()
     const canvas = canvasRef.current
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
     setCameraSettings(null)
@@ -579,6 +603,46 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             <strong>{analyzerBanner.title}</strong>
             <span>{analyzerBanner.detail}</span>
           </div>
+
+          <section
+            className={`pose-squat-diagnostic ${squat > 0 ? 'pose-squat-diagnostic-active' : ''}`}
+            aria-label="深蹲偵測條件"
+          >
+            <div className="pose-squat-diagnostic-heading">
+              <strong>SQUAT CHECK</strong>
+              <span>{squat > 0 ? '✓ DETECTED' : '四格全綠才會觸發'}</span>
+            </div>
+            <div className="pose-squat-check-grid">
+              <SquatCheckCard
+                label="全身"
+                passed={squatDiagnostics.fullBodyValid}
+                waiting={sessionState !== 'RUNNING'}
+                detail="雙膝＋雙腳踝"
+              />
+              <SquatCheckCard
+                label="髖部深度"
+                passed={squatDiagnostics.depthPass}
+                waiting={!squatDiagnostics.baselineReady}
+                detail={`${formatDiagnosticNumber(squatDiagnostics.hipDepthBodyUnits)} / ${squatDiagnostics.requiredHipDepthBodyUnits.toFixed(2)}`}
+              />
+              <SquatCheckCard
+                label="膝角"
+                passed={squatDiagnostics.kneePass}
+                waiting={!squatDiagnostics.baselineReady || !squatDiagnostics.fullBodyValid}
+                detail={`${formatDiagnosticNumber(squatDiagnostics.averageKneeAngleDegrees, 0)}° / ≤${squatDiagnostics.maximumKneeAngleDegrees.toFixed(0)}°`}
+              />
+              <SquatCheckCard
+                label="連續幀"
+                passed={squatDiagnostics.candidatePass || squat > 0}
+                waiting={!squatDiagnostics.baselineReady}
+                detail={`${squatDiagnostics.candidateFrames} / ${squatDiagnostics.requiredCandidateFrames}`}
+              />
+            </div>
+            <p className="pose-squat-detail-line">
+              左膝 {formatDiagnosticNumber(squatDiagnostics.leftKneeAngleDegrees, 0)}° · 右膝 {formatDiagnosticNumber(squatDiagnostics.rightKneeAngleDegrees, 0)}° · baseline {squatDiagnostics.baselineReady ? 'READY' : `${Math.round(squatDiagnostics.baselineProgress * 100)}%`}
+            </p>
+          </section>
+
           <dl>
             <TelemetryRow
               label="Tracking quality"
@@ -656,6 +720,27 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
         </aside>
       </div>
     </main>
+  )
+}
+
+function SquatCheckCard({
+  label,
+  passed,
+  waiting,
+  detail,
+}: {
+  readonly label: string
+  readonly passed: boolean
+  readonly waiting: boolean
+  readonly detail: string
+}) {
+  const state = waiting ? 'wait' : passed ? 'pass' : 'fail'
+  return (
+    <div className={`pose-squat-check pose-squat-check-${state}`}>
+      <strong>{label}</strong>
+      <b>{waiting ? '…' : passed ? '✓' : '✕'}</b>
+      <span>{detail}</span>
+    </div>
   )
 }
 
