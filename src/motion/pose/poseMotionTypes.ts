@@ -66,21 +66,6 @@ export type PoseJumpState =
   | 'LANDING'
   | 'REFRACTORY'
 
-export interface PoseSquatDiagnostics {
-  readonly fullBodyValid: boolean
-  readonly hipDepthBodyUnits: number | null
-  readonly requiredHipDepthBodyUnits: number
-  readonly depthPass: boolean
-  readonly leftKneeAngleDegrees: number | null
-  readonly rightKneeAngleDegrees: number | null
-  readonly averageKneeAngleDegrees: number | null
-  readonly maximumKneeAngleDegrees: number
-  readonly kneePass: boolean
-  readonly candidateFrames: number
-  readonly requiredCandidateFrames: number
-  readonly candidatePass: boolean
-}
-
 export interface PoseMotionAnalyzerSnapshot {
   readonly timestampMs: number
   readonly sequence: number
@@ -89,7 +74,6 @@ export interface PoseMotionAnalyzerSnapshot {
   readonly baselineProgress: number
   readonly freshnessMs: number | null
   readonly squatState: PoseSquatState
-  readonly squatDiagnostics: PoseSquatDiagnostics
   readonly jumpState: PoseJumpState
   readonly analyzerDurationMs: number
   readonly actions: Readonly<
