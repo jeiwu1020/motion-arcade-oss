@@ -1,12 +1,12 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 1B implementation boundary (sensor spike; no analyzer)
+Status: Phase 1C implementation boundary (standing Pose Motion Analyzer; no formal game)
 
-Date: 2026-08-28
+Date: 2026-08-29
 
 Primary target: iPhone Safari, landscape
 
-Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds a gated, diagnostic-only camera/Pose Sensor Lab that stops at raw `PoseSensorFrame`; there is still no formal game, Motion Analyzer, normalized pose action, microphone, Hands, Voice, or Web Audio provider.
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local standing baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. There is still no formal game, microphone, Hands, Voice, multi-person assignment, or Web Audio provider.
 
 ## 1. Product constraints
 
@@ -102,7 +102,7 @@ The production build currently emits the home shell, a small Developer Input Lab
 
 ## 5. Sensor architecture
 
-Real sensors are deferred to the selected control scheme, but Phase 1B now proves the narrow camera/Pose ownership boundary:
+Real sensor selection remains deferred to a future `SensorManager`, but Phase 1C now proves the camera/Pose-to-normalized-action boundary:
 
 ```text
 Game control scheme sensor requirements
@@ -125,7 +125,7 @@ Game control scheme sensor requirements
 
 `SensorManager` will be the sole owner of real acquisition. It starts only the sensors declared by the selected control scheme; Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
 
-Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path is diagnostic-only and ends at a MediaPipe-independent `PoseSensorFrame`. It has no Motion Analyzer or action mapping and is not a replacement for the future `SensorManager`.
+Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`, without moving camera or MediaPipe ownership into the analyzer. It is not a replacement for the future `SensorManager`.
 
 Future responsibilities:
 
@@ -136,6 +136,8 @@ Future responsibilities:
 - coarse health/capability reporting without raw media exposure.
 
 Phase 1A's `KeyboardMouseTestInputProvider` requests no sensors, imports no MediaPipe code, and presents the same provider interface.
+
+Phase 1C analyzer details, thresholds, state machines, limitations, and manual QA are documented in [Phase 1C Motion Analyzer](./PHASE_1C_MOTION_ANALYZER.md).
 
 ## 6. Motion Action architecture
 
@@ -161,6 +163,9 @@ Implemented guarantees:
 - normalized points contain no browser pixels;
 - `VOICE_PITCH` is calibrated `0..1`, not Hertz;
 - raw Hz, voicing, and pitch stability are optional diagnostic telemetry, never required gameplay input.
+- raw Pose landmarks are centralized in a pure feature extractor and never reach game consumers;
+- stale Pose actions neutralize during snapshot polling without requiring another inference frame;
+- the Pose analyzer publishes only existing action IDs through the existing provider contract.
 
 ### Coordinate freeze
 
@@ -269,7 +274,7 @@ Sensor and Phaser modules remain lazy. Four-body tracking must not be optimized 
 
 ## 11. Folder structure
 
-Current Phase 1A structure and planned destinations:
+Current implemented structure and planned destinations:
 
 ```text
 src/
@@ -281,12 +286,11 @@ src/
     adaptive/                  # implemented profile resolution/gating
     coordinates/               # implemented canonical transforms
     providers/                 # implemented test provider/coordinator
-    sensors/                   # future camera/pose/hands/audio ownership
+    pose/                      # implemented Phase 1C features/analyzer/provider
     calibration/               # future measured range logic
-    analysis/                  # future temporal feature analyzers
-    mapping/                   # future features → actions
     runtime/                   # future SensorManager/scheduler/quality
     workers/                   # future worker entry points
+  sensors/                     # implemented camera/Pose acquisition; future Hands/audio
   game/
     core/                      # future renderer-independent simulation
     phaser/                    # implemented lazy boot and test view
@@ -294,6 +298,7 @@ src/
     teams/ scoring/ difficulty/ adaptive/  # future gameplay systems
   games/                       # formal lazy game modules; intentionally empty
   therapist/
+    sensor-lab/                # gated Pose + Motion Analyzer diagnostics
     test-lab/                  # implemented gated panel and overlay
     controls/ presets/ session/ # future therapist workflow
   config/ hooks/ utils/ types/  # future shared infrastructure
@@ -304,7 +309,7 @@ Narrow unit/integration tests are colocated with their modules to keep contract 
 
 ## 12. Testing strategy
 
-Implemented Phase 1A tests cover:
+Implemented automated tests cover:
 
 - provider safe/idempotent start-stop and absence of media permission calls;
 - keyboard phases, release, key-repeat behavior, continuous values, pointer normalization, click/drag/velocity, and one-to-four-player independence;
@@ -316,6 +321,10 @@ Implemented Phase 1A tests cover:
 - provider switching;
 - lazy Phaser cancellation, unmount, and idempotent StrictMode-style cleanup;
 - build-time test-mode gate.
+- Pose feature geometry, confidence validity, anatomical-side preservation, and raw-frame immutability;
+- session baseline readiness/reset, stale neutralization, and long-loss re-baselining;
+- MOVE/LEAN/REACH/SQUAT hysteresis and JUMP pulse/refractory state behavior;
+- immutable Pose provider mapping, profile gating, and coordinator lifecycle.
 
 Browser QA covers shell/Lab navigation, keyboard, pointer, sliders, players, profiles, canvas mount/unmount, console, media element absence, desktop layout, and `852 × 393` landscape overflow/FIT behavior.
 
@@ -360,7 +369,7 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
 - final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
 - MediaPipe metrics acceptance, blocking policy, consent language, and production legal approval;
-- real calibration activity, thresholds, confidence/freshness policy, and lost-tracking UX;
+- production calibration activity, control-scheme-specific thresholds, and patient-facing lost-tracking UX;
 - multi-person identity continuity and four-person device tier;
 - team relay/turn/shared-control details;
 - replay file format and long-term regression corpus;
@@ -368,4 +377,4 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
 - formal art, audio assets, and production game scenes.
 
-Phase 1B stops at the diagnostic `PoseSensorFrame` boundary. It does not authorize Motion Analyzer, Phase 1C, or formal-game work.
+Phase 1C stops at normalized standing motion semantics and its gated diagnostic Lab. It does not authorize deferred actions, multi-person tracking, production calibration, or formal-game work.

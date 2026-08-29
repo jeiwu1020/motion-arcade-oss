@@ -1,6 +1,6 @@
 # Motion Input Contract
 
-Status: Phase 1A implemented boundary
+Status: Phase 1C implemented boundary
 
 Contract version: `1.0-phase-1a`
 
@@ -13,7 +13,8 @@ Games consume normalized logical-player actions. They never consume MediaPipe la
 The same game-facing boundary is used by:
 
 - `KeyboardMouseTestInputProvider` in Phase 1A;
-- a future real camera/microphone provider;
+- `PoseMotionInputProvider` for Phase 1C single-person standing Pose analysis;
+- a future production sensor manager and microphone provider;
 - a future deterministic replay provider.
 
 Provider switching must not require game-specific input code. Phaser is a consumer of the latest immutable snapshot and does not drive provider inference frequency.
@@ -239,4 +240,6 @@ The React control panel writes provider values. The Phaser test scene only reads
 
 ## 12. Replay and freshness
 
-The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Replay serialization, stale-data expiry policy, capability negotiation, and real tracking continuity are intentionally deferred. These additions must extend the provider boundary without exposing raw sensors to games.
+The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame.
+
+The temporary standing baseline is in-memory session state, is reset on provider start/stop, and is not `PlayerCalibration`. Replay serialization, general capability negotiation, multi-person tracking continuity, and production calibration remain deferred. These additions must extend the provider boundary without exposing raw sensors to games.

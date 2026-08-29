@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { resolveAbilityProfile } from '../../motion/adaptive/profiles'
+import type { MotionInputRequest } from '../../motion/contracts/motion'
+import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
+import type { PoseMotionAnalyzerSnapshot } from '../../motion/pose/poseMotionTypes'
 import { CameraController, CameraControllerError } from '../../sensors/camera/CameraController'
 import type { CameraSettings } from '../../sensors/camera/cameraTypes'
 import { PoseSensorSession } from '../../sensors/pose/PoseSensorSession'
@@ -50,6 +54,27 @@ const INITIAL_TELEMETRY: SensorTelemetry = {
   lastResultAgeMs: null,
   modelStatus: 'NOT_LOADED',
   workerStatus: 'NOT_STARTED',
+}
+
+const POSE_ANALYZER_REQUEST: MotionInputRequest = {
+  players: [
+    {
+      playerId: 'pose-lab-player',
+      abilityProfile: resolveAbilityProfile(['STANDARD']),
+    },
+  ],
+  actions: [
+    'MOVE_LEFT',
+    'MOVE_RIGHT',
+    'LEAN_LEFT',
+    'LEAN_RIGHT',
+    'REACH',
+    'REACH_LEFT',
+    'REACH_RIGHT',
+    'SQUAT',
+    'JUMP',
+  ],
+  sensors: { pose: true, hands: false, audio: false },
 }
 
 function percentile95(values: readonly number[]): number {
@@ -113,15 +138,24 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sessionRef = useRef<PoseSensorSession | null>(null)
+  const motionProviderRef = useRef<PoseMotionInputProvider | null>(null)
   const inferenceDurationsRef = useRef<number[]>([])
   const inferenceTimesRef = useRef<number[]>([])
   const [sessionState, setSessionState] = useState<PoseSessionState>('READY')
   const [cameraSettings, setCameraSettings] = useState<CameraSettings | null>(null)
   const [telemetry, setTelemetry] = useState(INITIAL_TELEMETRY)
+  const [analyzerDiagnostics, setAnalyzerDiagnostics] =
+    useState<PoseMotionAnalyzerSnapshot | null>(null)
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
 
   const handleSessionStateChange = useCallback((state: PoseSessionState) => {
     setSessionState(state)
+    if (state === 'STOPPED' || state === 'SUSPENDED') {
+      void motionProviderRef.current?.stop()
+      setAnalyzerDiagnostics(
+        motionProviderRef.current?.getDiagnostics() ?? null,
+      )
+    }
     if (state !== 'ERROR') return
 
     canvasRef.current
@@ -141,10 +175,18 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       modelStatus: 'ERROR',
       workerStatus: 'CLOSED',
     }))
+    void motionProviderRef.current?.stop()
+    setAnalyzerDiagnostics(
+      motionProviderRef.current?.getDiagnostics() ?? null,
+    )
   }, [])
 
   const handleInferenceResult = useCallback((result: PoseInferenceResult) => {
     if (canvasRef.current) drawPoseFrame(canvasRef.current, result.frame)
+    motionProviderRef.current?.ingest(result.frame)
+    setAnalyzerDiagnostics(
+      motionProviderRef.current?.getDiagnostics() ?? null,
+    )
     const now = performance.now()
     const durations = inferenceDurationsRef.current
     durations.push(result.inferenceDurationMs)
@@ -171,6 +213,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     const video = videoRef.current
     if (!video) return
     const camera = new CameraController(video)
+    const motionProvider = new PoseMotionInputProvider()
+    motionProviderRef.current = motionProvider
     let activeSession: PoseSensorSession | null = null
     const onSessionStateChange = (state: PoseSessionState) => {
       if (activeSession && sessionRef.current === activeSession) {
@@ -221,6 +265,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
           lastResultAgeMs:
             current.lastResultAt === null ? null : now - current.lastResultAt,
         }))
+        setAnalyzerDiagnostics(motionProvider.getDiagnostics())
         renderWindowStartedAt = now
         renderedFrames = 0
       }
@@ -240,6 +285,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     return () => {
       cancelAnimationFrame(animationFrame)
       if (sessionRef.current === session) sessionRef.current = null
+      if (motionProviderRef.current === motionProvider) {
+        motionProviderRef.current = null
+      }
+      void motionProvider.stop()
       void session.dispose()
     }
   }, [handleInferenceResult, handleSessionStateChange])
@@ -271,6 +320,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       lastResultAgeMs: null,
     }))
     try {
+      await motionProviderRef.current?.start(POSE_ANALYZER_REQUEST)
+      setAnalyzerDiagnostics(
+        motionProviderRef.current?.getDiagnostics() ?? null,
+      )
       await session.start()
       if (session.getState() !== 'RUNNING') return
       const backend = session.getBackend()
@@ -287,6 +340,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
         workerStatus: mode === 'WORKER' ? 'READY' : 'FALLBACK',
       }))
     } catch (startupError) {
+      await motionProviderRef.current?.stop()
+      setAnalyzerDiagnostics(
+        motionProviderRef.current?.getDiagnostics() ?? null,
+      )
       setError(errorDetails(startupError))
       setTelemetry((current) => ({
         ...current,
@@ -297,7 +354,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   }
 
   const stopCamera = async () => {
-    await sessionRef.current?.stop()
+    await Promise.all([
+      sessionRef.current?.stop(),
+      motionProviderRef.current?.stop(),
+    ])
     const canvas = canvasRef.current
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
     setCameraSettings(null)
@@ -305,9 +365,14 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       ...current,
       actualHz: 0,
       poseDetected: false,
+      lastResultAt: null,
+      lastResultAgeMs: null,
       modelStatus: 'CLOSED',
       workerStatus: 'CLOSED',
     }))
+    setAnalyzerDiagnostics(
+      motionProviderRef.current?.getDiagnostics() ?? null,
+    )
   }
 
   const restartCamera = async () => {
@@ -323,13 +388,27 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const lastResultAge = telemetry.lastResultAgeMs === null
     ? '—'
     : `${Math.max(0, telemetry.lastResultAgeMs).toFixed(0)} ms`
+  const analyzerAction = (actionId: keyof NonNullable<PoseMotionAnalyzerSnapshot>['actions']) => {
+    const value = analyzerDiagnostics?.actions[actionId]?.value
+    return typeof value === 'number' ? value : 0
+  }
+  const moveLeft = analyzerAction('MOVE_LEFT')
+  const moveRight = analyzerAction('MOVE_RIGHT')
+  const leanLeft = analyzerAction('LEAN_LEFT')
+  const leanRight = analyzerAction('LEAN_RIGHT')
+  const jump = analyzerAction('JUMP')
+  const analyzerFreshness = analyzerDiagnostics?.freshnessMs
+  const analyzerFreshnessLabel =
+    analyzerFreshness === null || analyzerFreshness === undefined
+      ? '—'
+      : `${analyzerFreshness.toFixed(0)} ms`
 
   return (
     <main className="pose-lab-shell">
       <header className="pose-lab-header">
         <div>
-          <p>PHASE 1B · LOCAL SENSOR DIAGNOSTIC</p>
-          <h1>Pose Sensor Lab</h1>
+          <p>PHASE 1C · LOCAL MOTION ANALYZER DIAGNOSTIC</p>
+          <h1>Pose + Motion Analyzer Lab</h1>
         </div>
         <button type="button" className="pose-button pose-button-quiet" onClick={onExit}>
           返回首頁
@@ -430,8 +509,64 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               Fallback reason: {telemetry.fallbackReason}
             </p>
           ) : null}
+          <h2>Motion Analyzer</h2>
+          <dl>
+            <TelemetryRow
+              label="Tracking quality"
+              value={analyzerDiagnostics?.quality ?? 'NOT_STARTED'}
+            />
+            <TelemetryRow
+              label="Session baseline"
+              value={
+                analyzerDiagnostics?.baselineReady
+                  ? 'READY'
+                  : `${((analyzerDiagnostics?.baselineProgress ?? 0) * 100).toFixed(0)}%`
+              }
+            />
+            <TelemetryRow label="Pose freshness" value={analyzerFreshnessLabel} />
+            <TelemetryRow
+              label="MOVE"
+              value={
+                moveLeft > 0
+                  ? `LEFT ${formatNumber(moveLeft, 2)}`
+                  : moveRight > 0
+                    ? `RIGHT ${formatNumber(moveRight, 2)}`
+                    : 'NEUTRAL'
+              }
+            />
+            <TelemetryRow
+              label="LEAN"
+              value={
+                leanLeft > 0
+                  ? `LEFT ${formatNumber(leanLeft, 2)}`
+                  : leanRight > 0
+                    ? `RIGHT ${formatNumber(leanRight, 2)}`
+                    : 'NEUTRAL'
+              }
+            />
+            <TelemetryRow
+              label="Left REACH"
+              value={formatNumber(analyzerAction('REACH_LEFT'), 2)}
+            />
+            <TelemetryRow
+              label="Right REACH"
+              value={formatNumber(analyzerAction('REACH_RIGHT'), 2)}
+            />
+            <TelemetryRow
+              label="SQUAT"
+              value={`${analyzerDiagnostics?.squatState ?? 'STANDING'} ${formatNumber(analyzerAction('SQUAT'), 2)}`}
+            />
+            <TelemetryRow
+              label="JUMP"
+              value={`${analyzerDiagnostics?.jumpState ?? 'GROUNDED'}${jump > 0 ? ' · PULSE' : ''}`}
+            />
+            <TelemetryRow
+              label="Analyzer time"
+              value={`${formatNumber(analyzerDiagnostics?.analyzerDurationMs ?? 0, 3)} ms`}
+            />
+          </dl>
           <p className="pose-privacy-note">
-            影像與 landmarks 不會儲存、錄製或上傳到 Motion Arcade backend。
+            影像、landmarks 與暫時基準不會儲存、錄製或上傳到 Motion Arcade backend。
           </p>
         </aside>
       </div>

@@ -1,5 +1,5 @@
 .pose-lab-shell {
-  width: 100dvw;
+  width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   padding-block: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-bottom));
@@ -185,6 +185,8 @@
 }
 
 .pose-telemetry {
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
   padding: 1rem;
 }
 
@@ -294,5 +296,9 @@
 
   .pose-preview-stage {
     min-height: 14rem;
+  }
+
+  .pose-telemetry {
+    max-height: none;
   }
 }
