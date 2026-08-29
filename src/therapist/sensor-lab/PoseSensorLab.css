@@ -198,6 +198,58 @@
   text-transform: uppercase;
 }
 
+.pose-telemetry h2:not(:first-child) {
+  margin-top: 1rem;
+}
+
+.pose-analyzer-status {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0 0 0.7rem;
+  border: 2px solid rgb(255 255 255 / 16%);
+  border-radius: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 5%);
+}
+
+.pose-analyzer-status strong {
+  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.pose-analyzer-status span {
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.pose-analyzer-status-pass {
+  border-color: #53f7ae;
+  color: #071810;
+  background: #72f2b7;
+  box-shadow: 0 0 1.5rem rgb(83 247 174 / 26%);
+}
+
+.pose-analyzer-status-warn {
+  border-color: #ffd166;
+  color: #231700;
+  background: #ffd166;
+  box-shadow: 0 0 1.2rem rgb(255 209 102 / 20%);
+}
+
+.pose-analyzer-status-fail {
+  border-color: #ff7d79;
+  color: #270908;
+  background: #ff8b87;
+  box-shadow: 0 0 1.2rem rgb(255 125 121 / 20%);
+}
+
+.pose-analyzer-status-idle {
+  color: var(--text-muted);
+  background: rgb(255 255 255 / 5%);
+}
+
 .pose-telemetry dl {
   margin: 0;
 }
@@ -209,6 +261,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 0.65rem;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
 
 .pose-telemetry dt {
@@ -222,6 +275,57 @@
   font-size: 0.76rem;
   font-weight: 700;
   text-align: right;
+}
+
+.pose-telemetry-row-pass,
+.pose-telemetry-row-warn,
+.pose-telemetry-row-fail,
+.pose-telemetry-row-active {
+  margin-inline: -0.4rem;
+  border-radius: 0.45rem;
+  padding-inline: 0.4rem !important;
+}
+
+.pose-telemetry-row-pass {
+  border-bottom-color: rgb(83 247 174 / 55%) !important;
+  background: rgb(83 247 174 / 16%);
+}
+
+.pose-telemetry-row-pass dt,
+.pose-telemetry-row-pass dd {
+  color: #86ffc3;
+}
+
+.pose-telemetry-row-warn {
+  border-bottom-color: rgb(255 209 102 / 55%) !important;
+  background: rgb(255 209 102 / 14%);
+}
+
+.pose-telemetry-row-warn dt,
+.pose-telemetry-row-warn dd {
+  color: #ffe39b;
+}
+
+.pose-telemetry-row-fail {
+  border-bottom-color: rgb(255 125 121 / 55%) !important;
+  background: rgb(255 125 121 / 14%);
+}
+
+.pose-telemetry-row-fail dt,
+.pose-telemetry-row-fail dd {
+  color: #ffaaa7;
+}
+
+.pose-telemetry-row-active {
+  border-bottom-color: rgb(114 206 255 / 72%) !important;
+  background: rgb(80 179 255 / 22%);
+  box-shadow: inset 3px 0 0 #72ceff;
+}
+
+.pose-telemetry-row-active dt,
+.pose-telemetry-row-active dd {
+  color: #a7dcff;
+  font-weight: 900;
 }
 
 .pose-fallback-note,
@@ -277,6 +381,18 @@
   .pose-telemetry {
     max-height: calc(100dvh - 4rem);
     overflow-y: auto;
+  }
+
+  .pose-analyzer-status {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .pose-analyzer-status strong {
+    font-size: 1.15rem;
+  }
+
+  .pose-analyzer-status span {
+    font-size: 0.68rem;
   }
 
   .pose-controls {
