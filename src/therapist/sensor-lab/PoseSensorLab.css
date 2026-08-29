@@ -250,6 +250,107 @@
   background: rgb(255 255 255 / 5%);
 }
 
+.pose-squat-diagnostic {
+  margin: 0 0 0.8rem;
+  border: 2px solid rgb(255 255 255 / 14%);
+  border-radius: 0.9rem;
+  padding: 0.7rem;
+  background: rgb(5 11 24 / 72%);
+}
+
+.pose-squat-diagnostic-active {
+  border-color: #72ceff;
+  box-shadow: 0 0 1.25rem rgb(114 206 255 / 24%);
+}
+
+.pose-squat-diagnostic-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.pose-squat-diagnostic-heading strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.pose-squat-diagnostic-heading span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.pose-squat-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.pose-squat-check {
+  min-height: 5.6rem;
+  border: 2px solid transparent;
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.35rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  gap: 0.15rem 0.25rem;
+}
+
+.pose-squat-check strong {
+  font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.pose-squat-check b {
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  line-height: 1;
+}
+
+.pose-squat-check span {
+  grid-column: 1 / -1;
+  align-self: end;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.pose-squat-check-pass {
+  border-color: #53f7ae;
+  color: #051810;
+  background: #72f2b7;
+}
+
+.pose-squat-check-fail {
+  border-color: #ff7d79;
+  color: #270908;
+  background: #ff8b87;
+}
+
+.pose-squat-check-wait {
+  border-color: #ffd166;
+  color: #231700;
+  background: #ffd166;
+}
+
+.pose-squat-detail-line {
+  margin: 0.55rem 0 0;
+  color: #d8e6fa;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+}
+
 .pose-telemetry dl {
   margin: 0;
 }
@@ -393,6 +494,28 @@
 
   .pose-analyzer-status span {
     font-size: 0.68rem;
+  }
+
+  .pose-squat-diagnostic {
+    padding: 0.5rem;
+  }
+
+  .pose-squat-check {
+    min-height: 4.6rem;
+    padding: 0.4rem 0.3rem;
+  }
+
+  .pose-squat-check strong {
+    font-size: 0.82rem;
+  }
+
+  .pose-squat-check b {
+    font-size: 1.55rem;
+  }
+
+  .pose-squat-check span,
+  .pose-squat-detail-line {
+    font-size: 0.6rem;
   }
 
   .pose-controls {
