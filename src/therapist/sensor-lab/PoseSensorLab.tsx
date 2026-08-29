@@ -40,6 +40,9 @@ interface SensorTelemetry {
   readonly workerStatus: 'NOT_STARTED' | 'STARTING' | 'READY' | 'FALLBACK' | 'ERROR' | 'CLOSED'
 }
 
+type TelemetryTone = 'pass' | 'warn' | 'fail' | 'active'
+type AnalyzerBannerTone = 'pass' | 'warn' | 'fail' | 'idle'
+
 const INITIAL_TELEMETRY: SensorTelemetry = {
   backendMode: 'NOT_STARTED',
   fallbackReason: null,
@@ -396,12 +399,54 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const moveRight = analyzerAction('MOVE_RIGHT')
   const leanLeft = analyzerAction('LEAN_LEFT')
   const leanRight = analyzerAction('LEAN_RIGHT')
+  const leftReach = analyzerAction('REACH_LEFT')
+  const rightReach = analyzerAction('REACH_RIGHT')
+  const squat = analyzerAction('SQUAT')
   const jump = analyzerAction('JUMP')
   const analyzerFreshness = analyzerDiagnostics?.freshnessMs
   const analyzerFreshnessLabel =
     analyzerFreshness === null || analyzerFreshness === undefined
       ? '—'
       : `${analyzerFreshness.toFixed(0)} ms`
+  const analyzerReady =
+    analyzerDiagnostics?.quality === 'READY' &&
+    analyzerDiagnostics.baselineReady
+  const baselineProgress = Math.round(
+    (analyzerDiagnostics?.baselineProgress ?? 0) * 100,
+  )
+  const analyzerBanner: {
+    readonly tone: AnalyzerBannerTone
+    readonly title: string
+    readonly detail: string
+  } = analyzerReady
+    ? {
+        tone: 'pass',
+        title: '✓ READY',
+        detail: '可以開始動作測試',
+      }
+    : analyzerDiagnostics?.quality === 'BASELINING'
+      ? {
+          tone: 'warn',
+          title: `基準建立中 ${baselineProgress}%`,
+          detail: '請站穩並保持全身與雙腳入鏡',
+        }
+      : analyzerDiagnostics?.quality === 'LIMITED'
+        ? {
+            tone: 'warn',
+            title: '⚠ LIMITED',
+            detail: '請確認全身、雙膝與雙腳踝都清楚入鏡',
+          }
+        : analyzerDiagnostics?.quality === 'LOST'
+          ? {
+              tone: 'fail',
+              title: '✕ LOST',
+              detail: '尚未穩定偵測到可用的全身姿勢',
+            }
+          : {
+              tone: 'idle',
+              title: '尚未開始',
+              detail: '啟動相機後請先站穩建立基準',
+            }
 
   return (
     <main className="pose-lab-shell">
@@ -485,7 +530,11 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
         <aside className="pose-telemetry" aria-label="本機感測器診斷資料">
           <h2>Local telemetry</h2>
           <dl>
-            <TelemetryRow label="Camera state" value={sessionState} />
+            <TelemetryRow
+              label="Camera state"
+              value={sessionState}
+              tone={sessionState === 'RUNNING' ? 'pass' : sessionState === 'ERROR' ? 'fail' : undefined}
+            />
             <TelemetryRow
               label="Camera source"
               value={cameraSettings?.width && cameraSettings.height ? `${cameraSettings.width} × ${cameraSettings.height}` : '—'}
@@ -493,15 +542,27 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             <TelemetryRow label="Camera FPS" value={cameraSettings?.frameRate?.toFixed(1) ?? '—'} />
             <TelemetryRow label="Facing mode" value={cameraSettings?.facingMode ?? '—'} />
             <TelemetryRow label="Backend" value={telemetry.backendMode} />
-            <TelemetryRow label="Worker" value={telemetry.workerStatus} />
-            <TelemetryRow label="Model" value={telemetry.modelStatus} />
+            <TelemetryRow
+              label="Worker"
+              value={telemetry.workerStatus}
+              tone={telemetry.workerStatus === 'READY' ? 'pass' : telemetry.workerStatus === 'FALLBACK' ? 'warn' : telemetry.workerStatus === 'ERROR' ? 'fail' : undefined}
+            />
+            <TelemetryRow
+              label="Model"
+              value={telemetry.modelStatus}
+              tone={telemetry.modelStatus === 'READY' ? 'pass' : telemetry.modelStatus === 'ERROR' ? 'fail' : undefined}
+            />
             <TelemetryRow label="Target inference" value={`${telemetry.targetHz} Hz`} />
             <TelemetryRow label="Measured inference" value={`${formatNumber(telemetry.actualHz)} Hz`} />
             <TelemetryRow label="UI / render" value={`${formatNumber(telemetry.renderFps)} FPS`} />
             <TelemetryRow label="Mean inference" value={`${formatNumber(telemetry.meanInferenceMs)} ms`} />
             <TelemetryRow label="p95 inference" value={`${formatNumber(telemetry.p95InferenceMs)} ms`} />
             <TelemetryRow label="Dropped opportunities" value={String(telemetry.droppedInferenceFrames)} />
-            <TelemetryRow label="Pose detected" value={telemetry.poseDetected ? 'YES' : 'NO'} />
+            <TelemetryRow
+              label="Pose detected"
+              value={telemetry.poseDetected ? 'YES' : 'NO'}
+              tone={telemetry.poseDetected ? 'pass' : sessionState === 'RUNNING' ? 'fail' : undefined}
+            />
             <TelemetryRow label="Last pose result" value={lastResultAge} />
           </dl>
           {telemetry.fallbackReason ? (
@@ -510,18 +571,36 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             </p>
           ) : null}
           <h2>Motion Analyzer</h2>
+          <div
+            className={`pose-analyzer-status pose-analyzer-status-${analyzerBanner.tone}`}
+            role="status"
+            aria-live="polite"
+          >
+            <strong>{analyzerBanner.title}</strong>
+            <span>{analyzerBanner.detail}</span>
+          </div>
           <dl>
             <TelemetryRow
               label="Tracking quality"
               value={analyzerDiagnostics?.quality ?? 'NOT_STARTED'}
+              tone={
+                analyzerDiagnostics?.quality === 'READY'
+                  ? 'pass'
+                  : analyzerDiagnostics?.quality === 'BASELINING' || analyzerDiagnostics?.quality === 'LIMITED'
+                    ? 'warn'
+                    : analyzerDiagnostics?.quality === 'LOST'
+                      ? 'fail'
+                      : undefined
+              }
             />
             <TelemetryRow
               label="Session baseline"
               value={
                 analyzerDiagnostics?.baselineReady
                   ? 'READY'
-                  : `${((analyzerDiagnostics?.baselineProgress ?? 0) * 100).toFixed(0)}%`
+                  : `${baselineProgress}%`
               }
+              tone={analyzerDiagnostics?.baselineReady ? 'pass' : baselineProgress > 0 ? 'warn' : undefined}
             />
             <TelemetryRow label="Pose freshness" value={analyzerFreshnessLabel} />
             <TelemetryRow
@@ -533,6 +612,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                     ? `RIGHT ${formatNumber(moveRight, 2)}`
                     : 'NEUTRAL'
               }
+              tone={moveLeft > 0 || moveRight > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="LEAN"
@@ -543,22 +623,27 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                     ? `RIGHT ${formatNumber(leanRight, 2)}`
                     : 'NEUTRAL'
               }
+              tone={leanLeft > 0 || leanRight > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="Left REACH"
-              value={formatNumber(analyzerAction('REACH_LEFT'), 2)}
+              value={formatNumber(leftReach, 2)}
+              tone={leftReach > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="Right REACH"
-              value={formatNumber(analyzerAction('REACH_RIGHT'), 2)}
+              value={formatNumber(rightReach, 2)}
+              tone={rightReach > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="SQUAT"
-              value={`${analyzerDiagnostics?.squatState ?? 'STANDING'} ${formatNumber(analyzerAction('SQUAT'), 2)}`}
+              value={`${analyzerDiagnostics?.squatState ?? 'STANDING'} ${formatNumber(squat, 2)}`}
+              tone={squat > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="JUMP"
               value={`${analyzerDiagnostics?.jumpState ?? 'GROUNDED'}${jump > 0 ? ' · PULSE' : ''}`}
+              tone={jump > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="Analyzer time"
@@ -574,9 +659,17 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   )
 }
 
-function TelemetryRow({ label, value }: { readonly label: string; readonly value: string }) {
+function TelemetryRow({
+  label,
+  value,
+  tone,
+}: {
+  readonly label: string
+  readonly value: string
+  readonly tone?: TelemetryTone
+}) {
   return (
-    <div>
+    <div className={tone ? `pose-telemetry-row-${tone}` : undefined}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
