@@ -22,7 +22,9 @@ PlayerCalibration v1 + ResolvedAbilityProfile + immutable STANDARD config
 
 `src/motion/calibration/calibrationAdaptation.ts` validates and maps calibration. `PoseMotionAnalyzer` consumes only a resolved detector config; it does not import or interpret `PlayerCalibration`. `PoseMotionInputProvider` reads the first requested player's `MotionPlayerRequest.calibration`, resolves the config once in `start()`, and constructs one analyzer for that provider session. Configuration is not recalculated per frame and the global `POSE_MOTION_CONFIG` is deeply immutable.
 
-The Pose provider remains intentionally single-person. Games receive normalized actions only and never receive body units, calibration fields, landmarks, or sensor objects.
+`PlayerCalibration` is provider input only. It may be supplied through `MotionPlayerRequest`, but it is deliberately omitted from `PlayerMotionState` and `MotionInputSnapshot`. Both the Pose provider and permanent TEST provider enforce this output boundary, so games receive normalized actions and ability metadata only; they never receive body-unit calibration measurements, landmarks, or sensor objects.
+
+The Pose provider remains intentionally single-person.
 
 ## Canonical v1 validation and fallback
 

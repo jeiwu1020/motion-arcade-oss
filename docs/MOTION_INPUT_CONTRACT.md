@@ -8,7 +8,7 @@ Implementation: [`src/motion/contracts/motion.ts`](../src/motion/contracts/motio
 
 ## 1. Purpose and invariants
 
-Games consume normalized logical-player actions. They never consume MediaPipe landmarks, camera frames, microphone samples, browser pixels, keyboard events, mouse events, or UI slider values.
+Games consume normalized logical-player actions. They never consume MediaPipe landmarks, camera frames, microphone samples, browser pixels, keyboard events, mouse events, UI slider values, or player calibration/body-unit measurements.
 
 The same game-facing boundary is used by:
 
@@ -113,13 +113,15 @@ interface MotionInputRequest {
 }
 ```
 
-Consequently, Player 1 may be `STANDARD` while Player 2 is `SEATED + RIGHT_SIDE`, and their actions remain independent in the same snapshot.
+Consequently, Player 1 may be `STANDARD` while Player 2 is `SEATED + RIGHT_SIDE`, and their actions remain independent in the same provider request.
 
 `ResolvedAbilityProfile` expresses intended adaptation. `PlayerCalibration` stores measured usable range for that participant. The two concepts are deliberately separate.
 
 Phase 1D.1 defines canonical `PlayerCalibration` version 1. It stores only body-relative MOVE/LEAN/SQUAT ranges, dimensionless anatomical left/right REACH capability, step completeness, and aggregate quality metadata. Skipped/unavailable measurements are `null`; raw landmarks, frames, pixels, images, and streams are prohibited. The original Phase 1A reserved fields remain accepted as a deprecated compatibility branch for existing provider behavior and must not be emitted by new calibration code.
 
 In Phase 1D.2 the single-person `PoseMotionInputProvider` validates only canonical v1 calibration from its first requested player and resolves a session-specific detector config once during `start()`. Valid measurements adapt MOVE, LEAN, anatomical REACH, and SQUAT independently through safety clamps; missing or invalid fields retain STANDARD behavior. The deprecated compatibility shape never activates adaptation. JUMP is not calibration-driven. Ability profiles and calibration remain separate concepts.
+
+Calibration is an input-only provider concern. `MotionPlayerRequest.calibration` may be consumed by a sensor provider, but it must not be copied into `PlayerMotionState` or `MotionInputSnapshot`. Games receive the resulting normalized actions, not body-unit calibration measurements.
 
 ## 6. Ability profile semantics
 
@@ -184,7 +186,6 @@ Games must never inspect the preview mirroring setting or compensate for it. Uni
 interface PlayerMotionState {
   playerId: PlayerId
   abilityProfile: ResolvedAbilityProfile
-  calibration?: PlayerCalibration
   actions: Readonly<Partial<Record<MotionActionId, MotionActionState>>>
 }
 
@@ -213,6 +214,7 @@ Lifecycle rules:
 - Provider time is separate from Phaser render time.
 - A coordinator stops the previous provider before starting a replacement.
 - The test provider cannot request camera/microphone permissions or import MediaPipe.
+- Providers must strip request-only calibration metadata from game-facing snapshots.
 
 ## 9. Sensor requirements
 
@@ -232,7 +234,7 @@ All values are `false` for the Developer Input Lab. A future capability-negotiat
 
 `KeyboardMouseTestInputProvider` owns all DOM bindings and simulated values. It supports one to four independent players, profile changes, hold/release phases, non-retriggering pulses, continuous values, pointer position/click/drag/velocity, and left-hand/right-hand/generic-pointer routing.
 
-The React control panel writes provider values. The Phaser test scene only reads `MotionInputSnapshot`; it contains no key, mouse, or slider knowledge.
+The React control panel writes provider values. The Phaser test scene only reads `MotionInputSnapshot`; it contains no key, mouse, slider, or calibration/body-unit knowledge.
 
 `start(request)` reconciles the action set exactly: removed actions and players disappear from the snapshot, and their pressed-key and pulse bookkeeping is discarded. A profile change immediately neutralizes actions that the new profile disallows. `stop()` is idempotent and resets transient actions, pointer history/drag state, pulse timers, pressed keys, and voice-sustained runtime state; a subsequent start is neutral until new input arrives.
 

@@ -148,7 +148,6 @@ export interface MotionInputRequest {
 export interface PlayerMotionState {
   readonly playerId: PlayerId
   readonly abilityProfile: ResolvedAbilityProfile
-  readonly calibration?: PlayerCalibration
   readonly actions: Readonly<Partial<Record<MotionActionId, MotionActionState>>>
 }
 

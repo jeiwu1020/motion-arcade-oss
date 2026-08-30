@@ -507,16 +507,11 @@ export class KeyboardMouseTestInputProvider implements MotionInputProvider {
 
   #emit(): void {
     const players: PlayerMotionState[] = [...this.#players.values()].map(
-      ({ request, actions }) => {
-        const state = {
-          playerId: request.playerId,
-          abilityProfile: request.abilityProfile,
-          actions: { ...actions },
-        }
-        return request.calibration
-          ? { ...state, calibration: request.calibration }
-          : state
-      },
+      ({ request, actions }) => ({
+        playerId: request.playerId,
+        abilityProfile: request.abilityProfile,
+        actions: { ...actions },
+      }),
     )
     this.#snapshot = {
       providerId: this.id,

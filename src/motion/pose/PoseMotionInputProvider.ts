@@ -183,15 +183,10 @@ export class PoseMotionInputProvider implements MotionInputProvider {
               analyzed?.sequence ?? 0,
             )
     }
-    const state = {
+    return Object.freeze({
       playerId: requestedPlayer.playerId,
       abilityProfile: requestedPlayer.abilityProfile,
       actions: Object.freeze(actions),
-    }
-    return Object.freeze(
-      requestedPlayer.calibration
-        ? { ...state, calibration: requestedPlayer.calibration }
-        : state,
-    )
+    })
   }
 }
