@@ -63,8 +63,8 @@ const STEP_COPY: Readonly<Record<PoseCalibrationFlowStep, {
   },
   COMPLETE: {
     eyebrow: '階段 2 / 2 · 動作測試',
-    title: '動作測試',
-    instruction: '請站穩，等 Motion Analyzer 顯示 READY 後再開始做動作',
+    title: '動作測試進行中',
+    instruction: '直接做動作即可；系統已在偵測，不需要再按開始',
   },
 }
 
@@ -108,11 +108,11 @@ export function PoseCalibrationPanel({
     ? {
         ...baseCopy,
         title: analyzerMode === 'CALIBRATION_V1'
-          ? '使用校正值測試'
-          : 'STANDARD 測試',
+          ? '校正值測試進行中'
+          : 'STANDARD 測試進行中',
         instruction: analyzerMode === 'CALIBRATION_V1'
-          ? '這一輪會依照你剛才量到的舒服動作範圍判定；請先站穩等 READY'
-          : '這一輪使用系統原本固定門檻；請先站穩等 READY',
+          ? '直接做左右移動、左右傾斜、左右伸手、深蹲與跳躍；系統正依照你的校正值判定，不需要再按開始'
+          : '直接做左右移動、左右傾斜、左右伸手、深蹲與跳躍；系統正使用原本固定門檻，不需要再按開始',
       }
     : baseCopy
   const isMeasurement = PROGRESS_STEPS.some(({ id }) => id === snapshot.step)
@@ -136,8 +136,8 @@ export function PoseCalibrationPanel({
     : null
   const stateLabel = snapshot.step === 'COMPLETE'
     ? analyzerMode === 'CALIBRATION_V1'
-      ? '目前模式：使用校正值'
-      : '目前模式：STANDARD'
+      ? '✓ 測試已開始 · 目前使用校正值'
+      : '✓ 測試已開始 · 目前使用 STANDARD'
     : snapshot.step === 'REVIEW'
       ? '校正已完成，下一步開始動作測試'
       : snapshot.collectionState === 'WAITING_FOR_TRACKING'
@@ -151,6 +151,11 @@ export function PoseCalibrationPanel({
                 ? '準備開始'
                 : '請先啟動相機'
         )
+
+  const restartFullCalibration = () => {
+    onReset()
+    onAdvance()
+  }
 
   return (
     <section className={`pose-calibration pose-calibration-${tone}`} aria-label="引導式姿勢校正">
@@ -186,7 +191,7 @@ export function PoseCalibrationPanel({
       {snapshot.step === 'REVIEW' && result ? (
         <div className="pose-calibration-review">
           <strong>{result.status === 'COMPLETE' ? '✓ 五項校正全部完成' : '✓ 校正完成（部分項目已跳過）'}</strong>
-          <p>按「開始校正值動作測試」後會直接進入測試，不需要再另外按「完成」。</p>
+          <p>按「開始校正值動作測試」後，測試會立即開始；進入下一頁後直接做動作即可。</p>
         </div>
       ) : null}
 
@@ -202,7 +207,7 @@ export function PoseCalibrationPanel({
               下一步
             </button>
             <button type="button" className="pose-button" onClick={onRetry}>
-              重新測試
+              重新測試這一步
             </button>
             {canSkip ? (
               <button type="button" className="pose-button pose-button-quiet" onClick={onSkip}>
@@ -225,33 +230,34 @@ export function PoseCalibrationPanel({
             >
               開始校正值動作測試
             </button>
-            <button type="button" className="pose-button" onClick={onReset}>
-              重新校正
+            <button type="button" className="pose-button" onClick={restartFullCalibration}>
+              重新做完整校正
             </button>
           </>
         ) : null}
         {snapshot.step === 'COMPLETE' && result ? (
           <>
-            <button
-              type="button"
-              className="pose-button pose-button-primary"
-              onClick={() => onUseCalibration(result)}
-              disabled={!cameraRunning || analyzerMode === 'CALIBRATION_V1'}
-              aria-pressed={analyzerMode === 'CALIBRATION_V1'}
-            >
-              使用校正值測試
-            </button>
-            <button
-              type="button"
-              className="pose-button"
-              onClick={onUseStandard}
-              disabled={!cameraRunning || analyzerMode === 'STANDARD'}
-              aria-pressed={analyzerMode === 'STANDARD'}
-            >
-              切換到 STANDARD 比較
-            </button>
-            <button type="button" className="pose-button pose-button-quiet" onClick={onReset}>
-              重新校正
+            {analyzerMode === 'CALIBRATION_V1' ? (
+              <button
+                type="button"
+                className="pose-button"
+                onClick={onUseStandard}
+                disabled={!cameraRunning}
+              >
+                切換到 STANDARD 比較
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="pose-button pose-button-primary"
+                onClick={() => onUseCalibration(result)}
+                disabled={!cameraRunning}
+              >
+                切回校正值測試
+              </button>
+            )}
+            <button type="button" className="pose-button pose-button-quiet" onClick={restartFullCalibration}>
+              重新做完整校正
             </button>
           </>
         ) : null}
