@@ -417,13 +417,13 @@ describe('KeyboardMouseTestInputProvider', () => {
     )
   })
 
-  it('keeps calibration data attached to its individual logical player', async () => {
+  it('keeps per-player calibration request metadata out of snapshots', async () => {
     const { provider } = setup()
     const baseRequest = request([
       { playerId: 'player-1', profiles: ['STANDARD'] },
       { playerId: 'player-2', profiles: ['SEATED'] },
     ])
-    await provider.start({
+    const calibratedRequest: MotionInputRequest = {
       ...baseRequest,
       players: [
         {
@@ -435,15 +435,17 @@ describe('KeyboardMouseTestInputProvider', () => {
           calibration: { rightUsableExtent: 0.45, voiceFloorHz: 180 },
         },
       ],
-    })
+    }
+    expect(calibratedRequest.players[0]?.calibration).toBeDefined()
+    expect(calibratedRequest.players[1]?.calibration).toBeDefined()
 
-    expect(provider.getSnapshot().players[0]?.calibration).toEqual({
-      leftUsableExtent: 0.9,
-      voiceFloorHz: 110,
-    })
-    expect(provider.getSnapshot().players[1]?.calibration).toEqual({
-      rightUsableExtent: 0.45,
-      voiceFloorHz: 180,
-    })
+    await provider.start(calibratedRequest)
+
+    expect(
+      Object.prototype.hasOwnProperty.call(provider.getSnapshot().players[0], 'calibration'),
+    ).toBe(false)
+    expect(
+      Object.prototype.hasOwnProperty.call(provider.getSnapshot().players[1], 'calibration'),
+    ).toBe(false)
   })
 })

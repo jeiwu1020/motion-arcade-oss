@@ -257,7 +257,9 @@ describe('PoseMotionInputProvider', () => {
 
     await provider.stop()
     expect(provider.getEffectiveConfig().source).toBe('STANDARD')
-    expect(provider.getSnapshot().players[0]?.calibration).toBeUndefined()
+    expect(
+      Object.prototype.hasOwnProperty.call(provider.getSnapshot().players[0], 'calibration'),
+    ).toBe(false)
     await provider.start(request(['MOVE_LEFT']))
 
     expect(provider.getEffectiveConfig().source).toBe('STANDARD')
