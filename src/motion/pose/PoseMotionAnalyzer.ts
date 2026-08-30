@@ -107,15 +107,20 @@ export class PoseMotionAnalyzer {
   #moveState: HorizontalState = 'NONE'
   #moveCandidate: HorizontalState = 'NONE'
   #moveCandidateFrames = 0
+  #moveCandidateLastQualifiedAtMs = 0
   #leanState: HorizontalState = 'NONE'
   #leanCandidate: HorizontalState = 'NONE'
   #leanCandidateFrames = 0
+  #leanCandidateLastQualifiedAtMs = 0
   #leftReachActive = false
   #leftReachCandidateFrames = 0
+  #leftReachCandidateLastQualifiedAtMs = 0
   #rightReachActive = false
   #rightReachCandidateFrames = 0
+  #rightReachCandidateLastQualifiedAtMs = 0
   #squatState: PoseSquatState = 'STANDING'
   #squatCandidateFrames = 0
+  #squatCandidateLastQualifiedAtMs = 0
   #jumpState: PoseJumpState = 'GROUNDED'
   #jumpCandidateStartedAtMs = 0
   #jumpRefractoryUntilMs = 0
@@ -346,6 +351,7 @@ export class PoseMotionAnalyzer {
       this.#smoothedMove,
       this.#config.move,
       'move',
+      features.timestampMs,
     )
     const moveRange = this.#smoothedMove < 0
       ? this.#config.move.left
@@ -393,6 +399,7 @@ export class PoseMotionAnalyzer {
       this.#smoothedLean,
       this.#config.lean,
       'lean',
+      features.timestampMs,
     )
     const leanRange = this.#smoothedLean < 0
       ? this.#config.lean.left
@@ -420,6 +427,7 @@ export class PoseMotionAnalyzer {
     value: number,
     thresholds: PoseMotionConfig['move'] | PoseMotionConfig['lean'],
     detector: 'move' | 'lean',
+    timestampMs: number,
   ): HorizontalState {
     const desired: HorizontalState =
       value <= -thresholds.left.enterBodyUnits
@@ -441,6 +449,18 @@ export class PoseMotionAnalyzer {
       return 'NONE'
     }
     if (desired === 'NONE') {
+      const candidate = detector === 'move'
+        ? this.#moveCandidate
+        : this.#leanCandidate
+      const lastQualifiedAtMs = detector === 'move'
+        ? this.#moveCandidateLastQualifiedAtMs
+        : this.#leanCandidateLastQualifiedAtMs
+      if (
+        candidate !== 'NONE' &&
+        this.#candidateWithinGrace(lastQualifiedAtMs, timestampMs)
+      ) {
+        return 'NONE'
+      }
       this.#clearHorizontalCandidate(detector)
       return 'NONE'
     }
@@ -451,6 +471,7 @@ export class PoseMotionAnalyzer {
         this.#moveCandidate = desired
         this.#moveCandidateFrames = 1
       }
+      this.#moveCandidateLastQualifiedAtMs = timestampMs
       if (this.#moveCandidateFrames >= this.#config.detectorDebounceFrames) {
         this.#clearHorizontalCandidate(detector)
         return desired
@@ -461,6 +482,7 @@ export class PoseMotionAnalyzer {
         this.#leanCandidate = desired
         this.#leanCandidateFrames = 1
       }
+      this.#leanCandidateLastQualifiedAtMs = timestampMs
       if (this.#leanCandidateFrames >= this.#config.detectorDebounceFrames) {
         this.#clearHorizontalCandidate(detector)
         return desired
@@ -473,9 +495,11 @@ export class PoseMotionAnalyzer {
     if (detector === 'move') {
       this.#moveCandidate = 'NONE'
       this.#moveCandidateFrames = 0
+      this.#moveCandidateLastQualifiedAtMs = 0
     } else {
       this.#leanCandidate = 'NONE'
       this.#leanCandidateFrames = 0
+      this.#leanCandidateLastQualifiedAtMs = 0
     }
   }
 
@@ -486,11 +510,13 @@ export class PoseMotionAnalyzer {
       this.#leftReachActive,
       leftScore,
       'LEFT',
+      features.timestampMs,
     )
     this.#rightReachActive = this.#nextReachState(
       this.#rightReachActive,
       rightScore,
       'RIGHT',
+      features.timestampMs,
     )
     const leftValue = this.#leftReachActive ? leftScore : 0
     const rightValue = this.#rightReachActive ? rightScore : 0
@@ -552,32 +578,59 @@ export class PoseMotionAnalyzer {
     active: boolean,
     score: number,
     side: 'LEFT' | 'RIGHT',
+    timestampMs: number,
   ): boolean {
     if (active) {
       if (score >= this.#config.reach.exitScore) return true
-      if (side === 'LEFT') this.#leftReachCandidateFrames = 0
-      else this.#rightReachCandidateFrames = 0
+      if (side === 'LEFT') {
+        this.#leftReachCandidateFrames = 0
+        this.#leftReachCandidateLastQualifiedAtMs = 0
+      } else {
+        this.#rightReachCandidateFrames = 0
+        this.#rightReachCandidateLastQualifiedAtMs = 0
+      }
       return false
     }
     if (score < this.#config.reach.enterScore) {
-      if (side === 'LEFT') this.#leftReachCandidateFrames = 0
-      else this.#rightReachCandidateFrames = 0
+      const candidateFrames = side === 'LEFT'
+        ? this.#leftReachCandidateFrames
+        : this.#rightReachCandidateFrames
+      const lastQualifiedAtMs = side === 'LEFT'
+        ? this.#leftReachCandidateLastQualifiedAtMs
+        : this.#rightReachCandidateLastQualifiedAtMs
+      if (
+        candidateFrames > 0 &&
+        this.#candidateWithinGrace(lastQualifiedAtMs, timestampMs)
+      ) {
+        return false
+      }
+      if (side === 'LEFT') {
+        this.#leftReachCandidateFrames = 0
+        this.#leftReachCandidateLastQualifiedAtMs = 0
+      } else {
+        this.#rightReachCandidateFrames = 0
+        this.#rightReachCandidateLastQualifiedAtMs = 0
+      }
       return false
     }
     if (side === 'LEFT') {
       this.#leftReachCandidateFrames += 1
+      this.#leftReachCandidateLastQualifiedAtMs = timestampMs
       if (
         this.#leftReachCandidateFrames >= this.#config.detectorDebounceFrames
       ) {
         this.#leftReachCandidateFrames = 0
+        this.#leftReachCandidateLastQualifiedAtMs = 0
         return true
       }
     } else {
       this.#rightReachCandidateFrames += 1
+      this.#rightReachCandidateLastQualifiedAtMs = timestampMs
       if (
         this.#rightReachCandidateFrames >= this.#config.detectorDebounceFrames
       ) {
         this.#rightReachCandidateFrames = 0
+        this.#rightReachCandidateLastQualifiedAtMs = 0
         return true
       }
     }
@@ -608,21 +661,29 @@ export class PoseMotionAnalyzer {
     if (this.#squatState === 'STANDING') {
       if (enterCandidate) {
         this.#squatCandidateFrames += 1
+        this.#squatCandidateLastQualifiedAtMs = features.timestampMs
         this.#squatState = 'DESCENDING'
       } else {
         this.#squatCandidateFrames = 0
       }
     } else if (this.#squatState === 'DESCENDING') {
-      if (enterCandidate) this.#squatCandidateFrames += 1
-      else {
+      if (enterCandidate) {
+        this.#squatCandidateFrames += 1
+        this.#squatCandidateLastQualifiedAtMs = features.timestampMs
+      } else if (!this.#candidateWithinGrace(
+        this.#squatCandidateLastQualifiedAtMs,
+        features.timestampMs,
+      )) {
         this.#squatState = 'STANDING'
         this.#squatCandidateFrames = 0
+        this.#squatCandidateLastQualifiedAtMs = 0
       }
       if (
         this.#squatCandidateFrames >= this.#config.detectorDebounceFrames
       ) {
         this.#squatState = 'SQUAT'
         this.#squatCandidateFrames = 0
+        this.#squatCandidateLastQualifiedAtMs = 0
       }
     } else if (this.#squatState === 'SQUAT') {
       if (rawDepth < this.#config.squat.exitDepthBodyUnits) {
@@ -793,6 +854,17 @@ export class PoseMotionAnalyzer {
     }
   }
 
+  #candidateWithinGrace(
+    lastQualifiedAtMs: number,
+    timestampMs: number,
+  ): boolean {
+    return (
+      lastQualifiedAtMs > 0 &&
+      this.#config.detectorCandidateGraceMs > 0 &&
+      timestampMs - lastQualifiedAtMs <= this.#config.detectorCandidateGraceMs
+    )
+  }
+
   #resetTransientStates(): void {
     this.#moveState = 'NONE'
     this.#clearHorizontalCandidate('move')
@@ -800,10 +872,13 @@ export class PoseMotionAnalyzer {
     this.#clearHorizontalCandidate('lean')
     this.#leftReachActive = false
     this.#leftReachCandidateFrames = 0
+    this.#leftReachCandidateLastQualifiedAtMs = 0
     this.#rightReachActive = false
     this.#rightReachCandidateFrames = 0
+    this.#rightReachCandidateLastQualifiedAtMs = 0
     this.#squatState = 'STANDING'
     this.#squatCandidateFrames = 0
+    this.#squatCandidateLastQualifiedAtMs = 0
     this.#jumpState = 'GROUNDED'
     this.#jumpCandidateStartedAtMs = 0
     this.#jumpRefractoryUntilMs = 0

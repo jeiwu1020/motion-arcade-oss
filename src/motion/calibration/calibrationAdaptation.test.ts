@@ -79,6 +79,11 @@ describe('resolvePoseMotionConfig validation and fallback', () => {
       maximumEnterKneeAngleDegrees: 155,
     })
     expect(resolved.config.jump).toEqual(POSE_MOTION_CONFIG.jump)
+    expect(
+      (resolved.config as typeof resolved.config & {
+        readonly detectorCandidateGraceMs?: number
+      }).detectorCandidateGraceMs,
+    ).toBe(0)
   })
 
   it('rejects the deprecated compatibility calibration shape', () => {
@@ -228,5 +233,83 @@ describe('resolvePoseMotionConfig bounded adaptation', () => {
     expect(resolved.config.lean).toEqual(POSE_MOTION_CONFIG.lean)
     expect(resolved.config.squat).toEqual(POSE_MOTION_CONFIG.squat)
     expect(resolved.config.move).not.toEqual(POSE_MOTION_CONFIG.move)
+  })
+
+  it('applies bounded LOW_MOTION range scaling without calibration', () => {
+    const lowMotion = resolveAbilityProfile(['LOW_MOTION'])
+
+    const resolved = resolvePoseMotionConfig(undefined, lowMotion)
+
+    expect(lowMotion.requiredMotionRangeScale).toBe(0.6)
+    expect(lowMotion.reactionWindowScale).toBe(1)
+    expect(resolved.source).toBe('STANDARD')
+    expect(resolved.config.move.left).toMatchObject({
+      enterBodyUnits: 0.14,
+      exitBodyUnits: 0.08,
+    })
+    expect(resolved.config.move.left.fullIntensityBodyUnits).toBeCloseTo(0.45)
+    expect(resolved.config.lean.left).toMatchObject({
+      enterBodyUnits: 0.12,
+      exitBodyUnits: 0.07,
+    })
+    expect(resolved.config.lean.left.fullIntensityBodyUnits).toBeCloseTo(0.33)
+    expect(resolved.config.reach.left).toEqual({
+      minimumExtensionRatio: 0.75,
+      fullExtensionRatio: 0.9,
+    })
+    expect(resolved.config.squat).toMatchObject({
+      enterDepthBodyUnits: 0.18,
+      exitDepthBodyUnits: 0.1,
+      maximumEnterKneeAngleDegrees: 155,
+    })
+    expect(resolved.config.squat.fullDepthBodyUnits).toBeCloseTo(0.39)
+    expect(resolved.config.jump).toEqual(POSE_MOTION_CONFIG.jump)
+  })
+
+  it('applies SLOW_RESPONSE timing without reducing physical range', () => {
+    const slowResponse = resolveAbilityProfile(['SLOW_RESPONSE'])
+
+    const resolved = resolvePoseMotionConfig(undefined, slowResponse)
+
+    expect(slowResponse.requiredMotionRangeScale).toBe(1)
+    expect(slowResponse.reactionWindowScale).toBe(1.75)
+    expect(resolved.config.move).toEqual(POSE_MOTION_CONFIG.move)
+    expect(resolved.config.lean).toEqual(POSE_MOTION_CONFIG.lean)
+    expect(resolved.config.reach).toEqual(POSE_MOTION_CONFIG.reach)
+    expect(resolved.config.squat).toEqual(POSE_MOTION_CONFIG.squat)
+    expect(resolved.config.jump).toEqual(POSE_MOTION_CONFIG.jump)
+    expect(
+      (resolved.config as typeof resolved.config & {
+        readonly detectorCandidateGraceMs?: number
+      }).detectorCandidateGraceMs,
+    ).toBe(240)
+  })
+
+  it('composes LOW_MOTION range and SLOW_RESPONSE timing once after calibration', () => {
+    const combined = resolveAbilityProfile(['SLOW_RESPONSE', 'LOW_MOTION'])
+
+    const resolved = resolvePoseMotionConfig(
+      calibration({
+        moveLeft: 0.5,
+        moveRight: 1,
+        leanLeft: 0.4,
+        leanRight: 0.8,
+      }),
+      combined,
+    )
+
+    expect(combined.profileIds).toEqual(['SLOW_RESPONSE', 'LOW_MOTION'])
+    expect(combined.requiredMotionRangeScale).toBe(0.6)
+    expect(combined.reactionWindowScale).toBe(1.75)
+    expect(resolved.config.move.left.fullIntensityBodyUnits).toBe(0.3)
+    expect(resolved.config.move.right.fullIntensityBodyUnits).toBeCloseTo(0.54)
+    expect(resolved.config.lean.left.fullIntensityBodyUnits).toBe(0.24)
+    expect(resolved.config.lean.right.fullIntensityBodyUnits).toBeCloseTo(0.432)
+    expect(
+      (resolved.config as typeof resolved.config & {
+        readonly detectorCandidateGraceMs?: number
+      }).detectorCandidateGraceMs,
+    ).toBe(240)
+    expect(resolved.config.jump).toEqual(POSE_MOTION_CONFIG.jump)
   })
 })

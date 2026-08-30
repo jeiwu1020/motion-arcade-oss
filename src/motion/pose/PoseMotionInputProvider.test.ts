@@ -266,4 +266,51 @@ describe('PoseMotionInputProvider', () => {
     expect(provider.getEffectiveConfig().config).toEqual(POSE_MOTION_CONFIG)
     expect(provider.getDiagnostics().baselineReady).toBe(false)
   })
+
+  it('resolves functional range and reaction profiles once per provider start', async () => {
+    const provider = new PoseMotionInputProvider({ now: () => 0 })
+    const requestWithProfiles = (
+      profiles: Parameters<typeof resolveAbilityProfile>[0],
+      playerCalibration?: PlayerCalibration,
+    ): MotionInputRequest => {
+      const player = {
+        playerId: 'player-1',
+        abilityProfile: resolveAbilityProfile(profiles),
+      }
+      return {
+        ...request(['MOVE_LEFT', 'SQUAT', 'JUMP']),
+        players: [
+          playerCalibration
+            ? { ...player, calibration: playerCalibration }
+            : player,
+        ],
+      }
+    }
+
+    await provider.start(requestWithProfiles(['LOW_MOTION']))
+    expect(provider.getEffectiveConfig().config.move.left).toMatchObject({
+      enterBodyUnits: 0.14,
+      exitBodyUnits: 0.08,
+    })
+    expect(provider.getEffectiveConfig().config.jump).toEqual(
+      POSE_MOTION_CONFIG.jump,
+    )
+
+    await provider.start(requestWithProfiles(['SLOW_RESPONSE']))
+    expect(provider.getEffectiveConfig().config.move).toEqual(
+      POSE_MOTION_CONFIG.move,
+    )
+    expect(provider.getEffectiveConfig().config.detectorCandidateGraceMs).toBe(240)
+
+    await provider.start(
+      requestWithProfiles(['LOW_MOTION', 'SLOW_RESPONSE'], calibration()),
+    )
+    expect(provider.getEffectiveConfig()).toMatchObject({
+      source: 'CALIBRATION_V1',
+      config: {
+        detectorCandidateGraceMs: 240,
+        move: { left: { enterBodyUnits: 0.14 } },
+      },
+    })
+  })
 })

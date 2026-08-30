@@ -43,4 +43,17 @@ describe('ability profiles', () => {
     expect(slowResponse.requiredMotionRangeScale).toBe(1)
     expect(slowResponse.reactionWindowScale).toBe(1.75)
   })
+
+  it('composes range and reaction dimensions deterministically regardless of order', () => {
+    const rangeThenTiming = resolveAbilityProfile(['LOW_MOTION', 'SLOW_RESPONSE'])
+    const timingThenRange = resolveAbilityProfile(['SLOW_RESPONSE', 'LOW_MOTION'])
+
+    expect(rangeThenTiming.requiredMotionRangeScale).toBe(0.6)
+    expect(rangeThenTiming.reactionWindowScale).toBe(1.75)
+    expect(timingThenRange.requiredMotionRangeScale).toBe(0.6)
+    expect(timingThenRange.reactionWindowScale).toBe(1.75)
+    expect(new Set(rangeThenTiming.profileIds)).toEqual(
+      new Set(timingThenRange.profileIds),
+    )
+  })
 })

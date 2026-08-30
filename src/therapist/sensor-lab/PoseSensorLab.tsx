@@ -35,6 +35,11 @@ import {
   type SquatDiagnosticSnapshot,
 } from './PoseSquatDiagnosticTracker'
 import { PoseCalibrationPanel } from './PoseCalibrationPanel'
+import {
+  describePoseTestMode,
+  toggleFunctionalProfile,
+  type PoseLabFunctionalProfileId,
+} from './poseLabFunctionalModes'
 import './PoseSensorLab.css'
 
 interface PoseSensorLabProps {
@@ -76,16 +81,15 @@ const INITIAL_TELEMETRY: SensorTelemetry = {
   workerStatus: 'NOT_STARTED',
 }
 
-const POSE_ANALYZER_PROFILE = resolveAbilityProfile(['STANDARD'])
-
 type V1PlayerCalibration = Extract<PlayerCalibration, { readonly version: 1 }>
 
 function poseAnalyzerRequest(
   calibration?: V1PlayerCalibration,
+  functionalProfiles: readonly PoseLabFunctionalProfileId[] = ['STANDARD'],
 ): MotionInputRequest {
   const player = {
     playerId: 'pose-lab-player',
-    abilityProfile: POSE_ANALYZER_PROFILE,
+    abilityProfile: resolveAbilityProfile(functionalProfiles),
   }
   return {
     players: [
@@ -105,8 +109,6 @@ function poseAnalyzerRequest(
     sensors: { pose: true, hands: false, audio: false },
   }
 }
-
-const POSE_ANALYZER_REQUEST = poseAnalyzerRequest()
 
 function percentile95(values: readonly number[]): number {
   if (values.length === 0) return 0
@@ -190,8 +192,17 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const [calibrationSnapshot, setCalibrationSnapshot] = useState<PoseCalibrationSnapshot>(
     () => new PoseCalibrationSession().getSnapshot(),
   )
+  const [functionalProfiles, setFunctionalProfiles] = useState<
+    readonly PoseLabFunctionalProfileId[]
+  >(['STANDARD'])
+  const [activeCalibration, setActiveCalibration] = useState<
+    V1PlayerCalibration | undefined
+  >()
   const [effectiveConfig, setEffectiveConfig] = useState<ResolvedPoseMotionConfig>(
-    () => resolvePoseMotionConfig(undefined, POSE_ANALYZER_PROFILE),
+    () => resolvePoseMotionConfig(
+      undefined,
+      resolveAbilityProfile(['STANDARD']),
+    ),
   )
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
 
@@ -214,6 +225,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       )
       resetSquatDiagnostics()
       resetCalibration()
+      setActiveCalibration(undefined)
     }
     if (state !== 'ERROR') return
 
@@ -240,6 +252,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     )
     resetSquatDiagnostics()
     resetCalibration()
+    setActiveCalibration(undefined)
   }, [resetCalibration, resetSquatDiagnostics])
 
   const handleInferenceResult = useCallback((result: PoseInferenceResult) => {
@@ -389,7 +402,9 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       lastResultAgeMs: null,
     }))
     try {
-      await motionProviderRef.current?.start(POSE_ANALYZER_REQUEST)
+      await motionProviderRef.current?.start(
+        poseAnalyzerRequest(undefined, functionalProfiles),
+      )
       if (motionProviderRef.current) {
         setEffectiveConfig(motionProviderRef.current.getEffectiveConfig())
       }
@@ -433,6 +448,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     ])
     resetSquatDiagnostics()
     resetCalibration()
+    setActiveCalibration(undefined)
     const canvas = canvasRef.current
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
     setCameraSettings(null)
@@ -449,7 +465,12 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       motionProviderRef.current?.getDiagnostics() ?? null,
     )
     if (motionProviderRef.current) {
-      setEffectiveConfig(motionProviderRef.current.getEffectiveConfig())
+      setEffectiveConfig(
+        resolvePoseMotionConfig(
+          undefined,
+          resolveAbilityProfile(functionalProfiles),
+        ),
+      )
     }
   }
 
@@ -461,15 +482,36 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     await startCamera()
   }
 
-  const switchAnalyzerCalibration = async (
+  const switchAnalyzerConfiguration = async (
     calibration: V1PlayerCalibration | undefined,
+    profiles: readonly PoseLabFunctionalProfileId[],
   ) => {
+    setActiveCalibration(calibration)
+    setFunctionalProfiles(profiles)
     const provider = motionProviderRef.current
-    if (!provider || sessionState !== 'RUNNING') return
+    if (!provider || sessionState !== 'RUNNING') {
+      setEffectiveConfig(
+        resolvePoseMotionConfig(
+          calibration,
+          resolveAbilityProfile(profiles),
+        ),
+      )
+      return
+    }
     await provider.stop()
-    await provider.start(poseAnalyzerRequest(calibration))
+    await provider.start(poseAnalyzerRequest(calibration, profiles))
     setEffectiveConfig(provider.getEffectiveConfig())
     setAnalyzerDiagnostics(provider.getDiagnostics())
+  }
+
+  const switchFunctionalProfile = (
+    selected: PoseLabFunctionalProfileId,
+  ) => {
+    const nextProfiles = toggleFunctionalProfile(
+      functionalProfiles,
+      selected,
+    )
+    void switchAnalyzerConfiguration(activeCalibration, nextProfiles)
   }
 
   const sourceWidth = cameraSettings?.width ?? 16
@@ -533,12 +575,17 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               title: '尚未開始',
               detail: '啟動相機後請先站穩建立基準',
             }
+  const abilityProfile = resolveAbilityProfile(functionalProfiles)
+  const currentModeLabel = describePoseTestMode(
+    effectiveConfig.source,
+    functionalProfiles,
+  )
 
   return (
     <main className="pose-lab-shell">
       <header className="pose-lab-header">
         <div>
-          <p>PHASE 1D.2 · CALIBRATION-DRIVEN ADAPTATION</p>
+          <p>PHASE 1D.3a · FUNCTIONAL ABILITY PROFILES</p>
           <h1>Pose Calibration + Motion Analyzer Lab</h1>
         </div>
         <button type="button" className="pose-button pose-button-quiet" onClick={onExit}>
@@ -584,6 +631,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               snapshot={calibrationSnapshot}
               cameraRunning={sessionState === 'RUNNING'}
               analyzerMode={effectiveConfig.source}
+              testModeLabel={currentModeLabel}
               onAdvance={() => {
                 calibrationSessionRef.current.advance()
                 setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
@@ -598,16 +646,56 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               }}
               onReset={() => {
                 resetCalibration()
-                void switchAnalyzerCalibration(undefined)
+                void switchAnalyzerConfiguration(undefined, ['STANDARD'])
               }}
               onUseCalibration={(calibration) => {
-                void switchAnalyzerCalibration(calibration)
+                void switchAnalyzerConfiguration(
+                  calibration,
+                  functionalProfiles,
+                )
               }}
               onUseStandard={() => {
-                void switchAnalyzerCalibration(undefined)
+                void switchAnalyzerConfiguration(undefined, ['STANDARD'])
               }}
             />
           </div>
+
+          <section className="pose-functional-modes" aria-label="動作模式">
+            <div className="pose-functional-modes-heading">
+              <span>動作模式</span>
+              <strong>目前設定：{currentModeLabel}</strong>
+            </div>
+            <div className="pose-functional-mode-buttons" role="group" aria-label="功能動作模式">
+              <button
+                type="button"
+                className="pose-button"
+                aria-pressed={functionalProfiles.includes('STANDARD')}
+                onClick={() => switchFunctionalProfile('STANDARD')}
+                disabled={sessionState === 'STARTING'}
+              >
+                標準動作
+              </button>
+              <button
+                type="button"
+                className="pose-button"
+                aria-pressed={functionalProfiles.includes('LOW_MOTION')}
+                onClick={() => switchFunctionalProfile('LOW_MOTION')}
+                disabled={sessionState === 'STARTING'}
+              >
+                較小動作範圍
+              </button>
+              <button
+                type="button"
+                className="pose-button"
+                aria-pressed={functionalProfiles.includes('SLOW_RESPONSE')}
+                onClick={() => switchFunctionalProfile('SLOW_RESPONSE')}
+                disabled={sessionState === 'STARTING'}
+              >
+                較慢反應速度
+              </button>
+            </div>
+            <p>切換只會重新建立動作分析基準；相機、校正結果與 MediaPipe 不會重新啟動。</p>
+          </section>
 
           <div className="pose-controls">
             <button
@@ -695,6 +783,22 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               </span>
             </div>
             <dl>
+              <TelemetryRow
+                label="Functional profile"
+                value={abilityProfile.profileIds.join(' + ')}
+              />
+              <TelemetryRow
+                label="Range scale"
+                value={formatNumber(abilityProfile.requiredMotionRangeScale, 2)}
+              />
+              <TelemetryRow
+                label="Reaction scale"
+                value={formatNumber(abilityProfile.reactionWindowScale, 2)}
+              />
+              <TelemetryRow
+                label="Candidate grace"
+                value={`${effectiveConfig.config.detectorCandidateGraceMs} ms`}
+              />
               <TelemetryRow
                 label="MOVE LEFT enter / full"
                 value={`${formatNumber(effectiveConfig.config.move.left.enterBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.move.left.fullIntensityBodyUnits, 2)}`}

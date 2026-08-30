@@ -11,6 +11,7 @@ interface PoseCalibrationPanelProps {
   readonly snapshot: PoseCalibrationSnapshot
   readonly cameraRunning: boolean
   readonly analyzerMode: 'STANDARD' | 'CALIBRATION_V1'
+  readonly testModeLabel: string
   readonly onAdvance: () => void
   readonly onRetry: () => void
   readonly onSkip: () => void
@@ -96,6 +97,7 @@ export function PoseCalibrationPanel({
   snapshot,
   cameraRunning,
   analyzerMode,
+  testModeLabel,
   onAdvance,
   onRetry,
   onSkip,
@@ -107,12 +109,8 @@ export function PoseCalibrationPanel({
   const copy = snapshot.step === 'COMPLETE'
     ? {
         ...baseCopy,
-        title: analyzerMode === 'CALIBRATION_V1'
-          ? '校正值測試進行中'
-          : 'STANDARD 測試進行中',
-        instruction: analyzerMode === 'CALIBRATION_V1'
-          ? '直接做左右移動、左右傾斜、左右伸手、深蹲與跳躍；系統正依照你的校正值判定，不需要再按開始'
-          : '直接做左右移動、左右傾斜、左右伸手、深蹲與跳躍；系統正使用原本固定門檻，不需要再按開始',
+        title: '動作測試進行中',
+        instruction: `目前使用「${testModeLabel}」；直接做左右移動、左右傾斜、左右伸手、深蹲與跳躍，不需要再按開始`,
       }
     : baseCopy
   const isMeasurement = PROGRESS_STEPS.some(({ id }) => id === snapshot.step)
@@ -135,9 +133,7 @@ export function PoseCalibrationPanel({
         : '可以伸手：請先伸左手'
     : null
   const stateLabel = snapshot.step === 'COMPLETE'
-    ? analyzerMode === 'CALIBRATION_V1'
-      ? '✓ 測試已開始 · 目前使用校正值'
-      : '✓ 測試已開始 · 目前使用 STANDARD'
+    ? `✓ 測試已開始 · ${testModeLabel}`
     : snapshot.step === 'REVIEW'
       ? '校正已完成，下一步開始動作測試'
       : snapshot.collectionState === 'WAITING_FOR_TRACKING'
@@ -244,7 +240,7 @@ export function PoseCalibrationPanel({
                 onClick={onUseStandard}
                 disabled={!cameraRunning}
               >
-                切換到 STANDARD 比較
+                切換到 STANDARD 固定門檻比較
               </button>
             ) : (
               <button
@@ -266,7 +262,7 @@ export function PoseCalibrationPanel({
       {snapshot.step === 'COMPLETE' && result ? (
         <div className="pose-calibration-developer">
           <strong>
-            開發者診斷：{analyzerMode === 'CALIBRATION_V1' ? 'CALIBRATION v1' : 'STANDARD'}
+            開發者診斷：{testModeLabel}
           </strong>
           <details className="pose-calibration-diagnostics">
             <summary>標準化校正值</summary>

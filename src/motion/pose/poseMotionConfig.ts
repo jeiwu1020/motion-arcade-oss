@@ -21,6 +21,7 @@ export interface PoseMotionConfig {
   readonly baselineStabilityBodyUnits: number
   readonly smoothingAlpha: number
   readonly detectorDebounceFrames: number
+  readonly detectorCandidateGraceMs: number
   readonly move: {
     readonly left: DirectionalBodyRangeConfig
     readonly right: DirectionalBodyRangeConfig
@@ -81,6 +82,7 @@ export const POSE_MOTION_CONFIG: PoseMotionConfig = Object.freeze({
   baselineStabilityBodyUnits: 0.18,
   smoothingAlpha: 0.55,
   detectorDebounceFrames: 2,
+  detectorCandidateGraceMs: 0,
   move: Object.freeze({
     left: STANDARD_MOVE_RANGE,
     right: STANDARD_MOVE_RANGE,

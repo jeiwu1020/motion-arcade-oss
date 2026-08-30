@@ -42,7 +42,7 @@ Resolution order is:
 STANDARD defaults → valid calibration mapping → requiredMotionRangeScale → final clamp
 ```
 
-Ability-profile scaling is applied only to a valid calibrated measurement. An unavailable action remains exactly STANDARD rather than receiving an invented range. Phase 1D.2 validates `STANDARD + calibration`; this is not a claim of complete SEATED, UPPER_BODY, LEFT_SIDE, RIGHT_SIDE, LOW_MOTION, or SLOW_RESPONSE support.
+Phase 1D.2 originally applied ability-profile scaling only to valid calibrated measurements and otherwise retained STANDARD. Phase 1D.3a extends this policy so explicit LOW_MOTION can also use a bounded scaled-STANDARD fallback, while SLOW_RESPONSE changes only candidate timing. See `PHASE_1D_3_FUNCTIONAL_PROFILES.md`. SEATED, UPPER_BODY, LEFT_SIDE, and RIGHT_SIDE are still not claimed as complete Pose modes.
 
 The bounded policies are:
 

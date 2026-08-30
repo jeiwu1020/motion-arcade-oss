@@ -119,7 +119,7 @@ Consequently, Player 1 may be `STANDARD` while Player 2 is `SEATED + RIGHT_SIDE`
 
 Phase 1D.1 defines canonical `PlayerCalibration` version 1. It stores only body-relative MOVE/LEAN/SQUAT ranges, dimensionless anatomical left/right REACH capability, step completeness, and aggregate quality metadata. Skipped/unavailable measurements are `null`; raw landmarks, frames, pixels, images, and streams are prohibited. The original Phase 1A reserved fields remain accepted as a deprecated compatibility branch for existing provider behavior and must not be emitted by new calibration code.
 
-In Phase 1D.2 the single-person `PoseMotionInputProvider` validates only canonical v1 calibration from its first requested player and resolves a session-specific detector config once during `start()`. Valid measurements adapt MOVE, LEAN, anatomical REACH, and SQUAT independently through safety clamps; missing or invalid fields retain STANDARD behavior. The deprecated compatibility shape never activates adaptation. JUMP is not calibration-driven. Ability profiles and calibration remain separate concepts.
+The single-person `PoseMotionInputProvider` validates only canonical v1 calibration from its first requested player and resolves a session-specific detector config once during `start()`. Valid measurements adapt MOVE, LEAN, anatomical REACH, and SQUAT independently through safety clamps; missing or invalid fields retain STANDARD behavior unless the explicit LOW_MOTION profile requests the same bounded scaling from STANDARD defaults. The deprecated compatibility shape never activates calibration adaptation. JUMP is not calibration- or functional-profile-driven. Ability profiles and calibration remain separate concepts.
 
 Calibration is an input-only provider concern. `MotionPlayerRequest.calibration` may be consumed by a sensor provider, but it must not be copied into `PlayerMotionState` or `MotionInputSnapshot`. Games receive the resulting normalized actions, not body-unit calibration measurements.
 
@@ -137,10 +137,12 @@ Available capability presets:
 
 Profiles can compose. `SEATED + RIGHT_SIDE` is valid. `LEFT_SIDE` and `RIGHT_SIDE` gate anatomical limb actions such as sided strike, reach, arm swing, and hand position. They do not reverse projected world movement. No diagnosis name is a valid profile or gameplay filter.
 
-Resolved profile metadata is descriptive at the normalized-action boundary:
+Resolved profile metadata drives provider-local adaptation but remains descriptive at the normalized-action boundary:
 
-- `requiredMotionRangeScale` describes the physical range a future sensor adapter may need before emitting the same game-facing normalized value. `LOW_MOTION` therefore does not slow a character or reduce a normalized action value.
-- `reactionWindowScale` reserves a future timing-window adjustment for forgiving interactions. `SLOW_RESPONSE` does not automatically slow Phaser animation playback.
+- `requiredMotionRangeScale` is `0.6` for LOW_MOTION and `1` otherwise. The Pose provider applies it to MOVE, LEAN, REACH normalization, and SQUAT through the established safety clamps. It does not slow a character or reduce a normalized action value.
+- `reactionWindowScale` is `1.75` for SLOW_RESPONSE and `1` otherwise. The Pose provider converts it to a timestamp-based 240 ms activation-candidate grace without lowering physical gates. It does not slow Phaser animation playback.
+
+LOW_MOTION and SLOW_RESPONSE compose independently. STANDARD retains exact Phase 1D.2 behavior. JUMP is excluded, and SEATED/UPPER_BODY/LEFT_SIDE/RIGHT_SIDE remain deferred Pose behavior.
 
 The Developer Input Lab consumes normalized action values consistently across profiles; it displays the selected profile for diagnostics only.
 

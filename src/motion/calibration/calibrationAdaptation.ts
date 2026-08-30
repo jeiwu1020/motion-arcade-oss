@@ -68,6 +68,12 @@ export const POSE_CALIBRATION_ADAPTATION_LIMITS = Object.freeze({
     minimumFullDepthBodyUnits: 0.22,
     maximumFullDepthBodyUnits: 0.75,
   }),
+  reaction: Object.freeze({
+    minimumScale: 1,
+    maximumScale: 2.5,
+    candidateGraceMsPerScale: 320,
+    maximumCandidateGraceMs: 480,
+  }),
 })
 
 export interface PoseMotionAdaptedActions {
@@ -155,6 +161,31 @@ function adaptRange(
   })
 }
 
+function scaleStandardRange(
+  range: DirectionalBodyRangeConfig,
+  limits: RangeAdaptationLimits,
+  abilityScale: number,
+): DirectionalBodyRangeConfig {
+  const enter = clamp(
+    range.enterBodyUnits * abilityScale,
+    limits.minimumEnterBodyUnits,
+    limits.maximumEnterBodyUnits,
+  )
+  return Object.freeze({
+    enterBodyUnits: enter,
+    exitBodyUnits: clamp(
+      range.exitBodyUnits * abilityScale,
+      limits.minimumExitBodyUnits,
+      Math.min(limits.maximumExitBodyUnits, enter - 0.01),
+    ),
+    fullIntensityBodyUnits: clamp(
+      range.fullIntensityBodyUnits * abilityScale,
+      Math.max(limits.minimumFullIntensityBodyUnits, enter),
+      limits.maximumFullIntensityBodyUnits,
+    ),
+  })
+}
+
 function adaptReach(
   capability: number,
   abilityScale: number,
@@ -213,71 +244,92 @@ function standardResult(): ResolvedPoseMotionConfig {
   })
 }
 
+function reactionCandidateGraceMs(reactionWindowScale: number): number {
+  const limits = POSE_CALIBRATION_ADAPTATION_LIMITS.reaction
+  const safeScale = isFiniteNumber(reactionWindowScale)
+    ? clamp(reactionWindowScale, limits.minimumScale, limits.maximumScale)
+    : limits.minimumScale
+  return Math.round(
+    clamp(
+      (safeScale - 1) * limits.candidateGraceMsPerScale,
+      0,
+      limits.maximumCandidateGraceMs,
+    ),
+  )
+}
+
 export function resolvePoseMotionConfig(
   calibration: PlayerCalibration | undefined,
   abilityProfile: ResolvedAbilityProfile,
 ): ResolvedPoseMotionConfig {
-  if (!isCanonicalV1(calibration) || calibration.steps.NEUTRAL !== 'COMPLETE') {
-    return standardResult()
-  }
   const abilityScale =
     isFiniteNumber(abilityProfile.requiredMotionRangeScale) &&
     abilityProfile.requiredMotionRangeScale > 0
       ? abilityProfile.requiredMotionRangeScale
       : 1
+  const candidateGraceMs = reactionCandidateGraceMs(
+    abilityProfile.reactionWindowScale,
+  )
+  const canonicalCalibration =
+    isCanonicalV1(calibration) && calibration.steps.NEUTRAL === 'COMPLETE'
+      ? calibration
+      : undefined
+  if (!canonicalCalibration && abilityScale === 1 && candidateGraceMs === 0) {
+    return standardResult()
+  }
   const adapted = {
     move: {
       left:
-        calibration.steps.MOVE === 'COMPLETE' &&
+        canonicalCalibration !== undefined && canonicalCalibration.steps.MOVE === 'COMPLETE' &&
         validMeasurement(
-          calibration.pose.move.leftRangeBodyUnits,
+          canonicalCalibration.pose.move.leftRangeBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.move.minimumMeasuredBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.move.maximumMeasuredBodyUnits,
         ),
       right:
-        calibration.steps.MOVE === 'COMPLETE' &&
+        canonicalCalibration !== undefined && canonicalCalibration.steps.MOVE === 'COMPLETE' &&
         validMeasurement(
-          calibration.pose.move.rightRangeBodyUnits,
+          canonicalCalibration.pose.move.rightRangeBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.move.minimumMeasuredBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.move.maximumMeasuredBodyUnits,
         ),
     },
     lean: {
       left:
-        calibration.steps.LEAN === 'COMPLETE' &&
+        canonicalCalibration !== undefined && canonicalCalibration.steps.LEAN === 'COMPLETE' &&
         validMeasurement(
-          calibration.pose.lean.leftRangeBodyUnits,
+          canonicalCalibration.pose.lean.leftRangeBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.lean.minimumMeasuredBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.lean.maximumMeasuredBodyUnits,
         ),
       right:
-        calibration.steps.LEAN === 'COMPLETE' &&
+        canonicalCalibration !== undefined && canonicalCalibration.steps.LEAN === 'COMPLETE' &&
         validMeasurement(
-          calibration.pose.lean.rightRangeBodyUnits,
+          canonicalCalibration.pose.lean.rightRangeBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.lean.minimumMeasuredBodyUnits,
           POSE_CALIBRATION_ADAPTATION_LIMITS.lean.maximumMeasuredBodyUnits,
         ),
     },
     reach: {
       left:
-        calibration.steps.REACH === 'COMPLETE' &&
+        canonicalCalibration !== undefined && canonicalCalibration.steps.REACH === 'COMPLETE' &&
         validMeasurement(
-          calibration.pose.reach.leftCapability,
+          canonicalCalibration.pose.reach.leftCapability,
           POSE_CALIBRATION_ADAPTATION_LIMITS.reach.minimumMeasuredCapability,
           POSE_CALIBRATION_ADAPTATION_LIMITS.reach.maximumMeasuredCapability,
         ),
       right:
-        calibration.steps.REACH === 'COMPLETE' &&
+        canonicalCalibration !== undefined && canonicalCalibration.steps.REACH === 'COMPLETE' &&
         validMeasurement(
-          calibration.pose.reach.rightCapability,
+          canonicalCalibration.pose.reach.rightCapability,
           POSE_CALIBRATION_ADAPTATION_LIMITS.reach.minimumMeasuredCapability,
           POSE_CALIBRATION_ADAPTATION_LIMITS.reach.maximumMeasuredCapability,
         ),
     },
     squat:
-      calibration.steps.SQUAT === 'COMPLETE' &&
+      canonicalCalibration !== undefined && canonicalCalibration.steps.SQUAT === 'COMPLETE' &&
       validMeasurement(
-        calibration.pose.squat.comfortableDepthBodyUnits,
+        canonicalCalibration.pose.squat.comfortableDepthBodyUnits,
         POSE_CALIBRATION_ADAPTATION_LIMITS.squat.minimumMeasuredDepthBodyUnits,
         POSE_CALIBRATION_ADAPTATION_LIMITS.squat.maximumMeasuredDepthBodyUnits,
       ),
@@ -287,28 +339,44 @@ export function resolvePoseMotionConfig(
     adapted.lean.left || adapted.lean.right ||
     adapted.reach.left || adapted.reach.right ||
     adapted.squat
-  if (!anyAdapted) return standardResult()
-
-  const moveLeft = adapted.move.left
-    ? adaptRange(calibration.pose.move.leftRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.move, abilityScale)
-    : POSE_MOTION_CONFIG.move.left
-  const moveRight = adapted.move.right
-    ? adaptRange(calibration.pose.move.rightRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.move, abilityScale)
-    : POSE_MOTION_CONFIG.move.right
-  const leanLeft = adapted.lean.left
-    ? adaptRange(calibration.pose.lean.leftRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.lean, abilityScale)
-    : POSE_MOTION_CONFIG.lean.left
-  const leanRight = adapted.lean.right
-    ? adaptRange(calibration.pose.lean.rightRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.lean, abilityScale)
-    : POSE_MOTION_CONFIG.lean.right
-  const reachLeft = adapted.reach.left
-    ? adaptReach(calibration.pose.reach.leftCapability as number, abilityScale)
-    : POSE_MOTION_CONFIG.reach.left
-  const reachRight = adapted.reach.right
-    ? adaptReach(calibration.pose.reach.rightCapability as number, abilityScale)
-    : POSE_MOTION_CONFIG.reach.right
+  const moveLeft = adapted.move.left && canonicalCalibration
+    ? adaptRange(canonicalCalibration.pose.move.leftRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.move, abilityScale)
+    : scaleStandardRange(
+        POSE_MOTION_CONFIG.move.left,
+        POSE_CALIBRATION_ADAPTATION_LIMITS.move,
+        abilityScale,
+      )
+  const moveRight = adapted.move.right && canonicalCalibration
+    ? adaptRange(canonicalCalibration.pose.move.rightRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.move, abilityScale)
+    : scaleStandardRange(
+        POSE_MOTION_CONFIG.move.right,
+        POSE_CALIBRATION_ADAPTATION_LIMITS.move,
+        abilityScale,
+      )
+  const leanLeft = adapted.lean.left && canonicalCalibration
+    ? adaptRange(canonicalCalibration.pose.lean.leftRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.lean, abilityScale)
+    : scaleStandardRange(
+        POSE_MOTION_CONFIG.lean.left,
+        POSE_CALIBRATION_ADAPTATION_LIMITS.lean,
+        abilityScale,
+      )
+  const leanRight = adapted.lean.right && canonicalCalibration
+    ? adaptRange(canonicalCalibration.pose.lean.rightRangeBodyUnits as number, POSE_CALIBRATION_ADAPTATION_LIMITS.lean, abilityScale)
+    : scaleStandardRange(
+        POSE_MOTION_CONFIG.lean.right,
+        POSE_CALIBRATION_ADAPTATION_LIMITS.lean,
+        abilityScale,
+      )
+  const reachLeft = adapted.reach.left && canonicalCalibration
+    ? adaptReach(canonicalCalibration.pose.reach.leftCapability as number, abilityScale)
+    : adaptReach(POSE_MOTION_CONFIG.reach.left.fullExtensionRatio, abilityScale)
+  const reachRight = adapted.reach.right && canonicalCalibration
+    ? adaptReach(canonicalCalibration.pose.reach.rightCapability as number, abilityScale)
+    : adaptReach(POSE_MOTION_CONFIG.reach.right.fullExtensionRatio, abilityScale)
   const squatLimits = POSE_CALIBRATION_ADAPTATION_LIMITS.squat
-  const measuredSquat = calibration.pose.squat.comfortableDepthBodyUnits as number
+  const measuredSquat = adapted.squat && canonicalCalibration
+    ? canonicalCalibration.pose.squat.comfortableDepthBodyUnits as number
+    : 0
   const squatEnter = adapted.squat
     ? clamp(
         measuredSquat * squatLimits.enterFraction * abilityScale,
@@ -332,10 +400,37 @@ export function resolvePoseMotionConfig(
         maximumEnterKneeAngleDegrees:
           POSE_MOTION_CONFIG.squat.maximumEnterKneeAngleDegrees,
       })
-    : POSE_MOTION_CONFIG.squat
+    : abilityScale === 1
+      ? POSE_MOTION_CONFIG.squat
+      : (() => {
+          const enterDepthBodyUnits = clamp(
+            POSE_MOTION_CONFIG.squat.enterDepthBodyUnits * abilityScale,
+            squatLimits.minimumEnterDepthBodyUnits,
+            squatLimits.maximumEnterDepthBodyUnits,
+          )
+          return Object.freeze({
+            enterDepthBodyUnits,
+            exitDepthBodyUnits: clamp(
+              POSE_MOTION_CONFIG.squat.exitDepthBodyUnits * abilityScale,
+              squatLimits.minimumExitDepthBodyUnits,
+              Math.min(
+                squatLimits.maximumExitDepthBodyUnits,
+                enterDepthBodyUnits - 0.01,
+              ),
+            ),
+            fullDepthBodyUnits: clamp(
+              POSE_MOTION_CONFIG.squat.fullDepthBodyUnits * abilityScale,
+              Math.max(squatLimits.minimumFullDepthBodyUnits, enterDepthBodyUnits),
+              squatLimits.maximumFullDepthBodyUnits,
+            ),
+            maximumEnterKneeAngleDegrees:
+              POSE_MOTION_CONFIG.squat.maximumEnterKneeAngleDegrees,
+          })
+        })()
 
   const config = freezeConfig({
     ...POSE_MOTION_CONFIG,
+    detectorCandidateGraceMs: candidateGraceMs,
     move: { left: moveLeft, right: moveRight },
     lean: { left: leanLeft, right: leanRight },
     reach: {
@@ -346,7 +441,7 @@ export function resolvePoseMotionConfig(
     squat,
   })
   return Object.freeze({
-    source: 'CALIBRATION_V1',
+    source: anyAdapted ? 'CALIBRATION_V1' : 'STANDARD',
     config,
     adapted: Object.freeze({
       move: Object.freeze({ ...adapted.move }),
