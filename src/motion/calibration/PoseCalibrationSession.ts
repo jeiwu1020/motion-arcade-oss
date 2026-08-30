@@ -54,6 +54,7 @@ export interface PoseCalibrationSnapshot {
   readonly readyToAdvance: boolean
   readonly progress: number
   readonly sideProgress: { readonly left: boolean; readonly right: boolean } | null
+  readonly reachReadyForMotion: boolean | null
   readonly stepStatuses: Readonly<Record<PlayerCalibrationStep, PoseCalibrationProgressStatus>>
   readonly measurements: CalibrationMeasurements
   readonly trackingConfidence: number
@@ -69,6 +70,8 @@ interface NeutralSample {
   readonly torsoLength: number
   readonly aspectRatio: number
   readonly confidence: number
+  readonly leftReachOutsideBodyUnits: number
+  readonly rightReachOutsideBodyUnits: number
 }
 
 interface NeutralBaseline {
@@ -78,6 +81,8 @@ interface NeutralBaseline {
   readonly bodyScale: number
   readonly torsoLength: number
   readonly aspectRatio: number
+  readonly leftReachOutsideBodyUnits: number
+  readonly rightReachOutsideBodyUnits: number
 }
 
 const FLOW: readonly PoseCalibrationFlowStep[] = [
@@ -132,6 +137,8 @@ export class PoseCalibrationSession {
   #leftCandidateFrames = 0
   #rightCandidateFrames = 0
   #squatCandidateFrames = 0
+  #reachPreparationFrames = 0
+  #reachArmed = false
   #trackingRecoveryFrames = 0
   #trackingConfidence = 0
   #confidenceSum = 0
@@ -232,6 +239,8 @@ export class PoseCalibrationSession {
     this.#neutralSamples = []
     this.#baseline = null
     this.#resetCandidateStreaks()
+    this.#reachPreparationFrames = 0
+    this.#reachArmed = false
     this.#trackingRecoveryFrames = 0
     this.#trackingConfidence = 0
     this.#confidenceSum = 0
@@ -247,6 +256,7 @@ export class PoseCalibrationSession {
       readyToAdvance: this.#readyToAdvance,
       progress: this.#progress,
       sideProgress: this.#sideProgress(),
+      reachReadyForMotion: this.#step === 'REACH' ? this.#reachArmed : null,
       stepStatuses: { ...this.#statuses },
       measurements: {
         move: { ...this.#measurements.move },
@@ -273,6 +283,8 @@ export class PoseCalibrationSession {
       torsoLength: features.torsoLength,
       aspectRatio: features.aspectRatio,
       confidence: features.trackingConfidence,
+      leftReachOutsideBodyUnits: this.#reachOutsideBodyUnits(features, 'LEFT'),
+      rightReachOutsideBodyUnits: this.#reachOutsideBodyUnits(features, 'RIGHT'),
     }
     this.#neutralSamples.push(sample)
 
@@ -309,6 +321,12 @@ export class PoseCalibrationSession {
       bodyScale: averageScale,
       torsoLength: mean(this.#neutralSamples.map(({ torsoLength }) => torsoLength)),
       aspectRatio: mean(this.#neutralSamples.map(({ aspectRatio }) => aspectRatio)),
+      leftReachOutsideBodyUnits: mean(
+        this.#neutralSamples.map(({ leftReachOutsideBodyUnits }) => leftReachOutsideBodyUnits),
+      ),
+      rightReachOutsideBodyUnits: mean(
+        this.#neutralSamples.map(({ rightReachOutsideBodyUnits }) => rightReachOutsideBodyUnits),
+      ),
     }
     this.#readyToAdvance = true
     this.#collectionState = 'READY'
@@ -401,18 +419,37 @@ export class PoseCalibrationSession {
   }
 
   #ingestReach(features: PoseFeatureFrame): void {
+    const baseline = this.#baseline
+    if (!baseline) return
     const leftCapability = features.leftArm.extensionRatio
     const rightCapability = features.rightArm.extensionRatio
+    const leftOutsideIncrease =
+      this.#reachOutsideBodyUnits(features, 'LEFT') - baseline.leftReachOutsideBodyUnits
+    const rightOutsideIncrease =
+      this.#reachOutsideBodyUnits(features, 'RIGHT') - baseline.rightReachOutsideBodyUnits
     const leftIntentional =
       features.leftArm.valid &&
       leftCapability >= this.#config.reachMinimumCapability &&
       features.leftArm.elbowAngleDegrees >= this.#config.reachMinimumElbowAngleDegrees &&
+      leftOutsideIncrease >= this.#config.reachMinimumOutsideIncreaseBodyUnits &&
       features.leftWrist.y < features.leftHip.y
     const rightIntentional =
       features.rightArm.valid &&
       rightCapability >= this.#config.reachMinimumCapability &&
       features.rightArm.elbowAngleDegrees >= this.#config.reachMinimumElbowAngleDegrees &&
+      rightOutsideIncrease >= this.#config.reachMinimumOutsideIncreaseBodyUnits &&
       features.rightWrist.y < features.rightHip.y
+
+    if (!this.#reachArmed) {
+      const relaxed = !leftIntentional && !rightIntentional
+      this.#reachPreparationFrames = relaxed ? this.#reachPreparationFrames + 1 : 0
+      this.#resetCandidateStreaks()
+      if (this.#reachPreparationFrames >= this.#config.reachPreparationFrames) {
+        this.#reachArmed = true
+      }
+      this.#progress = 0
+      return
+    }
 
     this.#leftCandidateFrames = leftIntentional ? this.#leftCandidateFrames + 1 : 0
     this.#rightCandidateFrames = rightIntentional ? this.#rightCandidateFrames + 1 : 0
@@ -477,6 +514,18 @@ export class PoseCalibrationSession {
     ) / baseline.torsoLength
   }
 
+  #reachOutsideBodyUnits(
+    features: PoseFeatureFrame,
+    side: 'LEFT' | 'RIGHT',
+  ): number {
+    const shoulder = side === 'LEFT' ? features.leftShoulder : features.rightShoulder
+    const wrist = side === 'LEFT' ? features.leftWrist : features.rightWrist
+    return (
+      (Math.abs(wrist.x - shoulder.x) * features.aspectRatio) /
+      Math.max(features.bodyScale, Number.EPSILON)
+    )
+  }
+
   #updateTwoSidedReadiness(): void {
     const sides = this.#sideProgress()
     const completed = sides?.left === true && sides.right === true
@@ -529,6 +578,8 @@ export class PoseCalibrationSession {
     this.#progress = 0
     this.#neutralSamples = []
     this.#trackingRecoveryFrames = 0
+    this.#reachPreparationFrames = 0
+    this.#reachArmed = false
     this.#resetCandidateStreaks()
   }
 

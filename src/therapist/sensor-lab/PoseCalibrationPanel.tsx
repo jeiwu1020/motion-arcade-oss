@@ -27,44 +27,44 @@ const STEP_COPY: Readonly<Record<PoseCalibrationFlowStep, {
   readonly instruction: string
 }>> = {
   WELCOME: {
-    eyebrow: 'PHASE 1D.1 · STANDARD',
+    eyebrow: '階段 1 / 2 · 動作校正',
     title: '動作校正',
     instruction: '啟動相機後，跟著畫面完成五個簡單步驟',
   },
   NEUTRAL: {
-    eyebrow: 'STEP 1 / 5',
+    eyebrow: '階段 1 / 2 · 校正 1 / 5',
     title: '自然站好',
     instruction: '保持全身與雙腳在畫面內，短暫站穩',
   },
   MOVE: {
-    eyebrow: 'STEP 2 / 5',
+    eyebrow: '階段 1 / 2 · 校正 2 / 5',
     title: '左右移動',
     instruction: '身體向自己的左邊移動，再向右邊移動；保持身體大致直立',
   },
   LEAN: {
-    eyebrow: 'STEP 3 / 5',
+    eyebrow: '階段 1 / 2 · 校正 3 / 5',
     title: '左右傾斜',
     instruction: '站在原地，上半身向左傾，再向右傾',
   },
   REACH: {
-    eyebrow: 'STEP 4 / 5',
+    eyebrow: '階段 1 / 2 · 校正 4 / 5',
     title: '左右手伸展',
-    instruction: '左手舒服地向外伸，再換右手',
+    instruction: '先放下雙手；畫面顯示可以伸手後，再依序把左手、右手舒服地向外伸',
   },
   SQUAT: {
-    eyebrow: 'STEP 5 / 5',
+    eyebrow: '階段 1 / 2 · 校正 5 / 5',
     title: '舒服地深蹲',
     instruction: '做一次你覺得舒服的深蹲，不需要勉強蹲到最低',
   },
   REVIEW: {
-    eyebrow: 'REVIEW',
+    eyebrow: '階段 1 / 2 · 校正完成',
     title: '校正完成',
-    instruction: '確認結果；已跳過的項目會保留為未提供',
+    instruction: '下一步會直接使用這次校正值進入動作測試',
   },
   COMPLETE: {
-    eyebrow: 'SESSION READY',
-    title: '✓ 校正資料已建立',
-    instruction: '資料只保留在這個頁面的記憶體中',
+    eyebrow: '階段 2 / 2 · 動作測試',
+    title: '動作測試',
+    instruction: '請站穩，等 Motion Analyzer 顯示 READY 後再開始做動作',
   },
 }
 
@@ -103,7 +103,18 @@ export function PoseCalibrationPanel({
   onUseCalibration,
   onUseStandard,
 }: PoseCalibrationPanelProps) {
-  const copy = STEP_COPY[snapshot.step]
+  const baseCopy = STEP_COPY[snapshot.step]
+  const copy = snapshot.step === 'COMPLETE'
+    ? {
+        ...baseCopy,
+        title: analyzerMode === 'CALIBRATION_V1'
+          ? '使用校正值測試'
+          : 'STANDARD 測試',
+        instruction: analyzerMode === 'CALIBRATION_V1'
+          ? '這一輪會依照你剛才量到的舒服動作範圍判定；請先站穩等 READY'
+          : '這一輪使用系統原本固定門檻；請先站穩等 READY',
+      }
+    : baseCopy
   const isMeasurement = PROGRESS_STEPS.some(({ id }) => id === snapshot.step)
   const canSkip = snapshot.step !== 'NEUTRAL' && isMeasurement
   const result = isVersionOneCalibration(snapshot.result) ? snapshot.result : null
@@ -114,15 +125,32 @@ export function PoseCalibrationPanel({
       : snapshot.step === 'WELCOME' || snapshot.step === 'REVIEW'
         ? 'idle'
         : 'collecting'
-  const stateLabel = snapshot.collectionState === 'WAITING_FOR_TRACKING'
-    ? '請回到畫面中'
-    : snapshot.collectionState === 'READY'
-      ? '✓ 這一步完成'
-      : snapshot.collectionState === 'COLLECTING'
-        ? `收集中 ${Math.round(snapshot.progress * 100)}%`
-        : cameraRunning
-          ? '準備開始'
-          : '請先啟動相機'
+  const reachStateLabel = snapshot.step === 'REACH'
+    ? snapshot.reachReadyForMotion === false
+      ? '先放下雙手，準備偵測'
+      : snapshot.sideProgress?.left
+        ? snapshot.sideProgress.right
+          ? '✓ 左右手都完成'
+          : '左手完成，請伸右手'
+        : '可以伸手：請先伸左手'
+    : null
+  const stateLabel = snapshot.step === 'COMPLETE'
+    ? analyzerMode === 'CALIBRATION_V1'
+      ? '目前模式：使用校正值'
+      : '目前模式：STANDARD'
+    : snapshot.step === 'REVIEW'
+      ? '校正已完成，下一步開始動作測試'
+      : snapshot.collectionState === 'WAITING_FOR_TRACKING'
+        ? '請回到畫面中'
+        : reachStateLabel ?? (
+          snapshot.collectionState === 'READY'
+            ? '✓ 這一步完成'
+            : snapshot.collectionState === 'COLLECTING'
+              ? `收集中 ${Math.round(snapshot.progress * 100)}%`
+              : cameraRunning
+                ? '準備開始'
+                : '請先啟動相機'
+        )
 
   return (
     <section className={`pose-calibration pose-calibration-${tone}`} aria-label="引導式姿勢校正">
@@ -157,8 +185,8 @@ export function PoseCalibrationPanel({
 
       {snapshot.step === 'REVIEW' && result ? (
         <div className="pose-calibration-review">
-          <strong>{result.status === 'COMPLETE' ? '全部完成' : '部分完成'}</strong>
-          <p>✓ 完成的能力會保留；跳過項目不會填入假資料。</p>
+          <strong>{result.status === 'COMPLETE' ? '✓ 五項校正全部完成' : '✓ 校正完成（部分項目已跳過）'}</strong>
+          <p>按「開始校正值動作測試」後會直接進入測試，不需要再另外按「完成」。</p>
         </div>
       ) : null}
 
@@ -185,30 +213,28 @@ export function PoseCalibrationPanel({
         ) : null}
         {snapshot.step === 'REVIEW' ? (
           <>
-            <button type="button" className="pose-button pose-button-primary" onClick={onAdvance}>
-              完成
+            <button
+              type="button"
+              className="pose-button pose-button-primary"
+              disabled={!cameraRunning || !result}
+              onClick={() => {
+                if (!result) return
+                onUseCalibration(result)
+                onAdvance()
+              }}
+            >
+              開始校正值動作測試
             </button>
             <button type="button" className="pose-button" onClick={onReset}>
               重新校正
             </button>
           </>
         ) : null}
-        {snapshot.step === 'COMPLETE' ? (
-          <button type="button" className="pose-button" onClick={onReset}>
-            重新校正
-          </button>
-        ) : null}
-      </div>
-
-      {result ? (
-        <div className="pose-calibration-developer">
-          <strong>
-            動作測試模式：{analyzerMode === 'CALIBRATION_V1' ? 'CALIBRATED' : 'STANDARD'}
-          </strong>
-          <div>
+        {snapshot.step === 'COMPLETE' && result ? (
+          <>
             <button
               type="button"
-              className="pose-button"
+              className="pose-button pose-button-primary"
               onClick={() => onUseCalibration(result)}
               disabled={!cameraRunning || analyzerMode === 'CALIBRATION_V1'}
               aria-pressed={analyzerMode === 'CALIBRATION_V1'}
@@ -217,16 +243,27 @@ export function PoseCalibrationPanel({
             </button>
             <button
               type="button"
-              className="pose-button pose-button-quiet"
+              className="pose-button"
               onClick={onUseStandard}
               disabled={!cameraRunning || analyzerMode === 'STANDARD'}
               aria-pressed={analyzerMode === 'STANDARD'}
             >
-              使用 STANDARD 測試
+              切換到 STANDARD 比較
             </button>
-          </div>
+            <button type="button" className="pose-button pose-button-quiet" onClick={onReset}>
+              重新校正
+            </button>
+          </>
+        ) : null}
+      </div>
+
+      {snapshot.step === 'COMPLETE' && result ? (
+        <div className="pose-calibration-developer">
+          <strong>
+            開發者診斷：{analyzerMode === 'CALIBRATION_V1' ? 'CALIBRATION v1' : 'STANDARD'}
+          </strong>
           <details className="pose-calibration-diagnostics">
-            <summary>開發者：標準化校正值</summary>
+            <summary>標準化校正值</summary>
             <pre>{JSON.stringify(result, null, 2)}</pre>
           </details>
         </div>

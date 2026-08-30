@@ -48,6 +48,14 @@ function captureBoth(
   return startMs + 200
 }
 
+function prepareReach(session: PoseCalibrationSession, startMs: number): number {
+  ingest(session, 'neutral', startMs)
+  ingest(session, 'neutral', startMs + 50)
+  expect(session.getSnapshot().reachReadyForMotion).toBe(true)
+  expect(session.getSnapshot().sideProgress).toEqual({ left: false, right: false })
+  return startMs + 100
+}
+
 function completeAllMeasurements(session: PoseCalibrationSession): void {
   let now = establishNeutral(session)
   now = captureBoth(session, 'move-left', 'move-right', now)
@@ -56,6 +64,7 @@ function completeAllMeasurements(session: PoseCalibrationSession): void {
   now = captureBoth(session, 'lean-left', 'lean-right', now)
   expect(session.getSnapshot().readyToAdvance).toBe(true)
   session.advance()
+  now = prepareReach(session, now)
   now = captureBoth(session, 'reach-left', 'reach-right', now)
   expect(session.getSnapshot().readyToAdvance).toBe(true)
   session.advance()
@@ -158,6 +167,25 @@ describe('PoseCalibrationSession normalized measurements', () => {
     expect(session.getSnapshot().measurements.lean.rightRangeBodyUnits).toBeGreaterThan(0)
   })
 
+  it('requires relaxed arms before REACH collection and ignores an already-extended arm', () => {
+    const session = new PoseCalibrationSession()
+    let now = establishNeutral(session)
+    now = captureBoth(session, 'move-left', 'move-right', now)
+    session.advance()
+    now = captureBoth(session, 'lean-left', 'lean-right', now)
+    session.advance()
+
+    ingest(session, 'reach-left', now)
+    ingest(session, 'reach-left', now + 50)
+    expect(session.getSnapshot().reachReadyForMotion).toBe(false)
+    expect(session.getSnapshot().sideProgress).toEqual({ left: false, right: false })
+
+    now = prepareReach(session, now + 100)
+    ingest(session, 'neutral', now)
+    ingest(session, 'neutral', now + 50)
+    expect(session.getSnapshot().sideProgress).toEqual({ left: false, right: false })
+  })
+
   it('preserves anatomical left and right REACH capability', () => {
     const session = new PoseCalibrationSession()
     let now = establishNeutral(session)
@@ -165,6 +193,7 @@ describe('PoseCalibrationSession normalized measurements', () => {
     session.advance()
     now = captureBoth(session, 'lean-left', 'lean-right', now)
     session.advance()
+    now = prepareReach(session, now)
 
     ingest(session, 'reach-left', now)
     ingest(session, 'reach-left', now + 50)
@@ -179,7 +208,7 @@ describe('PoseCalibrationSession normalized measurements', () => {
 
   it('captures comfortable squat depth in body units', () => {
     const session = new PoseCalibrationSession()
-    let now = establishNeutral(session)
+    const now = establishNeutral(session)
     session.skip()
     session.skip()
     session.skip()
@@ -269,6 +298,7 @@ describe('PoseCalibrationSession flow and safety', () => {
     expect(session.getSnapshot()).toMatchObject({
       step: 'WELCOME',
       readyToAdvance: true,
+      reachReadyForMotion: null,
       stepStatuses: {
         NEUTRAL: 'PENDING',
         MOVE: 'PENDING',
