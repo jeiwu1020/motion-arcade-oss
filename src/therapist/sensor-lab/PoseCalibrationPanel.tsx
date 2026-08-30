@@ -10,10 +10,15 @@ import type {
 interface PoseCalibrationPanelProps {
   readonly snapshot: PoseCalibrationSnapshot
   readonly cameraRunning: boolean
+  readonly analyzerMode: 'STANDARD' | 'CALIBRATION_V1'
   readonly onAdvance: () => void
   readonly onRetry: () => void
   readonly onSkip: () => void
   readonly onReset: () => void
+  readonly onUseCalibration: (
+    calibration: Extract<PlayerCalibration, { readonly version: 1 }>,
+  ) => void
+  readonly onUseStandard: () => void
 }
 
 const STEP_COPY: Readonly<Record<PoseCalibrationFlowStep, {
@@ -90,10 +95,13 @@ function statusLabel(status: PoseCalibrationSnapshot['stepStatuses'][PlayerCalib
 export function PoseCalibrationPanel({
   snapshot,
   cameraRunning,
+  analyzerMode,
   onAdvance,
   onRetry,
   onSkip,
   onReset,
+  onUseCalibration,
+  onUseStandard,
 }: PoseCalibrationPanelProps) {
   const copy = STEP_COPY[snapshot.step]
   const isMeasurement = PROGRESS_STEPS.some(({ id }) => id === snapshot.step)
@@ -193,10 +201,35 @@ export function PoseCalibrationPanel({
       </div>
 
       {result ? (
-        <details className="pose-calibration-diagnostics">
-          <summary>開發者：標準化校正值</summary>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </details>
+        <div className="pose-calibration-developer">
+          <strong>
+            動作測試模式：{analyzerMode === 'CALIBRATION_V1' ? 'CALIBRATED' : 'STANDARD'}
+          </strong>
+          <div>
+            <button
+              type="button"
+              className="pose-button"
+              onClick={() => onUseCalibration(result)}
+              disabled={!cameraRunning || analyzerMode === 'CALIBRATION_V1'}
+              aria-pressed={analyzerMode === 'CALIBRATION_V1'}
+            >
+              使用校正值測試
+            </button>
+            <button
+              type="button"
+              className="pose-button pose-button-quiet"
+              onClick={onUseStandard}
+              disabled={!cameraRunning || analyzerMode === 'STANDARD'}
+              aria-pressed={analyzerMode === 'STANDARD'}
+            >
+              使用 STANDARD 測試
+            </button>
+          </div>
+          <details className="pose-calibration-diagnostics">
+            <summary>開發者：標準化校正值</summary>
+            <pre>{JSON.stringify(result, null, 2)}</pre>
+          </details>
+        </div>
       ) : null}
     </section>
   )

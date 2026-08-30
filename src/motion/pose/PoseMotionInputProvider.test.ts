@@ -1,10 +1,39 @@
 import { describe, expect, it } from 'vitest'
 
 import { resolveAbilityProfile } from '../adaptive/profiles'
-import type { MotionInputRequest } from '../contracts/motion'
+import type { MotionInputRequest, PlayerCalibration } from '../contracts/motion'
 import { MotionProviderCoordinator } from '../providers/MotionProviderCoordinator'
 import { PoseMotionInputProvider } from './PoseMotionInputProvider'
-import { createSyntheticPoseFrame } from './syntheticPoseFixtures'
+import { POSE_MOTION_CONFIG } from './poseMotionConfig'
+import {
+  createSyntheticPoseFrame,
+  withPoseTranslation,
+} from './syntheticPoseFixtures'
+
+function calibration(): Extract<PlayerCalibration, { readonly version: 1 }> {
+  return {
+    version: 1,
+    status: 'COMPLETE',
+    pose: {
+      move: { leftRangeBodyUnits: 0.3, rightRangeBodyUnits: 0.6 },
+      lean: { leftRangeBodyUnits: 0.25, rightRangeBodyUnits: 0.5 },
+      reach: { leftCapability: 0.9, rightCapability: 0.98 },
+      squat: { comfortableDepthBodyUnits: 0.22 },
+    },
+    steps: {
+      NEUTRAL: 'COMPLETE',
+      MOVE: 'COMPLETE',
+      LEAN: 'COMPLETE',
+      REACH: 'COMPLETE',
+      SQUAT: 'COMPLETE',
+    },
+    quality: {
+      meanTrackingConfidence: 0.96,
+      validSampleCount: 40,
+      completedAtTimestampMs: 5_000,
+    },
+  }
+}
 
 function request(
   actions: MotionInputRequest['actions'] = [
@@ -18,13 +47,15 @@ function request(
     'SQUAT',
     'JUMP',
   ],
+  playerCalibration?: PlayerCalibration,
 ): MotionInputRequest {
+  const player = {
+    playerId: 'player-1',
+    abilityProfile: resolveAbilityProfile(['STANDARD']),
+  }
   return {
     players: [
-      {
-        playerId: 'player-1',
-        abilityProfile: resolveAbilityProfile(['STANDARD']),
-      },
+      playerCalibration ? { ...player, calibration: playerCalibration } : player,
     ],
     actions,
     sensors: { pose: true, hands: false, audio: false },
@@ -161,5 +192,76 @@ describe('PoseMotionInputProvider', () => {
     expect(replacement.isRunning()).toBe(true)
     await coordinator.stop()
     expect(replacement.isRunning()).toBe(false)
+  })
+
+  it('resolves valid v1 calibration once at start and publishes stronger usable-range MOVE', async () => {
+    const standardNow = { value: 0 }
+    const calibratedNow = { value: 0 }
+    const standard = new PoseMotionInputProvider({ now: () => standardNow.value })
+    const calibrated = new PoseMotionInputProvider({ now: () => calibratedNow.value })
+    await standard.start(request(['MOVE_LEFT']))
+    await calibrated.start(request(['MOVE_LEFT'], calibration()))
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      standardNow.value = timestampMs
+      calibratedNow.value = timestampMs
+      const frame = createSyntheticPoseFrame('neutral', { timestampMs })
+      standard.ingest(frame)
+      calibrated.ingest(frame)
+    }
+    for (const timestampMs of [1_000, 1_050, 1_100]) {
+      standardNow.value = timestampMs
+      calibratedNow.value = timestampMs
+      const comfortableLeft = withPoseTranslation(
+        createSyntheticPoseFrame('neutral', { timestampMs }),
+        0.042,
+        0,
+      )
+      standard.ingest(comfortableLeft)
+      calibrated.ingest(comfortableLeft)
+    }
+
+    const standardValue = standard.getSnapshot().players[0]?.actions.MOVE_LEFT?.value
+    const calibratedValue = calibrated.getSnapshot().players[0]?.actions.MOVE_LEFT?.value
+    expect(standard.getEffectiveConfig().source).toBe('STANDARD')
+    expect(calibrated.getEffectiveConfig()).toMatchObject({
+      source: 'CALIBRATION_V1',
+      adapted: { move: { left: true, right: true } },
+      config: { move: { left: { fullIntensityBodyUnits: 0.3 } } },
+    })
+    expect(typeof standardValue === 'number' ? standardValue : 0).toBeLessThan(0.5)
+    expect(typeof calibratedValue === 'number' ? calibratedValue : 0).toBeGreaterThan(0.85)
+  })
+
+  it('keeps the exact STANDARD config when calibration is absent or deprecated', async () => {
+    const provider = new PoseMotionInputProvider({ now: () => 0 })
+    await provider.start(request(['SQUAT', 'JUMP']))
+
+    expect(provider.getEffectiveConfig()).toMatchObject({
+      source: 'STANDARD',
+      config: POSE_MOTION_CONFIG,
+    })
+
+    await provider.start(
+      request(['SQUAT', 'JUMP'], { leftUsableExtent: 0.05 }),
+    )
+    expect(provider.getEffectiveConfig()).toMatchObject({
+      source: 'STANDARD',
+      config: POSE_MOTION_CONFIG,
+    })
+  })
+
+  it('re-resolves per-session config and returns to STANDARD after restart', async () => {
+    const provider = new PoseMotionInputProvider({ now: () => 0 })
+    await provider.start(request(['MOVE_LEFT'], calibration()))
+    expect(provider.getEffectiveConfig().source).toBe('CALIBRATION_V1')
+
+    await provider.stop()
+    expect(provider.getEffectiveConfig().source).toBe('STANDARD')
+    expect(provider.getSnapshot().players[0]?.calibration).toBeUndefined()
+    await provider.start(request(['MOVE_LEFT']))
+
+    expect(provider.getEffectiveConfig().source).toBe('STANDARD')
+    expect(provider.getEffectiveConfig().config).toEqual(POSE_MOTION_CONFIG)
+    expect(provider.getDiagnostics().baselineReady).toBe(false)
   })
 })

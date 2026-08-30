@@ -2,10 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { resolveAbilityProfile } from '../../motion/adaptive/profiles'
 import {
+  resolvePoseMotionConfig,
+  type ResolvedPoseMotionConfig,
+} from '../../motion/calibration/calibrationAdaptation'
+import {
   PoseCalibrationSession,
   type PoseCalibrationSnapshot,
 } from '../../motion/calibration/PoseCalibrationSession'
-import type { MotionInputRequest } from '../../motion/contracts/motion'
+import type {
+  MotionInputRequest,
+  PlayerCalibration,
+} from '../../motion/contracts/motion'
 import { PoseFeatureExtractor } from '../../motion/pose/PoseFeatureExtractor'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
 import type { PoseMotionAnalyzerSnapshot } from '../../motion/pose/poseMotionTypes'
@@ -69,26 +76,37 @@ const INITIAL_TELEMETRY: SensorTelemetry = {
   workerStatus: 'NOT_STARTED',
 }
 
-const POSE_ANALYZER_REQUEST: MotionInputRequest = {
-  players: [
-    {
-      playerId: 'pose-lab-player',
-      abilityProfile: resolveAbilityProfile(['STANDARD']),
-    },
-  ],
-  actions: [
-    'MOVE_LEFT',
-    'MOVE_RIGHT',
-    'LEAN_LEFT',
-    'LEAN_RIGHT',
-    'REACH',
-    'REACH_LEFT',
-    'REACH_RIGHT',
-    'SQUAT',
-    'JUMP',
-  ],
-  sensors: { pose: true, hands: false, audio: false },
+const POSE_ANALYZER_PROFILE = resolveAbilityProfile(['STANDARD'])
+
+type V1PlayerCalibration = Extract<PlayerCalibration, { readonly version: 1 }>
+
+function poseAnalyzerRequest(
+  calibration?: V1PlayerCalibration,
+): MotionInputRequest {
+  const player = {
+    playerId: 'pose-lab-player',
+    abilityProfile: POSE_ANALYZER_PROFILE,
+  }
+  return {
+    players: [
+      calibration ? { ...player, calibration } : player,
+    ],
+    actions: [
+      'MOVE_LEFT',
+      'MOVE_RIGHT',
+      'LEAN_LEFT',
+      'LEAN_RIGHT',
+      'REACH',
+      'REACH_LEFT',
+      'REACH_RIGHT',
+      'SQUAT',
+      'JUMP',
+    ],
+    sensors: { pose: true, hands: false, audio: false },
+  }
 }
+
+const POSE_ANALYZER_REQUEST = poseAnalyzerRequest()
 
 function percentile95(values: readonly number[]): number {
   if (values.length === 0) return 0
@@ -171,6 +189,9 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   )
   const [calibrationSnapshot, setCalibrationSnapshot] = useState<PoseCalibrationSnapshot>(
     () => new PoseCalibrationSession().getSnapshot(),
+  )
+  const [effectiveConfig, setEffectiveConfig] = useState<ResolvedPoseMotionConfig>(
+    () => resolvePoseMotionConfig(undefined, POSE_ANALYZER_PROFILE),
   )
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
 
@@ -369,6 +390,9 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     }))
     try {
       await motionProviderRef.current?.start(POSE_ANALYZER_REQUEST)
+      if (motionProviderRef.current) {
+        setEffectiveConfig(motionProviderRef.current.getEffectiveConfig())
+      }
       setAnalyzerDiagnostics(
         motionProviderRef.current?.getDiagnostics() ?? null,
       )
@@ -424,6 +448,9 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     setAnalyzerDiagnostics(
       motionProviderRef.current?.getDiagnostics() ?? null,
     )
+    if (motionProviderRef.current) {
+      setEffectiveConfig(motionProviderRef.current.getEffectiveConfig())
+    }
   }
 
   const restartCamera = async () => {
@@ -432,6 +459,17 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       await stopCamera()
     }
     await startCamera()
+  }
+
+  const switchAnalyzerCalibration = async (
+    calibration: V1PlayerCalibration | undefined,
+  ) => {
+    const provider = motionProviderRef.current
+    if (!provider || sessionState !== 'RUNNING') return
+    await provider.stop()
+    await provider.start(poseAnalyzerRequest(calibration))
+    setEffectiveConfig(provider.getEffectiveConfig())
+    setAnalyzerDiagnostics(provider.getDiagnostics())
   }
 
   const sourceWidth = cameraSettings?.width ?? 16
@@ -500,7 +538,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     <main className="pose-lab-shell">
       <header className="pose-lab-header">
         <div>
-          <p>PHASE 1D.1 · LOCAL POSE CALIBRATION</p>
+          <p>PHASE 1D.2 · CALIBRATION-DRIVEN ADAPTATION</p>
           <h1>Pose Calibration + Motion Analyzer Lab</h1>
         </div>
         <button type="button" className="pose-button pose-button-quiet" onClick={onExit}>
@@ -545,6 +583,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             <PoseCalibrationPanel
               snapshot={calibrationSnapshot}
               cameraRunning={sessionState === 'RUNNING'}
+              analyzerMode={effectiveConfig.source}
               onAdvance={() => {
                 calibrationSessionRef.current.advance()
                 setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
@@ -557,7 +596,16 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                 calibrationSessionRef.current.skip()
                 setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
               }}
-              onReset={resetCalibration}
+              onReset={() => {
+                resetCalibration()
+                void switchAnalyzerCalibration(undefined)
+              }}
+              onUseCalibration={(calibration) => {
+                void switchAnalyzerCalibration(calibration)
+              }}
+              onUseStandard={() => {
+                void switchAnalyzerCalibration(undefined)
+              }}
             />
           </div>
 
@@ -639,6 +687,45 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             </p>
           ) : null}
           <h2>Motion Analyzer</h2>
+          <section className="pose-effective-config" aria-label="有效動作分析設定">
+            <div className="pose-effective-config-heading">
+              <strong>Effective Motion Config</strong>
+              <span className={`pose-config-source pose-config-source-${effectiveConfig.source.toLowerCase()}`}>
+                {effectiveConfig.source === 'CALIBRATION_V1' ? 'CALIBRATION v1' : 'STANDARD'}
+              </span>
+            </div>
+            <dl>
+              <TelemetryRow
+                label="MOVE LEFT enter / full"
+                value={`${formatNumber(effectiveConfig.config.move.left.enterBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.move.left.fullIntensityBodyUnits, 2)}`}
+              />
+              <TelemetryRow
+                label="MOVE RIGHT enter / full"
+                value={`${formatNumber(effectiveConfig.config.move.right.enterBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.move.right.fullIntensityBodyUnits, 2)}`}
+              />
+              <TelemetryRow
+                label="LEAN LEFT enter / full"
+                value={`${formatNumber(effectiveConfig.config.lean.left.enterBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.lean.left.fullIntensityBodyUnits, 2)}`}
+              />
+              <TelemetryRow
+                label="LEAN RIGHT enter / full"
+                value={`${formatNumber(effectiveConfig.config.lean.right.enterBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.lean.right.fullIntensityBodyUnits, 2)}`}
+              />
+              <TelemetryRow
+                label="REACH LEFT min / full"
+                value={`${formatNumber(effectiveConfig.config.reach.left.minimumExtensionRatio, 2)} / ${formatNumber(effectiveConfig.config.reach.left.fullExtensionRatio, 2)}`}
+              />
+              <TelemetryRow
+                label="REACH RIGHT min / full"
+                value={`${formatNumber(effectiveConfig.config.reach.right.minimumExtensionRatio, 2)} / ${formatNumber(effectiveConfig.config.reach.right.fullExtensionRatio, 2)}`}
+              />
+              <TelemetryRow
+                label="SQUAT enter / full"
+                value={`${formatNumber(effectiveConfig.config.squat.enterDepthBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.squat.fullDepthBodyUnits, 2)}`}
+              />
+              <TelemetryRow label="JUMP" value="STANDARD · unchanged" />
+            </dl>
+          </section>
           <div
             className={`pose-analyzer-status pose-analyzer-status-${analyzerBanner.tone}`}
             role="status"

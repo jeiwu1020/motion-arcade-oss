@@ -1,6 +1,6 @@
 # Phase 1D.1 — Pose Calibration
 
-Status: implemented developer validation flow; manual real-device gates remain
+Status: Phase 1D.1 collection implemented; Phase 1D.2 consumption documented separately
 
 Date: 2026-08-29
 
@@ -62,9 +62,11 @@ A missing pose or missing required landmarks puts the current collection into `W
 
 The result is `COMPLETE` only when all optional capability steps were measured; otherwise it is `PARTIAL`.
 
-## Phase boundary
+## Phase 1D.1 boundary and Phase 1D.2 continuation
 
-Phase 1D.1 only collects calibration. It does **not** pass the result into `PoseMotionAnalyzer` or `PoseMotionInputProvider`. No Phase 1C MOVE, LEAN, REACH, SQUAT, or JUMP threshold, EMA value, debounce rule, freshness rule, or state machine is changed. Phase 1D.2 will define the safety policy for consuming these ranges.
+Phase 1D.1 only defines and collects calibration; its measurement engine remains unchanged. Phase 1D.2 now optionally passes a canonical v1 result through `MotionPlayerRequest.calibration` to a bounded policy before constructing `PoseMotionAnalyzer`. The collection values still never directly become thresholds. See [Phase 1D.2 Calibration-Driven Motion Adaptation](./PHASE_1D_2_CALIBRATION_ADAPTATION.md).
+
+Without a valid v1 calibration, every Phase 1C STANDARD detector value and behavior remains unchanged. JUMP remains entirely outside calibration adaptation.
 
 The flow validates STANDARD standing Pose only. SEATED, UPPER_BODY, LEFT_SIDE, RIGHT_SIDE, LOW_MOTION, and SLOW_RESPONSE remain compatible future profile work and are not claimed as calibrated here.
 
@@ -96,4 +98,4 @@ Physical Windows camera behavior, 2–4 m readability, anatomical side confirmat
 
 ## Deferred work
 
-Deferred: applying calibration to detector thresholds, jump calibration, full ability-profile adaptation, persistence, multi-person calibration, production onboarding, formal games, Hands, Voice, STRIKE, THROW, RUN, STEP, and cadence.
+Deferred: jump calibration, full special-profile adaptation, persistence, multi-person calibration, production onboarding, formal games, Hands, Voice, STRIKE, THROW, RUN, STEP, and cadence.

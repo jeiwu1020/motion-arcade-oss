@@ -336,7 +336,6 @@
 }
 
 .pose-calibration-diagnostics {
-  grid-column: 1 / -1;
   color: var(--text-muted);
   font-size: 0.75rem;
 }
@@ -349,6 +348,58 @@
   max-height: 16rem;
   overflow: auto;
   white-space: pre-wrap;
+}
+
+.pose-calibration-developer {
+  grid-column: 1 / -1;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  padding-top: 0.75rem;
+  display: grid;
+  gap: 0.55rem;
+  color: #d8e6fa;
+  font-size: 0.78rem;
+}
+
+.pose-calibration-developer > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pose-effective-config {
+  margin-bottom: 0.8rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 0.75rem;
+  padding: 0.65rem;
+  background: rgb(5 11 24 / 60%);
+}
+
+.pose-effective-config-heading {
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.pose-config-source {
+  border-radius: 999px;
+  padding: 0.22rem 0.45rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.64rem;
+  font-weight: 900;
+}
+
+.pose-config-source-standard {
+  color: #d8e6fa;
+  background: rgb(255 255 255 / 10%);
+}
+
+.pose-config-source-calibration_v1 {
+  color: #071810;
+  background: #72f2b7;
 }
 
 .pose-controls {

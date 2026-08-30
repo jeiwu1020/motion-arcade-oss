@@ -1,5 +1,16 @@
 import type { CoordinateTransform } from '../coordinates/normalizeCoordinates'
 
+export interface DirectionalBodyRangeConfig {
+  readonly enterBodyUnits: number
+  readonly exitBodyUnits: number
+  readonly fullIntensityBodyUnits: number
+}
+
+export interface ReachNormalizationConfig {
+  readonly minimumExtensionRatio: number
+  readonly fullExtensionRatio: number
+}
+
 export interface PoseMotionConfig {
   readonly coordinateTransform: CoordinateTransform
   readonly minimumLandmarkConfidence: number
@@ -11,20 +22,20 @@ export interface PoseMotionConfig {
   readonly smoothingAlpha: number
   readonly detectorDebounceFrames: number
   readonly move: {
-    readonly enterBodyUnits: number
-    readonly exitBodyUnits: number
-    readonly fullIntensityBodyUnits: number
+    readonly left: DirectionalBodyRangeConfig
+    readonly right: DirectionalBodyRangeConfig
   }
   readonly lean: {
-    readonly enterBodyUnits: number
-    readonly exitBodyUnits: number
-    readonly fullIntensityBodyUnits: number
+    readonly left: DirectionalBodyRangeConfig
+    readonly right: DirectionalBodyRangeConfig
   }
   readonly reach: {
     readonly enterScore: number
     readonly exitScore: number
     readonly minimumElbowAngleDegrees: number
     readonly minimumOutsideBodyUnits: number
+    readonly left: ReachNormalizationConfig
+    readonly right: ReachNormalizationConfig
   }
   readonly squat: {
     readonly enterDepthBodyUnits: number
@@ -43,8 +54,25 @@ export interface PoseMotionConfig {
   }
 }
 
-export const POSE_MOTION_CONFIG: PoseMotionConfig = {
-  coordinateTransform: { sourceCoordinates: 'MIRRORED' },
+const STANDARD_MOVE_RANGE = Object.freeze({
+  enterBodyUnits: 0.22,
+  exitBodyUnits: 0.12,
+  fullIntensityBodyUnits: 0.75,
+})
+
+const STANDARD_LEAN_RANGE = Object.freeze({
+  enterBodyUnits: 0.18,
+  exitBodyUnits: 0.1,
+  fullIntensityBodyUnits: 0.55,
+})
+
+const STANDARD_REACH_NORMALIZATION = Object.freeze({
+  minimumExtensionRatio: 0.75,
+  fullExtensionRatio: 1,
+})
+
+export const POSE_MOTION_CONFIG: PoseMotionConfig = Object.freeze({
+  coordinateTransform: Object.freeze({ sourceCoordinates: 'MIRRORED' as const }),
   minimumLandmarkConfidence: 0.55,
   staleAfterMs: 250,
   resetBaselineAfterLossMs: 1_200,
@@ -53,29 +81,29 @@ export const POSE_MOTION_CONFIG: PoseMotionConfig = {
   baselineStabilityBodyUnits: 0.18,
   smoothingAlpha: 0.55,
   detectorDebounceFrames: 2,
-  move: {
-    enterBodyUnits: 0.22,
-    exitBodyUnits: 0.12,
-    fullIntensityBodyUnits: 0.75,
-  },
-  lean: {
-    enterBodyUnits: 0.18,
-    exitBodyUnits: 0.1,
-    fullIntensityBodyUnits: 0.55,
-  },
-  reach: {
+  move: Object.freeze({
+    left: STANDARD_MOVE_RANGE,
+    right: STANDARD_MOVE_RANGE,
+  }),
+  lean: Object.freeze({
+    left: STANDARD_LEAN_RANGE,
+    right: STANDARD_LEAN_RANGE,
+  }),
+  reach: Object.freeze({
     enterScore: 0.68,
     exitScore: 0.5,
     minimumElbowAngleDegrees: 150,
     minimumOutsideBodyUnits: 0.55,
-  },
-  squat: {
+    left: STANDARD_REACH_NORMALIZATION,
+    right: STANDARD_REACH_NORMALIZATION,
+  }),
+  squat: Object.freeze({
     enterDepthBodyUnits: 0.3,
     exitDepthBodyUnits: 0.16,
     fullDepthBodyUnits: 0.65,
     maximumEnterKneeAngleDegrees: 155,
-  },
-  jump: {
+  }),
+  jump: Object.freeze({
     takeoffRiseBodyUnits: 0.1,
     takeoffVelocityBodyUnitsPerSecond: 1.2,
     minimumFootRiseBodyUnits: 0.08,
@@ -83,5 +111,5 @@ export const POSE_MOTION_CONFIG: PoseMotionConfig = {
     landingRiseBodyUnits: 0.08,
     candidateWindowMs: 180,
     refractoryMs: 500,
-  },
-}
+  }),
+})

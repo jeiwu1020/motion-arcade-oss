@@ -1,4 +1,11 @@
-import { actionAllowedForProfile } from '../adaptive/profiles'
+import {
+  actionAllowedForProfile,
+  resolveAbilityProfile,
+} from '../adaptive/profiles'
+import {
+  resolvePoseMotionConfig,
+  type ResolvedPoseMotionConfig,
+} from '../calibration/calibrationAdaptation'
 import type {
   MotionActionId,
   MotionActionState,
@@ -35,7 +42,9 @@ export class PoseMotionInputProvider implements MotionInputProvider {
   readonly id = 'POSE' as const
 
   readonly #now: () => number
-  readonly #analyzer: PoseMotionAnalyzer
+  readonly #injectedAnalyzer: PoseMotionAnalyzer | undefined
+  #analyzer: PoseMotionAnalyzer
+  #effectiveConfig: ResolvedPoseMotionConfig
   readonly #listeners = new Set<() => void>()
   #request: MotionInputRequest | undefined
   #running = false
@@ -45,6 +54,11 @@ export class PoseMotionInputProvider implements MotionInputProvider {
 
   constructor(options: PoseMotionInputProviderOptions = {}) {
     this.#now = options.now ?? (() => performance.now())
+    this.#injectedAnalyzer = options.analyzer
+    this.#effectiveConfig = resolvePoseMotionConfig(
+      undefined,
+      resolveAbilityProfile(['STANDARD']),
+    )
     this.#analyzer = options.analyzer ?? new PoseMotionAnalyzer()
     this.#snapshot = Object.freeze({
       providerId: this.id,
@@ -57,6 +71,15 @@ export class PoseMotionInputProvider implements MotionInputProvider {
   async start(request: MotionInputRequest): Promise<void> {
     this.#request = request
     this.#running = true
+    const requestedPlayer = request.players[0]
+    this.#effectiveConfig = resolvePoseMotionConfig(
+      requestedPlayer?.calibration,
+      requestedPlayer?.abilityProfile ?? resolveAbilityProfile(['STANDARD']),
+    )
+    this.#analyzer =
+      this.#effectiveConfig.source === 'STANDARD' && this.#injectedAnalyzer
+        ? this.#injectedAnalyzer
+        : new PoseMotionAnalyzer(this.#effectiveConfig.config)
     this.#analyzer.reset()
     this.#lastAnalyzerSequence = -1
     this.#refresh(true)
@@ -66,8 +89,24 @@ export class PoseMotionInputProvider implements MotionInputProvider {
     if (!this.#running) return
     this.#running = false
     this.#analyzer.reset()
+    this.#effectiveConfig = resolvePoseMotionConfig(
+      undefined,
+      resolveAbilityProfile(['STANDARD']),
+    )
+    this.#analyzer = this.#injectedAnalyzer ?? new PoseMotionAnalyzer()
+    if (this.#request) {
+      this.#request = Object.freeze({
+        ...this.#request,
+        players: Object.freeze(
+          this.#request.players.map(({ playerId, abilityProfile }) =>
+            Object.freeze({ playerId, abilityProfile }),
+          ),
+        ),
+      })
+    }
     this.#lastAnalyzerSequence = -1
     this.#refresh(true)
+    this.#request = undefined
   }
 
   update(_deltaMs: number): void {
@@ -87,6 +126,10 @@ export class PoseMotionInputProvider implements MotionInputProvider {
 
   getDiagnostics(): PoseMotionAnalyzerSnapshot {
     return this.#analyzer.getSnapshot(this.#now())
+  }
+
+  getEffectiveConfig(): ResolvedPoseMotionConfig {
+    return this.#effectiveConfig
   }
 
   subscribe(listener: () => void): () => void {

@@ -61,9 +61,20 @@ function mergeConfig(overrides: Partial<PoseMotionConfig>): PoseMotionConfig {
   return {
     ...POSE_MOTION_CONFIG,
     ...overrides,
-    move: { ...POSE_MOTION_CONFIG.move, ...overrides.move },
-    lean: { ...POSE_MOTION_CONFIG.lean, ...overrides.lean },
-    reach: { ...POSE_MOTION_CONFIG.reach, ...overrides.reach },
+    move: {
+      left: { ...POSE_MOTION_CONFIG.move.left, ...overrides.move?.left },
+      right: { ...POSE_MOTION_CONFIG.move.right, ...overrides.move?.right },
+    },
+    lean: {
+      left: { ...POSE_MOTION_CONFIG.lean.left, ...overrides.lean?.left },
+      right: { ...POSE_MOTION_CONFIG.lean.right, ...overrides.lean?.right },
+    },
+    reach: {
+      ...POSE_MOTION_CONFIG.reach,
+      ...overrides.reach,
+      left: { ...POSE_MOTION_CONFIG.reach.left, ...overrides.reach?.left },
+      right: { ...POSE_MOTION_CONFIG.reach.right, ...overrides.reach?.right },
+    },
     squat: { ...POSE_MOTION_CONFIG.squat, ...overrides.squat },
     jump: { ...POSE_MOTION_CONFIG.jump, ...overrides.jump },
   }
@@ -333,13 +344,15 @@ export class PoseMotionAnalyzer {
     this.#moveState = this.#nextHorizontalState(
       this.#moveState,
       this.#smoothedMove,
-      this.#config.move.enterBodyUnits,
-      this.#config.move.exitBodyUnits,
+      this.#config.move,
       'move',
     )
+    const moveRange = this.#smoothedMove < 0
+      ? this.#config.move.left
+      : this.#config.move.right
     const intensity = clamp01(
       Math.abs(this.#smoothedMove) /
-        this.#config.move.fullIntensityBodyUnits,
+        moveRange.fullIntensityBodyUnits,
     )
     const confidence = features.trackingConfidence
     this.#setAction(
@@ -378,13 +391,15 @@ export class PoseMotionAnalyzer {
     this.#leanState = this.#nextHorizontalState(
       this.#leanState,
       this.#smoothedLean,
-      this.#config.lean.enterBodyUnits,
-      this.#config.lean.exitBodyUnits,
+      this.#config.lean,
       'lean',
     )
+    const leanRange = this.#smoothedLean < 0
+      ? this.#config.lean.left
+      : this.#config.lean.right
     const intensity = clamp01(
       Math.abs(this.#smoothedLean) /
-        this.#config.lean.fullIntensityBodyUnits,
+        leanRange.fullIntensityBodyUnits,
     )
     this.#setAction(
       'LEAN_LEFT',
@@ -403,18 +418,24 @@ export class PoseMotionAnalyzer {
   #nextHorizontalState(
     current: HorizontalState,
     value: number,
-    enter: number,
-    exit: number,
+    thresholds: PoseMotionConfig['move'] | PoseMotionConfig['lean'],
     detector: 'move' | 'lean',
   ): HorizontalState {
     const desired: HorizontalState =
-      value <= -enter ? 'LEFT' : value >= enter ? 'RIGHT' : 'NONE'
+      value <= -thresholds.left.enterBodyUnits
+        ? 'LEFT'
+        : value >= thresholds.right.enterBodyUnits
+          ? 'RIGHT'
+          : 'NONE'
     if (current !== 'NONE') {
       const signed = current === 'LEFT' ? -value : value
       if (desired !== 'NONE' && desired !== current) {
         this.#clearHorizontalCandidate(detector)
         return desired
       }
+      const exit = current === 'LEFT'
+        ? thresholds.left.exitBodyUnits
+        : thresholds.right.exitBodyUnits
       if (signed >= exit) return current
       this.#clearHorizontalCandidate(detector)
       return 'NONE'
@@ -495,6 +516,9 @@ export class PoseMotionAnalyzer {
 
   #reachScore(features: PoseFeatureFrame, side: 'LEFT' | 'RIGHT'): number {
     const arm = side === 'LEFT' ? features.leftArm : features.rightArm
+    const normalization = side === 'LEFT'
+      ? this.#config.reach.left
+      : this.#config.reach.right
     const shoulder =
       side === 'LEFT' ? features.leftShoulder : features.rightShoulder
     const wrist = side === 'LEFT' ? features.leftWrist : features.rightWrist
@@ -512,7 +536,11 @@ export class PoseMotionAnalyzer {
       return 0
     }
     const extensionScore = clamp01(
-      (arm.extensionRatio - 0.75) / 0.25,
+      (arm.extensionRatio - normalization.minimumExtensionRatio) /
+        Math.max(
+          normalization.fullExtensionRatio - normalization.minimumExtensionRatio,
+          Number.EPSILON,
+        ),
     )
     const outsideScore = clamp01(
       outside / (this.#config.reach.minimumOutsideBodyUnits * 1.5),

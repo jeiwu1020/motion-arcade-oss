@@ -1,6 +1,6 @@
 # Motion Input Contract
 
-Status: Phase 1D.1 calibration contract boundary
+Status: Phase 1D.2 calibration adaptation boundary
 
 Contract version: `1.0-phase-1a`
 
@@ -119,7 +119,7 @@ Consequently, Player 1 may be `STANDARD` while Player 2 is `SEATED + RIGHT_SIDE`
 
 Phase 1D.1 defines canonical `PlayerCalibration` version 1. It stores only body-relative MOVE/LEAN/SQUAT ranges, dimensionless anatomical left/right REACH capability, step completeness, and aggregate quality metadata. Skipped/unavailable measurements are `null`; raw landmarks, frames, pixels, images, and streams are prohibited. The original Phase 1A reserved fields remain accepted as a deprecated compatibility branch for existing provider behavior and must not be emitted by new calibration code.
 
-The Phase 1D.1 calibration result is session-local and is not yet provided to the Pose analyzer. Phase 1D.2 will define how measured ranges may safely affect detection. Ability profiles and calibration remain separate concepts.
+In Phase 1D.2 the single-person `PoseMotionInputProvider` validates only canonical v1 calibration from its first requested player and resolves a session-specific detector config once during `start()`. Valid measurements adapt MOVE, LEAN, anatomical REACH, and SQUAT independently through safety clamps; missing or invalid fields retain STANDARD behavior. The deprecated compatibility shape never activates adaptation. JUMP is not calibration-driven. Ability profiles and calibration remain separate concepts.
 
 ## 6. Ability profile semantics
 
@@ -244,4 +244,4 @@ The React control panel writes provider values. The Phaser test scene only reads
 
 The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame.
 
-The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D.1 separately collects an in-memory formal calibration result in the developer Lab but does not change provider thresholds or state machines. Replay serialization, calibration persistence/consumption, general capability negotiation, multi-person tracking continuity, and production onboarding remain deferred. These additions must extend the provider boundary without exposing raw sensors to games.
+The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D calibration remains caller-provided and in memory. Provider stop releases its calibration request; there is no persistence or upload. Replay serialization, calibration persistence, general capability negotiation, multi-person tracking continuity, production onboarding, and JUMP adaptation remain deferred. These additions must extend the provider boundary without exposing raw sensors or body-unit values to games.
