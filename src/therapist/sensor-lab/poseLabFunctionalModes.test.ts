@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   describePoseTestMode,
+  getPoseModeCapabilities,
   toggleFunctionalProfile,
 } from './poseLabFunctionalModes'
 
@@ -48,5 +49,44 @@ describe('Pose Lab functional mode selection', () => {
         'SLOW_RESPONSE',
       ]),
     ).toBe('校正值 · 較小動作範圍 · 較慢反應速度')
+  })
+
+  it('selects seated and upper-body base modes without dropping range or timing modifiers', () => {
+    expect(
+      toggleFunctionalProfile(
+        ['LOW_MOTION', 'SLOW_RESPONSE'],
+        'SEATED',
+      ),
+    ).toEqual(['SEATED', 'LOW_MOTION', 'SLOW_RESPONSE'])
+    expect(
+      toggleFunctionalProfile(
+        ['SEATED', 'LOW_MOTION'],
+        'UPPER_BODY',
+      ),
+    ).toEqual(['UPPER_BODY', 'LOW_MOTION'])
+  })
+
+  it('labels all three base modes clearly', () => {
+    expect(describePoseTestMode('STANDARD', ['SEATED'])).toBe(
+      'STANDARD 基準 · 坐姿模式',
+    )
+    expect(describePoseTestMode('STANDARD', ['UPPER_BODY'])).toBe(
+      'STANDARD 基準 · 上半身模式',
+    )
+  })
+
+  it('reports exact available and unavailable actions for upper-body modes', () => {
+    expect(getPoseModeCapabilities(['SEATED'])).toEqual({
+      available: [
+        'MOVE_LEFT',
+        'MOVE_RIGHT',
+        'LEAN_LEFT',
+        'LEAN_RIGHT',
+        'REACH',
+        'REACH_LEFT',
+        'REACH_RIGHT',
+      ],
+      unavailable: ['SQUAT', 'JUMP'],
+    })
   })
 })

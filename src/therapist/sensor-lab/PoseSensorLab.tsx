@@ -37,6 +37,7 @@ import {
 import { PoseCalibrationPanel } from './PoseCalibrationPanel'
 import {
   describePoseTestMode,
+  getPoseModeCapabilities,
   toggleFunctionalProfile,
   type PoseLabFunctionalProfileId,
 } from './poseLabFunctionalModes'
@@ -179,6 +180,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const squatDiagnosticRef = useRef(new PoseSquatDiagnosticTracker())
   const calibrationExtractorRef = useRef(new PoseFeatureExtractor())
   const calibrationSessionRef = useRef(new PoseCalibrationSession())
+  const upperBodyModeRef = useRef(false)
   const inferenceDurationsRef = useRef<number[]>([])
   const inferenceTimesRef = useRef<number[]>([])
   const [sessionState, setSessionState] = useState<PoseSessionState>('READY')
@@ -259,9 +261,11 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     if (canvasRef.current) drawPoseFrame(canvasRef.current, result.frame)
     motionProviderRef.current?.ingest(result.frame)
     squatDiagnosticRef.current.ingest(result.frame)
-    calibrationSessionRef.current.ingest(
-      calibrationExtractorRef.current.extract(result.frame),
-    )
+    if (!upperBodyModeRef.current) {
+      calibrationSessionRef.current.ingest(
+        calibrationExtractorRef.current.extract(result.frame),
+      )
+    }
     setSquatDiagnostics(squatDiagnosticRef.current.getSnapshot())
     setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
     setAnalyzerDiagnostics(
@@ -402,6 +406,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       lastResultAgeMs: null,
     }))
     try {
+      upperBodyModeRef.current =
+        resolveAbilityProfile(functionalProfiles).bodyRange === 'UPPER_BODY'
       await motionProviderRef.current?.start(
         poseAnalyzerRequest(undefined, functionalProfiles),
       )
@@ -486,6 +492,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     calibration: V1PlayerCalibration | undefined,
     profiles: readonly PoseLabFunctionalProfileId[],
   ) => {
+    upperBodyModeRef.current =
+      resolveAbilityProfile(profiles).bodyRange === 'UPPER_BODY'
     setActiveCalibration(calibration)
     setFunctionalProfiles(profiles)
     const provider = motionProviderRef.current
@@ -531,6 +539,9 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   const rightReach = analyzerAction('REACH_RIGHT')
   const squat = analyzerAction('SQUAT')
   const jump = analyzerAction('JUMP')
+  const abilityProfile = resolveAbilityProfile(functionalProfiles)
+  const upperBodyMode = abilityProfile.bodyRange === 'UPPER_BODY'
+  const modeCapabilities = getPoseModeCapabilities(functionalProfiles)
   const analyzerFreshness = analyzerDiagnostics?.freshnessMs
   const analyzerFreshnessLabel =
     analyzerFreshness === null || analyzerFreshness === undefined
@@ -538,7 +549,9 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
       : `${analyzerFreshness.toFixed(0)} ms`
   const analyzerReady =
     analyzerDiagnostics?.quality === 'READY' &&
-    analyzerDiagnostics.baselineReady
+    (upperBodyMode
+      ? analyzerDiagnostics.upperBodyReady
+      : analyzerDiagnostics.fullBodyReady)
   const baselineProgress = Math.round(
     (analyzerDiagnostics?.baselineProgress ?? 0) * 100,
   )
@@ -549,33 +562,42 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
   } = analyzerReady
     ? {
         tone: 'pass',
-        title: '✓ READY',
-        detail: '可以開始動作測試',
+        title: upperBodyMode ? '✓ UPPER-BODY READY' : '✓ FULL-BODY READY',
+        detail: upperBodyMode
+          ? '可以開始上半身動作測試'
+          : '可以開始全身動作測試',
       }
     : analyzerDiagnostics?.quality === 'BASELINING'
       ? {
           tone: 'warn',
           title: `基準建立中 ${baselineProgress}%`,
-          detail: '請站穩並保持全身與雙腳入鏡',
+          detail: upperBodyMode
+            ? '請保持肩膀、手臂與髖部穩定入鏡'
+            : '請站穩並保持全身與雙腳入鏡',
         }
       : analyzerDiagnostics?.quality === 'LIMITED'
         ? {
             tone: 'warn',
             title: '⚠ LIMITED',
-            detail: '請確認全身、雙膝與雙腳踝都清楚入鏡',
+            detail: upperBodyMode
+              ? '請確認肩膀、手臂與髖部都清楚入鏡'
+              : '請確認全身、雙膝與雙腳踝都清楚入鏡',
           }
         : analyzerDiagnostics?.quality === 'LOST'
           ? {
               tone: 'fail',
               title: '✕ LOST',
-              detail: '尚未穩定偵測到可用的全身姿勢',
+              detail: upperBodyMode
+                ? '尚未穩定偵測到可用的上半身姿勢'
+                : '尚未穩定偵測到可用的全身姿勢',
             }
           : {
               tone: 'idle',
               title: '尚未開始',
-              detail: '啟動相機後請先站穩建立基準',
+              detail: upperBodyMode
+                ? '啟動相機後請保持上半身穩定建立基準'
+                : '啟動相機後請先站穩建立基準',
             }
-  const abilityProfile = resolveAbilityProfile(functionalProfiles)
   const currentModeLabel = describePoseTestMode(
     effectiveConfig.source,
     functionalProfiles,
@@ -585,7 +607,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
     <main className="pose-lab-shell">
       <header className="pose-lab-header">
         <div>
-          <p>PHASE 1D.3a · FUNCTIONAL ABILITY PROFILES</p>
+          <p>PHASE 1D.3b · BODY AVAILABILITY PROFILES</p>
           <h1>Pose Calibration + Motion Analyzer Lab</h1>
         </div>
         <button type="button" className="pose-button pose-button-quiet" onClick={onExit}>
@@ -605,7 +627,7 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               <canvas ref={canvasRef} aria-label="姿勢骨架覆蓋層" />
             </div>
             <div className="pose-framing-guide" aria-hidden="true">
-              <span>全身進入畫面</span>
+              <span>{upperBodyMode ? '上半身進入畫面' : '全身進入畫面'}</span>
             </div>
             {sessionState !== 'RUNNING' ? (
               <div className="pose-preview-state">
@@ -627,37 +649,48 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             ) : null}
             </div>
 
-            <PoseCalibrationPanel
-              snapshot={calibrationSnapshot}
-              cameraRunning={sessionState === 'RUNNING'}
-              analyzerMode={effectiveConfig.source}
-              testModeLabel={currentModeLabel}
-              onAdvance={() => {
-                calibrationSessionRef.current.advance()
-                setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
-              }}
-              onRetry={() => {
-                calibrationSessionRef.current.retry()
-                setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
-              }}
-              onSkip={() => {
-                calibrationSessionRef.current.skip()
-                setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
-              }}
-              onReset={() => {
-                resetCalibration()
-                void switchAnalyzerConfiguration(undefined, ['STANDARD'])
-              }}
-              onUseCalibration={(calibration) => {
-                void switchAnalyzerConfiguration(
-                  calibration,
-                  functionalProfiles,
-                )
-              }}
-              onUseStandard={() => {
-                void switchAnalyzerConfiguration(undefined, ['STANDARD'])
-              }}
-            />
+            {upperBodyMode ? (
+              <section className="pose-calibration-limitation" aria-label="上半身模式校正限制">
+                <span>校正限制</span>
+                <h2>不套用站立全身校正</h2>
+                <p>
+                  坐姿與上半身模式使用安全的暫時軀幹基準。現有 MOVE、LEAN、REACH、SQUAT
+                  校正流程需要完整站姿，因此在此模式暫停，不推測替代測量。
+                </p>
+              </section>
+            ) : (
+              <PoseCalibrationPanel
+                snapshot={calibrationSnapshot}
+                cameraRunning={sessionState === 'RUNNING'}
+                analyzerMode={effectiveConfig.source}
+                testModeLabel={currentModeLabel}
+                onAdvance={() => {
+                  calibrationSessionRef.current.advance()
+                  setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
+                }}
+                onRetry={() => {
+                  calibrationSessionRef.current.retry()
+                  setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
+                }}
+                onSkip={() => {
+                  calibrationSessionRef.current.skip()
+                  setCalibrationSnapshot(calibrationSessionRef.current.getSnapshot())
+                }}
+                onReset={() => {
+                  resetCalibration()
+                  void switchAnalyzerConfiguration(undefined, ['STANDARD'])
+                }}
+                onUseCalibration={(calibration) => {
+                  void switchAnalyzerConfiguration(
+                    calibration,
+                    functionalProfiles,
+                  )
+                }}
+                onUseStandard={() => {
+                  void switchAnalyzerConfiguration(undefined, ['STANDARD'])
+                }}
+              />
+            )}
           </div>
 
           <section className="pose-functional-modes" aria-label="動作模式">
@@ -665,16 +698,39 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               <span>動作模式</span>
               <strong>目前設定：{currentModeLabel}</strong>
             </div>
-            <div className="pose-functional-mode-buttons" role="group" aria-label="功能動作模式">
+            <div className="pose-functional-mode-buttons" role="group" aria-label="姿勢模式">
               <button
                 type="button"
                 className="pose-button"
-                aria-pressed={functionalProfiles.includes('STANDARD')}
+                aria-pressed={
+                  !functionalProfiles.includes('SEATED') &&
+                  !functionalProfiles.includes('UPPER_BODY')
+                }
                 onClick={() => switchFunctionalProfile('STANDARD')}
                 disabled={sessionState === 'STARTING'}
               >
                 標準動作
               </button>
+              <button
+                type="button"
+                className="pose-button"
+                aria-pressed={functionalProfiles.includes('SEATED')}
+                onClick={() => switchFunctionalProfile('SEATED')}
+                disabled={sessionState === 'STARTING'}
+              >
+                坐姿模式
+              </button>
+              <button
+                type="button"
+                className="pose-button"
+                aria-pressed={functionalProfiles.includes('UPPER_BODY')}
+                onClick={() => switchFunctionalProfile('UPPER_BODY')}
+                disabled={sessionState === 'STARTING'}
+              >
+                上半身模式
+              </button>
+            </div>
+            <div className="pose-functional-modifier-buttons" role="group" aria-label="動作調整">
               <button
                 type="button"
                 className="pose-button"
@@ -694,7 +750,19 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                 較慢反應速度
               </button>
             </div>
-            <p>切換只會重新建立動作分析基準；相機、校正結果與 MediaPipe 不會重新啟動。</p>
+            <div className="pose-action-availability" aria-label="可用動作">
+              <p>
+                <strong>可用：</strong>{modeCapabilities.available.join(' · ')}
+              </p>
+              <p>
+                <strong>不可用：</strong>{modeCapabilities.unavailable.length > 0
+                  ? modeCapabilities.unavailable.join(' · ')
+                  : '無'}
+              </p>
+            </div>
+            <p>
+              切換只會重新建立動作分析基準；相機與 MediaPipe 不會重新啟動。坐姿／上半身模式不套用站立校正值。
+            </p>
           </section>
 
           <div className="pose-controls">
@@ -788,6 +856,10 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                 value={abilityProfile.profileIds.join(' + ')}
               />
               <TelemetryRow
+                label="Tracking requirement"
+                value={effectiveConfig.config.bodyTrackingMode}
+              />
+              <TelemetryRow
                 label="Range scale"
                 value={formatNumber(abilityProfile.requiredMotionRangeScale, 2)}
               />
@@ -825,9 +897,14 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
               />
               <TelemetryRow
                 label="SQUAT enter / full"
-                value={`${formatNumber(effectiveConfig.config.squat.enterDepthBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.squat.fullDepthBodyUnits, 2)}`}
+                value={upperBodyMode
+                  ? 'UNAVAILABLE'
+                  : `${formatNumber(effectiveConfig.config.squat.enterDepthBodyUnits, 2)} / ${formatNumber(effectiveConfig.config.squat.fullDepthBodyUnits, 2)}`}
               />
-              <TelemetryRow label="JUMP" value="STANDARD · unchanged" />
+              <TelemetryRow
+                label="JUMP"
+                value={upperBodyMode ? 'UNAVAILABLE' : 'STANDARD · unchanged'}
+              />
             </dl>
           </section>
           <div
@@ -839,10 +916,16 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             <span>{analyzerBanner.detail}</span>
           </div>
 
-          <section
-            className={`pose-squat-diagnostic ${squat > 0 ? 'pose-squat-diagnostic-active' : ''}`}
-            aria-label="深蹲偵測條件"
-          >
+          {upperBodyMode ? (
+            <section className="pose-lower-body-unavailable" aria-label="下半身動作不可用">
+              <strong>SQUAT / JUMP 不可用</strong>
+              <span>此模式不使用膝蓋或腳踝，也不產生替代動作。</span>
+            </section>
+          ) : (
+            <section
+              className={`pose-squat-diagnostic ${squat > 0 ? 'pose-squat-diagnostic-active' : ''}`}
+              aria-label="深蹲偵測條件"
+            >
             <div className="pose-squat-diagnostic-heading">
               <strong>SQUAT CHECK</strong>
               <span>{squat > 0 ? '✓ DETECTED' : '四格全綠才會觸發'}</span>
@@ -876,7 +959,8 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             <p className="pose-squat-detail-line">
               左膝 {formatDiagnosticNumber(squatDiagnostics.leftKneeAngleDegrees, 0)}° · 右膝 {formatDiagnosticNumber(squatDiagnostics.rightKneeAngleDegrees, 0)}° · baseline {squatDiagnostics.baselineReady ? 'READY' : `${Math.round(squatDiagnostics.baselineProgress * 100)}%`}
             </p>
-          </section>
+            </section>
+          )}
 
           <dl>
             <TelemetryRow
@@ -891,6 +975,16 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
                       ? 'fail'
                       : undefined
               }
+            />
+            <TelemetryRow
+              label="Upper-body readiness"
+              value={analyzerDiagnostics?.upperBodyReady ? 'READY' : 'NOT READY'}
+              tone={analyzerDiagnostics?.upperBodyReady ? 'pass' : 'warn'}
+            />
+            <TelemetryRow
+              label="Full-body readiness"
+              value={analyzerDiagnostics?.fullBodyReady ? 'READY' : 'NOT READY'}
+              tone={analyzerDiagnostics?.fullBodyReady ? 'pass' : 'warn'}
             />
             <TelemetryRow
               label="Session baseline"
@@ -936,12 +1030,16 @@ export default function PoseSensorLab({ onExit }: PoseSensorLabProps) {
             />
             <TelemetryRow
               label="SQUAT"
-              value={`${analyzerDiagnostics?.squatState ?? 'STANDING'} ${formatNumber(squat, 2)}`}
+              value={upperBodyMode
+                ? 'UNAVAILABLE'
+                : `${analyzerDiagnostics?.squatState ?? 'STANDING'} ${formatNumber(squat, 2)}`}
               tone={squat > 0 ? 'active' : undefined}
             />
             <TelemetryRow
               label="JUMP"
-              value={`${analyzerDiagnostics?.jumpState ?? 'GROUNDED'}${jump > 0 ? ' · PULSE' : ''}`}
+              value={upperBodyMode
+                ? 'UNAVAILABLE'
+                : `${analyzerDiagnostics?.jumpState ?? 'GROUNDED'}${jump > 0 ? ' · PULSE' : ''}`}
               tone={jump > 0 ? 'active' : undefined}
             />
             <TelemetryRow

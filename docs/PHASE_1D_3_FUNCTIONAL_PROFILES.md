@@ -18,6 +18,9 @@ Phase 1D.3a gives runtime behavior to `STANDARD`, `LOW_MOTION`, and
 `SEATED`, `UPPER_BODY`, `LEFT_SIDE`, and `RIGHT_SIDE` remain contract-compatible
 but are not claimed as fully supported Pose modes in this phase.
 
+SEATED and UPPER_BODY are implemented by the successor Phase 1D.3b work; see
+[Phase 1D.3b — SEATED + UPPER_BODY Pose](./PHASE_1D_3B_UPPER_BODY_POSE.md).
+
 ## Resolution architecture
 
 ```text

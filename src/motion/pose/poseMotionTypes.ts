@@ -71,6 +71,8 @@ export interface PoseMotionAnalyzerSnapshot {
   readonly sequence: number
   readonly quality: PoseTrackingQuality
   readonly baselineReady: boolean
+  readonly upperBodyReady: boolean
+  readonly fullBodyReady: boolean
   readonly baselineProgress: number
   readonly freshnessMs: number | null
   readonly squatState: PoseSquatState

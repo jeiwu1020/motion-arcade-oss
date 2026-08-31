@@ -158,6 +158,38 @@
   grid-template-columns: 1fr;
 }
 
+.pose-calibration-limitation {
+  border: 3px solid rgb(114 206 255 / 48%);
+  border-radius: 1rem;
+  padding: clamp(0.9rem, 2vw, 1.4rem);
+  display: grid;
+  align-content: center;
+  gap: 0.55rem;
+  background: linear-gradient(135deg, rgb(19 67 94 / 88%), #0b1428 72%);
+}
+
+.pose-calibration-limitation span {
+  color: #a7dcff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.pose-calibration-limitation h2,
+.pose-calibration-limitation p {
+  margin: 0;
+}
+
+.pose-calibration-limitation h2 {
+  color: #fff;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.pose-calibration-limitation p {
+  color: #d8e6fa;
+  line-height: 1.55;
+}
+
 .pose-guided-layout .pose-calibration-progress {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -430,23 +462,50 @@
   text-align: right;
 }
 
-.pose-functional-mode-buttons {
+.pose-functional-mode-buttons,
+.pose-functional-modifier-buttons {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
 }
 
-.pose-functional-mode-buttons .pose-button {
+.pose-functional-mode-buttons {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pose-functional-modifier-buttons {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.55rem;
+}
+
+.pose-functional-mode-buttons .pose-button,
+.pose-functional-modifier-buttons .pose-button {
   min-height: 3.1rem;
   border-width: 2px;
   font-size: clamp(0.78rem, 1.6vw, 0.95rem);
 }
 
-.pose-functional-mode-buttons .pose-button[aria-pressed='true'] {
+.pose-functional-mode-buttons .pose-button[aria-pressed='true'],
+.pose-functional-modifier-buttons .pose-button[aria-pressed='true'] {
   border-color: #53f7ae;
   color: #061710;
   background: #72f2b7;
   box-shadow: 0 0 1rem rgb(83 247 174 / 18%);
+}
+
+.pose-action-availability {
+  margin-top: 0.6rem;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  display: grid;
+  gap: 0.25rem;
+  color: #d8e6fa;
+  background: rgb(255 255 255 / 6%);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.pose-action-availability p {
+  margin: 0;
 }
 
 .pose-functional-modes > p {
@@ -581,6 +640,23 @@
 .pose-squat-diagnostic-active {
   border-color: #72ceff;
   box-shadow: 0 0 1.25rem rgb(114 206 255 / 24%);
+}
+
+.pose-lower-body-unavailable {
+  margin: 0 0 0.8rem;
+  border: 2px solid rgb(255 209 102 / 55%);
+  border-radius: 0.9rem;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.25rem;
+  color: #fff1bf;
+  background: rgb(255 209 102 / 10%);
+  text-align: center;
+}
+
+.pose-lower-body-unavailable span {
+  color: #d8e6fa;
+  font-size: 0.72rem;
 }
 
 .pose-squat-diagnostic-heading {
@@ -876,7 +952,8 @@
     margin-bottom: 0.4rem;
   }
 
-  .pose-functional-mode-buttons .pose-button {
+  .pose-functional-mode-buttons .pose-button,
+  .pose-functional-modifier-buttons .pose-button {
     min-height: 2.6rem;
   }
 
@@ -931,6 +1008,10 @@
   }
 
   .pose-functional-mode-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .pose-functional-modifier-buttons {
     grid-template-columns: 1fr;
   }
 }

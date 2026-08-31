@@ -12,6 +12,7 @@ export interface ReachNormalizationConfig {
 }
 
 export interface PoseMotionConfig {
+  readonly bodyTrackingMode: 'FULL_BODY' | 'UPPER_BODY'
   readonly coordinateTransform: CoordinateTransform
   readonly minimumLandmarkConfidence: number
   readonly staleAfterMs: number
@@ -73,6 +74,7 @@ const STANDARD_REACH_NORMALIZATION = Object.freeze({
 })
 
 export const POSE_MOTION_CONFIG: PoseMotionConfig = Object.freeze({
+  bodyTrackingMode: 'FULL_BODY',
   coordinateTransform: Object.freeze({ sourceCoordinates: 'MIRRORED' as const }),
   minimumLandmarkConfidence: 0.55,
   staleAfterMs: 250,

@@ -124,6 +124,27 @@ describe('resolvePoseMotionConfig validation and fallback', () => {
     expect(resolved.source).toBe('STANDARD')
     expect(resolved.config).toEqual(POSE_MOTION_CONFIG)
   })
+
+  it.each(['SEATED', 'UPPER_BODY'] as const)(
+    'uses an upper-body analyzer and ignores standing calibration for %s',
+    (profile) => {
+      const resolved = resolvePoseMotionConfig(
+        calibration(),
+        resolveAbilityProfile([profile]),
+      )
+
+      expect(resolved).toMatchObject({
+        source: 'STANDARD',
+        config: { bodyTrackingMode: 'UPPER_BODY' },
+        adapted: {
+          move: { left: false, right: false },
+          lean: { left: false, right: false },
+          reach: { left: false, right: false },
+          squat: false,
+        },
+      })
+    },
+  )
 })
 
 describe('resolvePoseMotionConfig bounded adaptation', () => {
