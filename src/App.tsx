@@ -3,6 +3,11 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { TEST_INPUT_ENABLED } from './app/testModeGate'
 import { REAL_SENSOR_LAB_ENABLED } from './app/realSensorLabGate'
 import { homeCategories } from './app/homeCategories'
+import {
+  hashForScreen,
+  screenFromHash,
+  type AppScreen,
+} from './app/navigation'
 import { gameRegistry } from './game/registry/gameRegistry'
 import type { GameCategory } from './game/registry/types'
 import './App.css'
@@ -14,39 +19,21 @@ const PoseSensorLab = lazy(
   () => import('./therapist/sensor-lab/PoseSensorLab'),
 )
 const BalloonPopGameScreen = lazy(
-  () => import('./games/balloon-pop/BalloonPopGameScreen'),
+  () =>
+    import.meta.env.DEV
+      ? import('./games/balloon-pop/BalloonPopGameScreen')
+      : import('./games/balloon-pop/BalloonPopPoseGameScreen'),
 )
 
-type AppScreen = 'HOME' | 'TEST_LAB' | 'POSE_SENSOR_LAB' | 'BALLOON_POP'
-
 function screenFromLocation(): AppScreen {
-  if (TEST_INPUT_ENABLED && window.location.hash === '#test-lab') {
-    return 'TEST_LAB'
-  }
-  if (
-    TEST_INPUT_ENABLED &&
-    window.location.hash === '#game/balloon-pop'
-  ) {
-    return 'BALLOON_POP'
-  }
-  if (
-    REAL_SENSOR_LAB_ENABLED &&
-    window.location.hash === '#pose-sensor-lab'
-  ) {
-    return 'POSE_SENSOR_LAB'
-  }
-  return 'HOME'
+  return screenFromHash(window.location.hash, {
+    testInputEnabled: TEST_INPUT_ENABLED,
+    realSensorLabEnabled: REAL_SENSOR_LAB_ENABLED,
+  })
 }
 
 function navigate(screen: AppScreen): void {
-  window.location.hash =
-    screen === 'TEST_LAB'
-      ? 'test-lab'
-      : screen === 'BALLOON_POP'
-        ? 'game/balloon-pop'
-      : screen === 'POSE_SENSOR_LAB'
-        ? 'pose-sensor-lab'
-        : ''
+  window.location.hash = hashForScreen(screen)
 }
 
 function App() {
@@ -74,7 +61,7 @@ function App() {
     )
   }
 
-  if (screen === 'BALLOON_POP' && TEST_INPUT_ENABLED) {
+  if (screen === 'BALLOON_POP') {
     return (
       <Suspense fallback={<LabLoadingScreen />}>
         <BalloonPopGameScreen onExit={() => navigate('HOME')} />
@@ -141,14 +128,13 @@ function HomeScreen({
               className="home-game-entry"
               type="button"
               key={game.id}
-              disabled={!TEST_INPUT_ENABLED}
               onClick={game.id === 'balloon-pop' ? onOpenBalloonPop : undefined}
             >
               <span className="home-game-entry-category">小遊戲 · 1 人 · 60 秒</span>
               <strong>{game.title}</strong>
               <span>{game.description}</span>
               <small>
-                {TEST_INPUT_ENABLED ? '開始遊戲 →' : '等待正式感測輸入整合'}
+                開始遊戲 →
               </small>
             </button>
           ))}

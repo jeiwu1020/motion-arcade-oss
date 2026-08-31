@@ -6,10 +6,10 @@ This file is a short project checkpoint for agents. Detailed design lives in the
 
 ## Current implementation baseline
 
-Phase 2A.1 is the current `main` implementation after merge. The previous fully
-deployed sensor milestone remains:
+Phase 2A.2a is the current `main` implementation after merge. The previous
+playable test-input milestone is:
 
-`b455fd2d67d73d4862f302039b73413e27a67495` — Phase 1D.3b merged code baseline; GitHub Actions and Vercel validated
+`d9e81919bb9856296ea4b13bba6c02d51612aa99` — Phase 2A.1 Balloon Pop vertical slice
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -22,10 +22,11 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - Phase 1D.2 — calibration-driven adaptation: engineering + real-person PASS
 - Phase 1D.3a — LOW_MOTION / SLOW_RESPONSE composition: engineering PASS; physical checks deferred
 - Phase 1D.3b — SEATED / UPPER_BODY Pose: engineering PASS; physical checks deferred
+- Phase 2A.1 — deterministic Balloon Pop through normalized test input: PASS
 
 ## Current phase
 
-### Phase 2A.1 — first playable Motion Arcade vertical slice
+### Phase 2A.2a — production real-Pose Balloon Pop input
 
 Engineering status: PASS
 
@@ -33,47 +34,51 @@ Automated validation:
 
 - Typecheck: PASS
 - Lint: PASS
-- Tests: 191 / 191 PASS across 29 files
+- Tests: 200 / 200 PASS across 31 files
 - Build: PASS
 - `git diff --check`: PASS
 
 Implemented behavior:
 
-- `balloon-pop` / 氣球拍拍樂 is a registered PARTY / 小遊戲 entry.
-- A pure TypeScript Game Core owns the deterministic countdown, 60-second round,
-  one-target lifecycle, matching reach hits, misses, score, finish, and replay.
-- The game consumes only normalized `REACH_LEFT` and `REACH_RIGHT` started actions.
-- A held action sequence cannot score more than once.
-- A dedicated Phaser scene renders the 1280 × 720 FIT playfield from core state;
-  React owns navigation, HUD, test controls, and results.
-- The existing keyboard/test provider makes the slice playable with Z / C and
-  on-screen test buttons. No camera or MediaPipe gameplay path is active.
-- The existing production test-input build gate remains the route/input gate.
+- `#game/balloon-pop` is available in normal production builds without either
+  developer/lab build gate.
+- Production lazily loads real Pose gameplay; development retains the existing
+  keyboard/test-provider screen and Z/C controls.
+- `PoseGameplayInputRuntime` is the focused shared acquisition boundary. It owns
+  CameraController, PoseSensorSession, InferenceScheduler/backend, and
+  PoseMotionInputProvider lifecycle while exposing readiness and normalized input.
+- Camera permission begins only after the user presses 啟動相機.
+- The STANDARD full-body analyzer must be READY before the 3-2-1 countdown moves.
+- TRACKING_LOST freezes countdown, round time, and balloon expiry and displays
+  請回到畫面中. Recovery resumes only after full readiness returns.
+- Startup/inference errors fail closed and release provider, camera, scheduler,
+  and backend resources with readable retry UI.
+- Replay reuses a healthy active Pose session. Route exit, unmount, hidden/pagehide,
+  and errors release real-sensor resources.
+- BalloonPopCore and BalloonPopScene remain detector-, camera-, and MediaPipe-free
+  and still consume only normalized REACH_LEFT / REACH_RIGHT actions.
 
-Focused design and boundaries: [Phase 2A.1 — Balloon Pop vertical slice](./PHASE_2A_1_BALLOON_POP.md).
-
-## Next planned architecture work
-
-### Phase 2A.2 — real Pose gameplay input
-
-- Connect the existing real Pose provider to the game session without changing
-  Game Core or duplicating detectors.
-- Add therapist-facing provider/readiness/error lifecycle for gameplay.
-- Verify camera cleanup, lost tracking, anatomical left/right behavior, and real
-  reach usability on supported physical devices.
+Focused design and manual checks: [Phase 2A.2 — Real Pose gameplay](./PHASE_2A_2_REAL_POSE_GAMEPLAY.md).
 
 ## Manual / physical testing still required
 
-- Projector-distance readability and therapist operation for the new game.
-- Physical iPhone Safari landscape FIT/safe-area behavior.
-- Phase 2A.2 real-person camera reach testing is intentionally not part of 2A.1.
-- Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open.
+- Windows Chrome: permission allow/deny, initial STANDARD baseline, left/right
+  reaching, deliberate leave/re-enter recovery, inference failure recovery, Replay,
+  Return Home, tab hide, and camera track release.
+- Physical iPhone Safari landscape: permission flow, front-camera anatomical
+  left/right, full-body framing at intended distance, safe-area/FIT layout,
+  background/pagehide cleanup, thermal behavior, and projector readability.
+- Confirm real-person reach can be performed without false repeat hits while an
+  arm remains extended.
+- Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open;
+  gameplay profile selection is not part of this phase.
 
 ## Scope still deferred
 
-- production Camera/Pose gameplay integration (Phase 2A.2)
+- calibration UI and adaptive gameplay profile selection
+- SEATED / UPPER_BODY gameplay selection
 - multiplayer and multi-person Pose
 - Hand Tracking and Voice input
 - STRIKE / THROW / RUN / STEP / RUN_CADENCE
 - persistence, accounts, analytics, audio, and formal art polish
-- LEFT_SIDE / RIGHT_SIDE full Pose behavior
+- generic multi-sensor SensorManager

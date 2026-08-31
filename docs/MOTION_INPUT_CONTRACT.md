@@ -1,6 +1,6 @@
 # Motion Input Contract
 
-Status: Phase 1D.3b body-availability profile boundary
+Status: Phase 2A.2a production Pose gameplay boundary
 
 Contract version: `1.0-phase-1a`
 
@@ -14,7 +14,7 @@ The same game-facing boundary is used by:
 
 - `KeyboardMouseTestInputProvider` in Phase 1A;
 - `PoseMotionInputProvider` for Phase 1C single-person standing Pose analysis;
-- a future production sensor manager and microphone provider;
+- the focused production `PoseGameplayInputRuntime` that owns camera/Pose acquisition for current gameplay, plus any future generic sensor manager;
 - a future deterministic replay provider.
 
 Provider switching must not require game-specific input code. Phaser is a consumer of the latest immutable snapshot and does not drive provider inference frequency.
@@ -255,6 +255,6 @@ The React control panel writes provider values. The Phaser test scene only reads
 
 ## 12. Replay and freshness
 
-The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame. Analyzer diagnostics distinguish `upperBodyReady` from `fullBodyReady`; these readiness fields stay outside the game-facing snapshot.
+The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame. Analyzer diagnostics distinguish `upperBodyReady` from `fullBodyReady`; these readiness fields stay outside the game-facing snapshot. Phase 2A.2a's gameplay runtime uses `quality === 'READY'`, `baselineReady`, and `fullBodyReady` to pause or resume the Balloon Pop clock, but neither analyzer diagnostics nor Pose landmarks cross into the Game Core or Phaser scene.
 
 The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D calibration remains caller-provided and in memory. Provider stop releases its calibration request; there is no persistence or upload. Replay serialization, calibration persistence, general capability negotiation, multi-person tracking continuity, production onboarding, and JUMP adaptation remain deferred. These additions must extend the provider boundary without exposing raw sensors or body-unit values to games.

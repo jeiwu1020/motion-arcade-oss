@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { resolveAbilityProfile } from '../../motion/adaptive/profiles'
 import { KeyboardMouseTestInputProvider } from '../../motion/providers/KeyboardMouseTestInputProvider'
 import { BALLOON_POP_RULES } from './BalloonPopCore'
 import { BalloonPopSession } from './BalloonPopSession'
@@ -82,5 +83,62 @@ describe('BalloonPopSession test-provider integration', () => {
       target: { side: 'LEFT' },
     })
     await session.stop()
+  })
+
+  it('does not advance countdown, round time, or target expiry while input is unusable', async () => {
+    const provider = new KeyboardMouseTestInputProvider({
+      keyboardTarget: new EventTarget(),
+      now: () => 0,
+    })
+    const session = new BalloonPopSession(provider, { seed: 2 })
+    await session.start()
+
+    session.tick(BALLOON_POP_RULES.countdownMs, false)
+    expect(session.getState()).toMatchObject({
+      phase: 'COUNTDOWN',
+      countdownRemainingMs: BALLOON_POP_RULES.countdownMs,
+    })
+
+    session.tick(BALLOON_POP_RULES.countdownMs, true)
+    const playing = session.getState()
+    session.tick(1_000, false)
+    expect(session.getState()).toEqual(playing)
+
+    session.tick(1_000, true)
+    expect(session.getState()).toMatchObject({
+      phase: 'PLAYING',
+      roundRemainingMs: BALLOON_POP_RULES.roundMs - 1_000,
+      target: {
+        remainingMs: BALLOON_POP_RULES.targetLifetimeMs - 1_000,
+      },
+    })
+    await session.stop()
+  })
+
+  it('can leave provider lifecycle to the shared real-sensor runtime', async () => {
+    const provider = new KeyboardMouseTestInputProvider({
+      keyboardTarget: new EventTarget(),
+      now: () => 0,
+    })
+    const session = new BalloonPopSession(provider, {
+      managesProviderLifecycle: false,
+    })
+
+    await session.start()
+    expect(provider.isRunning()).toBe(false)
+    await provider.start({
+      players: [
+        {
+          playerId: 'player-1',
+          abilityProfile: resolveAbilityProfile(['STANDARD']),
+        },
+      ],
+      actions: ['REACH_LEFT', 'REACH_RIGHT'],
+      sensors: { pose: true, hands: false, audio: false },
+    })
+    await session.stop()
+
+    expect(provider.isRunning()).toBe(true)
+    await provider.stop()
   })
 })

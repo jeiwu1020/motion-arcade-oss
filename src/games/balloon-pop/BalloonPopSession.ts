@@ -27,10 +27,26 @@ const BALLOON_POP_INPUT_REQUEST: MotionInputRequest = {
   },
 }
 
+export const BALLOON_POP_POSE_INPUT_REQUEST: MotionInputRequest = {
+  players: [
+    {
+      playerId: BALLOON_POP_PLAYER_ID,
+      abilityProfile: resolveAbilityProfile(['STANDARD']),
+    },
+  ],
+  actions: ['REACH_LEFT', 'REACH_RIGHT'],
+  sensors: {
+    pose: true,
+    hands: false,
+    audio: false,
+  },
+}
+
 type Listener = () => void
 
 export interface BalloonPopSessionOptions {
   seed?: number
+  managesProviderLifecycle?: boolean
 }
 
 function presentationKey(state: BalloonPopState): string {
@@ -54,6 +70,7 @@ export class BalloonPopSession {
   readonly #listeners = new Set<Listener>()
   #state: BalloonPopState
   #running = false
+  readonly #managesProviderLifecycle: boolean
   #presentationKey: string
 
   constructor(
@@ -63,6 +80,7 @@ export class BalloonPopSession {
     this.#provider = provider
     this.#state = createBalloonPopState(options)
     this.#presentationKey = presentationKey(this.#state)
+    this.#managesProviderLifecycle = options.managesProviderLifecycle ?? true
   }
 
   readonly getState = (): BalloonPopState => this.#state
@@ -79,7 +97,9 @@ export class BalloonPopSession {
 
     this.#running = true
     try {
-      await this.#provider.start(BALLOON_POP_INPUT_REQUEST)
+      if (this.#managesProviderLifecycle) {
+        await this.#provider.start(BALLOON_POP_INPUT_REQUEST)
+      }
     } catch (error) {
       this.#running = false
       throw error
@@ -92,19 +112,23 @@ export class BalloonPopSession {
     }
 
     this.#running = false
-    await this.#provider.stop()
+    if (this.#managesProviderLifecycle) {
+      await this.#provider.stop()
+    }
   }
 
-  tick(deltaMs: number): void {
+  tick(deltaMs: number, gameplayReady = true): void {
     if (!this.#running) {
       return
     }
 
     const player = this.#provider.getSnapshot().players[0]
-    const nextState = advanceBalloonPop(this.#state, {
-      deltaMs,
-      actions: player?.actions ?? {},
-    })
+    const nextState = gameplayReady
+      ? advanceBalloonPop(this.#state, {
+          deltaMs,
+          actions: player?.actions ?? {},
+        })
+      : this.#state
 
     this.#replaceState(nextState)
     this.#provider.update(deltaMs)
