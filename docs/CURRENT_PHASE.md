@@ -6,9 +6,11 @@ This file is a short project checkpoint for agents. Detailed design lives in the
 
 ## Current implementation baseline
 
-Latest functional implementation before this checkpoint document:
+Latest feature implementation:
 
 `f5297c0a94d4b55e606711ba7c795d9c8e769c4d` — `feat: add low-motion and slow-response profiles`
+
+Subsequent repository work may contain narrow fixes/docs checkpoints; use current `main` as the implementation baseline unless a task explicitly pins another SHA.
 
 ## Validated milestones
 
@@ -25,7 +27,7 @@ Latest functional implementation before this checkpoint document:
 
 Engineering status: PASS
 
-Exact implementation SHA:
+Exact feature implementation SHA:
 
 `f5297c0a94d4b55e606711ba7c795d9c8e769c4d`
 
@@ -46,9 +48,9 @@ Implemented behavior:
 - LOW_MOTION + SLOW_RESPONSE compose independently
 - JUMP remains outside profile adaptation
 
-Physical/manual status: PENDING
+Physical/manual status: DEFERRED by project decision
 
-Required physical checks before Phase 1D.3a FINAL PASS:
+The project may continue to Phase 1D.3b before these physical checks are completed. Before formal gameplay depends on LOW_MOTION/SLOW_RESPONSE, return and complete:
 
 - STANDARD regression
 - LOW_MOTION MOVE / LEAN / REACH / deliberate shallow SQUAT
@@ -61,8 +63,6 @@ Required physical checks before Phase 1D.3a FINAL PASS:
 
 ## Next planned architecture work
 
-After Phase 1D.3a physical acceptance:
-
 ### Phase 1D.3b
 
 Implement the body-availability profiles that require deeper tracking changes:
@@ -74,9 +74,9 @@ Do not assume ankles/full-body standing baseline for these modes. Lower-body-ina
 
 LEFT_SIDE / RIGHT_SIDE full Pose behavior can follow separately unless the task explicitly groups them.
 
-## Known non-blocking engineering note
+## Recent engineering fix
 
-`PoseMotionInputProvider` has an injected-analyzer path used mainly by tests. Because profile-only effective configs can still report source `STANDARD`, an injected STANDARD analyzer could theoretically be reused for LOW_MOTION/SLOW_RESPONSE in that special path. The production Pose Lab does not inject an analyzer, so this does not block current physical testing. Fix narrowly before relying on analyzer injection with functional profiles.
+The injected-analyzer test path now reuses an injected analyzer only when the resolved effective config is the exact canonical STANDARD config. Profile-only LOW_MOTION/SLOW_RESPONSE configs therefore cannot accidentally run through an injected STANDARD analyzer. A focused regression test covers this boundary.
 
 ## Scope still deferred
 
