@@ -1,12 +1,12 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 1D.3b implementation boundary (upper-body Pose availability; no formal game)
+Status: Phase 2A.1 implementation boundary (first playable formal game via test input)
 
-Date: 2026-08-30
+Date: 2026-08-31
 
 Primary target: iPhone Safari, landscape
 
-Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. Phase 1D.3a adds LOW_MOTION/SLOW_RESPONSE composition. Phase 1D.3b adds SEATED/UPPER_BODY torso baselines and safely disables SQUAT/JUMP in those modes. There is still no formal game, microphone, Hands, Voice, multi-person assignment, or Web Audio provider.
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. Phase 1D.3a adds LOW_MOTION/SLOW_RESPONSE composition. Phase 1D.3b adds SEATED/UPPER_BODY torso baselines and safely disables SQUAT/JUMP in those modes. Phase 2A.1 registers the first formal game and proves a pure deterministic Game Core → dedicated Phaser projection using the existing normalized test provider. Camera gameplay, microphone, Hands, Voice, and multi-person assignment remain deferred.
 
 ## 1. Product constraints
 
@@ -68,7 +68,7 @@ React/DOM owns:
 
 Framework-independent runtime owns:
 
-- normalized input contracts, player state, adaptation, calibration boundaries, provider lifecycle, teams, registry validation, and future game simulation.
+- normalized input contracts, player state, adaptation, calibration boundaries, provider lifecycle, teams, registry validation, and game simulation.
 
 Phaser owns:
 
@@ -85,20 +85,21 @@ MotionInputProvider ──► immutable MotionInputSnapshot
                                   │
                        ┌──────────┴──────────┐
                        ▼                     ▼
-                 game core (future)   Phaser view adapter
+                    game core         Phaser view adapter
 ```
 
 ### Lazy-loading boundary
 
 - `App.tsx` lazy-loads the Developer Input Lab only when entered.
 - `App.tsx` lazy-loads the gated Pose Sensor Lab only when entered.
+- `App.tsx` lazy-loads each formal game shell only when entered.
 - `PhaserCanvas` then dynamically imports the Phaser game factory.
 - The home shell has no Phaser import or canvas.
 - Async loading is cancellable. An unmount before module resolution creates no game.
 - Cleanup is idempotent and calls `game.destroy(true)` once.
 - React StrictMode cannot leave duplicate Phaser instances.
 
-The production build currently emits the home shell, a small Developer Input Lab chunk, a separate Phaser/game-factory chunk, and a separate Pose Sensor Lab/MediaPipe chunk. HOME does not initialize MediaPipe, a Worker, or camera access.
+The production build currently emits the home shell, separate Developer Input Lab and Pose Sensor Lab chunks, and lazy Balloon Pop shell/Phaser chunks. HOME does not initialize Phaser, MediaPipe, a Worker, or camera access.
 
 ## 5. Sensor architecture
 
@@ -259,7 +260,7 @@ Difficulty is multidimensional:
 - reaction demand belongs to the game;
 - physical activity belongs to each control scheme.
 
-Validation catches duplicate game IDs, empty schemes/actions, invalid team counts, impossible player ranges, missing action input types, invalid category/subcategory combinations, seated/profile mismatches, and single-side declaration mismatches. Phase 1A uses test fixtures only; it registers no fake or formal game.
+Validation catches duplicate game IDs, empty schemes/actions, invalid team counts, impossible player ranges, missing action input types, invalid category/subcategory combinations, seated/profile mismatches, and single-side declaration mismatches. Phase 2A.1 adds the first validated formal registration: `balloon-pop`.
 
 ## 10. Worker and performance strategy
 
@@ -296,11 +297,11 @@ src/
     workers/                   # future worker entry points
   sensors/                     # implemented camera/Pose acquisition; future Hands/audio
   game/
-    core/                      # future renderer-independent simulation
+    core/                      # shared future renderer-independent systems
     phaser/                    # implemented lazy boot and test view
     registry/                  # implemented schema/validation
     teams/ scoring/ difficulty/ adaptive/  # future gameplay systems
-  games/                       # formal lazy game modules; intentionally empty
+  games/                       # formal lazy game modules; Balloon Pop implemented
   therapist/
     sensor-lab/                # gated Pose + Motion Analyzer diagnostics
     test-lab/                  # implemented gated panel and overlay
@@ -330,8 +331,10 @@ Implemented automated tests cover:
 - separate full-body and upper-body readiness, including torso-only baselines;
 - MOVE/LEAN/REACH/SQUAT hysteresis and JUMP pulse/refractory state behavior;
 - immutable Pose provider mapping, profile gating, and coordinator lifecycle.
+- deterministic Balloon Pop countdown/play/finish, hit/miss, held-action, timeout,
+  replay, normalized test-provider integration, and formal registry validity.
 
-Browser QA covers shell/Lab navigation, keyboard, pointer, sliders, players, profiles, canvas mount/unmount, console, media element absence, desktop layout, and `852 × 393` landscape overflow/FIT behavior.
+Browser QA covers shell/Lab navigation, keyboard, pointer, sliders, players, profiles, canvas mount/unmount, console, media element absence, desktop layout, and `852 × 393` landscape overflow/FIT behavior. Phase 2A.1 adds the Balloon Pop home entry, 3-2-1 playfield, Z/C and DOM test controls, result/replay/home flow, and 1280 × 720 FIT projection.
 
 Required device matrix remains:
 
@@ -369,7 +372,7 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 
 ## 15. Decisions intentionally deferred
 
-- first formal game and its rules;
+- real Pose provider selection and readiness within formal gameplay;
 - production camera/microphone permissions and UI;
 - Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
 - final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
@@ -380,6 +383,6 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - replay file format and long-term regression corpus;
 - production authentication/protection beyond the build-time test-mode gate;
 - persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
-- formal art, audio assets, and production game scenes.
+- formal art, audio assets, and additional production game scenes.
 
-Phase 1D.2 stops at bounded, session-only adaptation of MOVE, LEAN, REACH, and SQUAT in the single-person Pose provider and gated diagnostic Lab. It does not authorize JUMP adaptation, deferred actions, multi-person tracking, persistence, production onboarding, or formal-game work.
+Phase 2A.1 stops at a single-player, test-provider Balloon Pop slice. It does not authorize direct Camera/MediaPipe gameplay, duplicated motion detectors, deferred actions, multi-person tracking, persistence, audio, formal art, or generic sensor-management work.

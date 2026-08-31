@@ -1,0 +1,286 @@
+.balloon-pop-shell {
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  padding-block: max(0.65rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-bottom));
+  padding-inline: max(0.65rem, env(safe-area-inset-left)) max(0.65rem, env(safe-area-inset-right));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  overflow: hidden;
+  color: #f7fbff;
+  background: #07182c;
+}
+
+.balloon-pop-topbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.balloon-pop-topbar h1,
+.balloon-pop-topbar span {
+  margin: 0;
+}
+
+.balloon-pop-topbar > div:nth-child(2) > span {
+  color: #79d7ff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.balloon-pop-topbar h1 {
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  line-height: 1.05;
+}
+
+.balloon-pop-home,
+.balloon-pop-result-actions button,
+.balloon-pop-test-controls button {
+  border: 1px solid rgb(160 213 245 / 50%);
+  border-radius: 0.85rem;
+  color: #fff;
+  background: #173a5e;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.balloon-pop-home {
+  min-height: 2.8rem;
+  padding: 0.5rem 0.85rem;
+}
+
+.balloon-pop-hud {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.balloon-pop-hud span {
+  border-radius: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  color: #bad6e9;
+  background: #102b47;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.balloon-pop-hud strong {
+  margin-left: 0.3rem;
+  color: #fff;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.balloon-pop-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 2px solid rgb(128 199 241 / 38%);
+  border-radius: 1.25rem;
+  background: #10284b;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 35%);
+}
+
+.balloon-pop-canvas {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: size layout paint;
+}
+
+.balloon-pop-canvas canvas {
+  display: block;
+}
+
+.balloon-pop-load-error {
+  margin: 1rem;
+  color: #ffadc0;
+}
+
+.balloon-pop-test-controls {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 0.75fr) minmax(12rem, 0.75fr);
+  gap: 0.65rem;
+}
+
+.balloon-pop-test-controls > div {
+  align-self: center;
+}
+
+.balloon-pop-test-controls span,
+.balloon-pop-test-controls small {
+  display: block;
+}
+
+.balloon-pop-test-controls span {
+  color: #71ddc0;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.balloon-pop-test-controls small {
+  margin-top: 0.18rem;
+  color: #9fb8ca;
+}
+
+.balloon-pop-test-controls button {
+  min-height: 3.8rem;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+}
+
+.balloon-pop-test-controls button:last-child {
+  background: #61334c;
+}
+
+.balloon-pop-test-controls kbd {
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.38rem;
+  color: #10243c;
+  background: #fff;
+  box-shadow: 0 0.15rem 0 rgb(185 210 226);
+}
+
+.balloon-pop-result {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(5 19 35 / 76%);
+  backdrop-filter: blur(8px);
+}
+
+.balloon-pop-result-card {
+  width: min(31rem, 92%);
+  border: 2px solid rgb(255 255 255 / 38%);
+  border-radius: 1.5rem;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  color: #10243c;
+  background: #f7fbff;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 45%);
+  text-align: center;
+}
+
+.balloon-pop-result-card p,
+.balloon-pop-result-card h2 {
+  margin: 0;
+}
+
+.balloon-pop-result-card p {
+  color: #2f8cff;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.balloon-pop-result-card h2 {
+  margin-top: 0.2rem;
+  font-size: 2rem;
+}
+
+.balloon-pop-final-score {
+  display: block;
+  margin: 0.7rem 0;
+  color: #e94f79;
+  font-size: clamp(3rem, 7vw, 5rem);
+  line-height: 1;
+}
+
+.balloon-pop-result-card dl {
+  margin: 1rem 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.balloon-pop-result-card dl div {
+  border-radius: 0.8rem;
+  padding: 0.6rem;
+  background: #e7f2fa;
+}
+
+.balloon-pop-result-card dt {
+  color: #5c7186;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.balloon-pop-result-card dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.balloon-pop-result-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.balloon-pop-result-actions button {
+  min-height: 3rem;
+}
+
+.balloon-pop-result-actions button:last-child {
+  color: #173a5e;
+  background: #dbeaf4;
+}
+
+.balloon-pop-home:hover,
+.balloon-pop-home:focus-visible,
+.balloon-pop-test-controls button:hover,
+.balloon-pop-test-controls button:focus-visible,
+.balloon-pop-result-actions button:hover,
+.balloon-pop-result-actions button:focus-visible {
+  border-color: #71ddc0;
+  outline: 3px solid transparent;
+  filter: brightness(1.14);
+}
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  .balloon-pop-shell {
+    gap: 0.35rem;
+    padding-block: max(0.35rem, env(safe-area-inset-top)) max(0.35rem, env(safe-area-inset-bottom));
+  }
+
+  .balloon-pop-home {
+    min-height: 2.25rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .balloon-pop-topbar h1 {
+    font-size: 1.05rem;
+  }
+
+  .balloon-pop-test-controls button {
+    min-height: 2.7rem;
+  }
+}
+
+@media (orientation: portrait), (max-width: 44rem) {
+  .balloon-pop-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .balloon-pop-stage {
+    min-height: 28rem;
+  }
+
+  .balloon-pop-test-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .balloon-pop-test-controls > div {
+    grid-column: 1 / -1;
+  }
+}

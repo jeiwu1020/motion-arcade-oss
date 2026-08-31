@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { TEST_INPUT_ENABLED } from './app/testModeGate'
 import { REAL_SENSOR_LAB_ENABLED } from './app/realSensorLabGate'
 import { homeCategories } from './app/homeCategories'
+import { gameRegistry } from './game/registry/gameRegistry'
 import type { GameCategory } from './game/registry/types'
 import './App.css'
 
@@ -12,12 +13,21 @@ const DeveloperInputLab = lazy(
 const PoseSensorLab = lazy(
   () => import('./therapist/sensor-lab/PoseSensorLab'),
 )
+const BalloonPopGameScreen = lazy(
+  () => import('./games/balloon-pop/BalloonPopGameScreen'),
+)
 
-type AppScreen = 'HOME' | 'TEST_LAB' | 'POSE_SENSOR_LAB'
+type AppScreen = 'HOME' | 'TEST_LAB' | 'POSE_SENSOR_LAB' | 'BALLOON_POP'
 
 function screenFromLocation(): AppScreen {
   if (TEST_INPUT_ENABLED && window.location.hash === '#test-lab') {
     return 'TEST_LAB'
+  }
+  if (
+    TEST_INPUT_ENABLED &&
+    window.location.hash === '#game/balloon-pop'
+  ) {
+    return 'BALLOON_POP'
   }
   if (
     REAL_SENSOR_LAB_ENABLED &&
@@ -32,6 +42,8 @@ function navigate(screen: AppScreen): void {
   window.location.hash =
     screen === 'TEST_LAB'
       ? 'test-lab'
+      : screen === 'BALLOON_POP'
+        ? 'game/balloon-pop'
       : screen === 'POSE_SENSOR_LAB'
         ? 'pose-sensor-lab'
         : ''
@@ -62,10 +74,19 @@ function App() {
     )
   }
 
+  if (screen === 'BALLOON_POP' && TEST_INPUT_ENABLED) {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <BalloonPopGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
       onOpenPoseLab={() => navigate('POSE_SENSOR_LAB')}
+      onOpenBalloonPop={() => navigate('BALLOON_POP')}
     />
   )
 }
@@ -73,11 +94,14 @@ function App() {
 function HomeScreen({
   onOpenLab,
   onOpenPoseLab,
+  onOpenBalloonPop,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
+  readonly onOpenBalloonPop: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
+  const games = gameRegistry.filter((game) => game.category === selectedCategory)
 
   return (
     <main className="home-shell">
@@ -110,6 +134,24 @@ function HomeScreen({
           <p className="home-eyebrow">MOTION ARCADE</p>
           <h1 id="home-title">今天想玩什麼？</h1>
           <p>動起來，找到今天想玩的遊戲。</p>
+        </div>
+        <div className="home-game-shelf" aria-live="polite">
+          {games.map((game) => (
+            <button
+              className="home-game-entry"
+              type="button"
+              key={game.id}
+              disabled={!TEST_INPUT_ENABLED}
+              onClick={game.id === 'balloon-pop' ? onOpenBalloonPop : undefined}
+            >
+              <span className="home-game-entry-category">小遊戲 · 1 人 · 60 秒</span>
+              <strong>{game.title}</strong>
+              <span>{game.description}</span>
+              <small>
+                {TEST_INPUT_ENABLED ? '開始遊戲 →' : '等待正式感測輸入整合'}
+              </small>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -147,7 +189,7 @@ function LabLoadingScreen() {
   return (
     <main className="lab-loading-screen" aria-live="polite">
       <span className="loading-dot" />
-      Loading the isolated Phaser test field…
+      Loading the Phaser playfield…
     </main>
   )
 }

@@ -16,7 +16,7 @@ export const homeCategories: readonly HomeCategory[] = [
   },
   {
     id: 'PARTY',
-    title: '派對挑戰',
+    title: '小遊戲',
     artSrc: '/assets/home/category_party_v2.webp',
     objectPosition: '50% 50%',
   },

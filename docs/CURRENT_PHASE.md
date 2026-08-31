@@ -6,15 +6,12 @@ This file is a short project checkpoint for agents. Detailed design lives in the
 
 ## Current implementation baseline
 
-Validated implementation baseline:
+Phase 2A.1 is the current `main` implementation after merge. The previous fully
+deployed sensor milestone remains:
 
 `b455fd2d67d73d4862f302039b73413e27a67495` — Phase 1D.3b merged code baseline; GitHub Actions and Vercel validated
 
-Phase 1D.3b feature implementation commit:
-
-`36509c72414fe3a6eaab4e94eea0a61f11970c41` — `feat: add seated and upper-body pose support`
-
-Use current `main` as the working baseline unless a task explicitly pins another SHA. Docs-only checkpoint commits may follow the validated implementation SHA above without changing runtime behavior. The feature commit is retained only as implementation-history reference.
+Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
 ## Validated milestones
 
@@ -23,70 +20,60 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - Phase 1C — Pose Motion Analyzer: MOVE / LEAN / REACH / SQUAT / JUMP: engineering + real-person PASS
 - Phase 1D.1 — guided calibration flow: engineering + real-person PASS
 - Phase 1D.2 — calibration-driven adaptation: engineering + real-person PASS
-- Calibration UX fixes, including REACH preparation/outward gating and explicit calibration-test flow: real-person PASS
+- Phase 1D.3a — LOW_MOTION / SLOW_RESPONSE composition: engineering PASS; physical checks deferred
+- Phase 1D.3b — SEATED / UPPER_BODY Pose: engineering PASS; physical checks deferred
 
 ## Current phase
 
-### Phase 1D.3b — SEATED + UPPER_BODY Pose
+### Phase 2A.1 — first playable Motion Arcade vertical slice
 
 Engineering status: PASS
 
-Automated validation at the validated implementation baseline:
+Automated validation:
 
 - Typecheck: PASS
 - Lint: PASS
-- Tests: 177 / 177 PASS across 26 files
+- Tests: 191 / 191 PASS across 29 files
 - Build: PASS
-- GitHub Actions: PASS
-- Vercel: PASS
+- `git diff --check`: PASS
 
 Implemented behavior:
 
-- STANDARD keeps its exact full-body standing baseline and all existing actions.
-- SEATED and UPPER_BODY establish an upper-body baseline from shoulders and hips
-  without requiring knees or ankles.
-- Both modes support MOVE_LEFT/RIGHT, LEAN_LEFT/RIGHT, REACH, and anatomical
-  REACH_LEFT/RIGHT.
-- SQUAT and JUMP are explicitly unavailable and stay neutral.
-- Upper-body and full-body readiness are reported separately.
-- LOW_MOTION and SLOW_RESPONSE still compose with supported upper-body actions.
-- Standing calibration is not applied to SEATED/UPPER_BODY.
-- Pose Lab exposes 標準動作, 坐姿模式, 上半身模式, readiness, and exact action
-  availability.
+- `balloon-pop` / 氣球拍拍樂 is a registered PARTY / 小遊戲 entry.
+- A pure TypeScript Game Core owns the deterministic countdown, 60-second round,
+  one-target lifecycle, matching reach hits, misses, score, finish, and replay.
+- The game consumes only normalized `REACH_LEFT` and `REACH_RIGHT` started actions.
+- A held action sequence cannot score more than once.
+- A dedicated Phaser scene renders the 1280 × 720 FIT playfield from core state;
+  React owns navigation, HUD, test controls, and results.
+- The existing keyboard/test provider makes the slice playable with Z / C and
+  on-screen test buttons. No camera or MediaPipe gameplay path is active.
+- The existing production test-input build gate remains the route/input gate.
 
-Physical/manual status: DEFERRED by project decision
-
-Before formal gameplay depends on Phase 1D.3a/1D.3b, complete:
-
-- STANDARD regression
-- LOW_MOTION MOVE / LEAN / REACH / deliberate shallow SQUAT
-- LOW_MOTION idle/sway/tiny-knee-bend false positives
-- SLOW_RESPONSE slow deliberate actions
-- combined LOW_MOTION + SLOW_RESPONSE
-- squat-to-stand must not trigger JUMP
-- Windows real camera
-- physical iPhone Safari / 2–4 m usability where relevant
-- seated and upper-body-only framing with knees/ankles unavailable
-- seated MOVE versus LEAN separation and anatomical REACH
-- 30–60 second seated idle/chair-adjustment false-positive checks
-- confirmation that SQUAT/JUMP remain neutral in both new modes
-
-Focused design and manual checks: [Phase 1D.3b — SEATED + UPPER_BODY Pose](./PHASE_1D_3B_UPPER_BODY_POSE.md).
+Focused design and boundaries: [Phase 2A.1 — Balloon Pop vertical slice](./PHASE_2A_1_BALLOON_POP.md).
 
 ## Next planned architecture work
 
-LEFT_SIDE / RIGHT_SIDE full Pose behavior can follow separately unless the task explicitly groups them.
+### Phase 2A.2 — real Pose gameplay input
 
-## Recent engineering fix
+- Connect the existing real Pose provider to the game session without changing
+  Game Core or duplicating detectors.
+- Add therapist-facing provider/readiness/error lifecycle for gameplay.
+- Verify camera cleanup, lost tracking, anatomical left/right behavior, and real
+  reach usability on supported physical devices.
 
-The injected-analyzer test path now reuses an injected analyzer only when the resolved effective config is the exact canonical STANDARD config. Profile-only LOW_MOTION/SLOW_RESPONSE configs therefore cannot accidentally run through an injected STANDARD analyzer. A focused regression test covers this boundary.
+## Manual / physical testing still required
+
+- Projector-distance readability and therapist operation for the new game.
+- Physical iPhone Safari landscape FIT/safe-area behavior.
+- Phase 2A.2 real-person camera reach testing is intentionally not part of 2A.1.
+- Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open.
 
 ## Scope still deferred
 
-- formal games / gameplay content
-- multi-person Pose
-- Hand Tracking
-- Voice input
+- production Camera/Pose gameplay integration (Phase 2A.2)
+- multiplayer and multi-person Pose
+- Hand Tracking and Voice input
 - STRIKE / THROW / RUN / STEP / RUN_CADENCE
-- persistent calibration/accounts
-- diagnosis-specific profiles
+- persistence, accounts, analytics, audio, and formal art polish
+- LEFT_SIDE / RIGHT_SIDE full Pose behavior
