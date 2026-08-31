@@ -2,16 +2,15 @@
 
 Updated: 2026-08-31
 
-This file is a short project checkpoint for agents. Detailed design lives in the phase documents and canonical architecture docs.
+This file is the short live checkpoint. Long-term product and implementation order are canonicalized in [Master Implementation Plan](./MASTER_IMPLEMENTATION_PLAN.md).
 
 ## Current implementation baseline
 
-Phase 2A.2a is the current `main` implementation after merge. The previous
-playable test-input milestone is:
+Current `main` implementation baseline before this docs-only roadmap update:
 
-`d9e81919bb9856296ea4b13bba6c02d51612aa99` — Phase 2A.1 Balloon Pop vertical slice
+`28cd9660aacfd1c7bfc96c165b5578677dca132b` — Phase 2A.2a production real-Pose Balloon Pop input
 
-Use current `main` as the working baseline unless a task explicitly pins another SHA.
+Use current `main` as the working baseline unless a task explicitly pins another SHA. Docs-only commits may follow the implementation baseline without changing runtime behavior.
 
 ## Validated milestones
 
@@ -23,62 +22,98 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - Phase 1D.3a — LOW_MOTION / SLOW_RESPONSE composition: engineering PASS; physical checks deferred
 - Phase 1D.3b — SEATED / UPPER_BODY Pose: engineering PASS; physical checks deferred
 - Phase 2A.1 — deterministic Balloon Pop through normalized test input: PASS
+- Phase 2A.2a — production real-Pose route/runtime: engineering PASS
+
+## Product constraints reaffirmed
+
+- Primary target is **smartphone landscape**.
+- **Front camera** is the primary real-body sensor and should also support clear player framing / Camera AR presentation where appropriate.
+- **Phone microphone** is the future voice-input sensor.
+- Gameplay is expected to be shown on a **projector / large display**, so distance readability is a core requirement.
+- The target is a mature exercise + entertainment product, not a collection of sensor demos.
+- Legacy projects are gameplay references; new implementations must use the current normalized runtime architecture.
+
+## Current physical finding
+
+The first real-person test of Phase 2A.2a found an important usability problem:
+
+- the production game can start the front camera/Pose path, but the player does not have a sufficiently usable visible front-camera presentation for positioning/framing;
+- this makes full-body baseline setup inconvenient even though the sensing pipeline itself is present.
+
+Therefore Phase 2A.2a remains **Engineering PASS / Physical UX incomplete**, and the next step is not more detector expansion.
 
 ## Current phase
 
-### Phase 2A.2a — production real-Pose Balloon Pop input
+### Phase 2A.2b — Camera Presentation Layer
 
-Engineering status: PASS
+Goal: make the front camera a reliable, reusable player-facing presentation layer for production gameplay.
 
-Automated validation:
+Required outcomes:
 
-- Typecheck: PASS
-- Lint: PASS
-- Tests: 200 / 200 PASS across 31 files
-- Build: PASS
-- `git diff --check`: PASS
+- setup/baselining uses a large or full-screen mirrored camera preview;
+- player can clearly adjust body position and understand whether the usable body area is in frame;
+- add framing guidance and obvious READY feedback suitable for projected display;
+- mirrored preview remains display-only; anatomical/canonical coordinates remain unchanged;
+- active gameplay keeps the player visible through an intentional Camera AR composition rather than hiding the feed;
+- tracking-lost state prioritizes recovery/framing guidance while game time remains frozen;
+- result/replay/exit retain correct camera lifecycle and cleanup;
+- implementation should be reusable by later Camera AR games, not a Balloon Pop-only visual patch;
+- phone landscape/safe-area/projector readability are acceptance requirements.
 
-Implemented behavior:
+Do not add spatial wrist collision in this same phase unless it is strictly required for camera presentation. Spatial interaction is Phase 2A.3.
 
-- `#game/balloon-pop` is available in normal production builds without either
-  developer/lab build gate.
-- Production lazily loads real Pose gameplay; development retains the existing
-  keyboard/test-provider screen and Z/C controls.
-- `PoseGameplayInputRuntime` is the focused shared acquisition boundary. It owns
-  CameraController, PoseSensorSession, InferenceScheduler/backend, and
-  PoseMotionInputProvider lifecycle while exposing readiness and normalized input.
-- Camera permission begins only after the user presses 啟動相機.
-- The STANDARD full-body analyzer must be READY before the 3-2-1 countdown moves.
-- TRACKING_LOST freezes countdown, round time, and balloon expiry and displays
-  請回到畫面中. Recovery resumes only after full readiness returns.
-- Startup/inference errors fail closed and release provider, camera, scheduler,
-  and backend resources with readable retry UI.
-- Replay reuses a healthy active Pose session. Route exit, unmount, hidden/pagehide,
-  and errors release real-sensor resources.
-- BalloonPopCore and BalloonPopScene remain detector-, camera-, and MediaPipe-free
-  and still consume only normalized REACH_LEFT / REACH_RIGHT actions.
+## Immediately following phases
 
-Focused design and manual checks: [Phase 2A.2 — Real Pose gameplay](./PHASE_2A_2_REAL_POSE_GAMEPLAY.md).
+### Phase 2A.3 — Normalized Spatial Hand Interaction
 
-## Manual / physical testing still required
+- expose canonical normalized left/right hand positions without raw landmarks;
+- include confidence/freshness and safe unavailable behavior;
+- support previous/current motion segment or equivalent for swept fast-motion collision;
+- preserve mirror semantics;
+- use Pose wrists first; do not add full Hand Tracking unless evidence shows it is needed.
 
-- Windows Chrome: permission allow/deny, initial STANDARD baseline, left/right
-  reaching, deliberate leave/re-enter recovery, inference failure recovery, Replay,
-  Return Home, tab hide, and camera track release.
-- Physical iPhone Safari landscape: permission flow, front-camera anatomical
-  left/right, full-body framing at intended distance, safe-area/FIT layout,
-  background/pagehide cleanup, thermal behavior, and projector readability.
-- Confirm real-person reach can be performed without false repeat hits while an
-  arm remains extended.
-- Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open;
-  gameplay profile selection is not part of this phase.
+### Phase 2A.4 — Balloon Rally gameplay rewrite
+
+- Camera AR gameplay;
+- multiple persistent floating balloons;
+- spatial hand contact rather than LEFT/RIGHT-only target events;
+- every valid separated hit scores and gives the balloon an arcade impulse;
+- ordinary balloon takes multiple hits (initial target ~3) before popping;
+- pop gives bonus;
+- controlled difficulty escalation and final Party Rush;
+- stable arcade physics over physically exact simulation.
+
+### Phase 2A.5 — game feel + device validation
+
+- art / animation / particles / audio polish after interaction works;
+- Windows + iPhone Safari landscape + projector physical validation;
+- then batch adaptive-profile gameplay validation.
+
+## Planned game sequence after Balloon Rally
+
+1. Reaction Challenge / 光速反應王 successor — prove Motion Actions across another Game Core.
+2. Runner / 磚塊衝刺 successor — action-driven avatar and lane/jump/squat gameplay.
+3. Rhythm exploration — after latency characteristics are known.
+4. Voice foundation + Vocal Hop / Voice Cannon successors — phone microphone, normalized volume/pitch.
+5. Expanded adaptive modes / multiplayer only after several stable single-player games exist.
+
+Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATION_PLAN.md`.
+
+## Manual / physical testing still open
+
+- Phase 2A.2b Camera Presentation Layer on Windows Chrome.
+- iPhone Safari landscape: front-camera framing, safe areas/FIT, lifecycle, thermal behavior, projector readability.
+- Real-person held-arm/repeat-hit behavior remains relevant until Balloon Pop is replaced by spatial contact.
+- Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open; later batch them in real games.
 
 ## Scope still deferred
 
-- calibration UI and adaptive gameplay profile selection
-- SEATED / UPPER_BODY gameplay selection
+- normalized spatial hand interaction until Phase 2A.3
+- mature Balloon Rally physics until Phase 2A.4
+- formal art/audio polish until Phase 2A.5
+- gameplay calibration/profile selection
 - multiplayer and multi-person Pose
-- Hand Tracking and Voice input
-- STRIKE / THROW / RUN / STEP / RUN_CADENCE
-- persistence, accounts, analytics, audio, and formal art polish
-- generic multi-sensor SensorManager
+- full Hand Tracking unless Pose wrist evidence requires it
+- Voice input until the dedicated voice phase
+- STRIKE / THROW / RUN / STEP / RUN_CADENCE unless a planned game requires them
+- persistence, accounts, analytics

@@ -4,14 +4,24 @@ Keep this file short. Detailed architecture belongs in `docs/`; do not duplicate
 
 ## Canonical context
 
-Before architecture-level or cross-layer changes, read only the relevant canonical docs:
+Before architecture-level, roadmap-level, or cross-layer changes, read only the relevant canonical docs:
 
+- `docs/MASTER_IMPLEMENTATION_PLAN.md`
 - `docs/MASTER_ARCHITECTURE.md`
 - `docs/MOTION_INPUT_CONTRACT.md`
 - `docs/CURRENT_PHASE.md`
 - the relevant `docs/PHASE_*.md` for the area being changed
 
 Treat repository code/tests and these docs as canonical. Do not restate the whole project history in prompts or reports.
+
+## Product invariants
+
+- Primary device is a smartphone used in landscape orientation.
+- Real body input uses the phone front camera; voice input uses the phone microphone.
+- Gameplay is designed to be readable when the phone image is projected to a large screen.
+- Landscape layout, safe areas, large-distance readability, camera framing, and front-camera preview are first-class requirements, not later polish.
+- The product goal is stable exercise + entertainment, not a sensor technology showcase.
+- Reuse proven gameplay ideas from legacy prototypes, but do not copy legacy sensor/game coupling into the new architecture.
 
 ## Token-efficient workflow
 
@@ -25,12 +35,12 @@ Treat repository code/tests and these docs as canonical. Do not restate the whol
 - React/DOM owns the app shell, settings, therapist/debug UI.
 - Phaser owns only the 2D playfield.
 - Framework-independent Game Core owns gameplay rules.
-- Games consume normalized Motion Actions only.
+- Games consume normalized game-facing input contracts only.
 - Games must not depend on raw Pose landmarks, `MediaStream`, MediaPipe types, DOM input, Web Audio internals, or body-unit calibration measurements.
 
 Sensor flow:
 
-`Camera / Mic -> Sensor Layer -> Motion Analyzer -> Normalized Motion Actions -> Game Core`
+`Camera / Mic -> Sensor Layer -> Motion Analysis -> Normalized Game Input -> Game Core`
 
 Keep render cadence separate from inference cadence.
 
