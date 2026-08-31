@@ -6,11 +6,15 @@ This file is a short project checkpoint for agents. Detailed design lives in the
 
 ## Current implementation baseline
 
-Latest feature implementation:
+Current validated `main` baseline:
+
+`b455fd2d67d73d4862f302039b73413e27a67495` — Phase 1D.3b merged baseline; GitHub Actions and Vercel validated
+
+Phase 1D.3b feature implementation commit:
 
 `36509c72414fe3a6eaab4e94eea0a61f11970c41` — `feat: add seated and upper-body pose support`
 
-Subsequent repository work may contain narrow fixes/docs checkpoints; use current `main` as the implementation baseline unless a task explicitly pins another SHA.
+Use current `main` as the implementation baseline unless a task explicitly pins another SHA. The feature commit above is retained only as implementation-history reference.
 
 ## Validated milestones
 
@@ -27,12 +31,14 @@ Subsequent repository work may contain narrow fixes/docs checkpoints; use curren
 
 Engineering status: PASS
 
-Automated validation on the implementation worktree:
+Automated validation at the current validated `main` baseline:
 
 - Typecheck: PASS
 - Lint: PASS
 - Tests: 177 / 177 PASS across 26 files
 - Build: PASS
+- GitHub Actions: PASS
+- Vercel: PASS
 
 Implemented behavior:
 
