@@ -6,11 +6,11 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current `main` implementation baseline before this docs-only roadmap update:
+Current implementation baseline before Phase 2A.2b:
 
 `28cd9660aacfd1c7bfc96c165b5578677dca132b` — Phase 2A.2a production real-Pose Balloon Pop input
 
-Use current `main` as the working baseline unless a task explicitly pins another SHA. Docs-only commits may follow the implementation baseline without changing runtime behavior.
+Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
 ## Validated milestones
 
@@ -23,6 +23,7 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - Phase 1D.3b — SEATED / UPPER_BODY Pose: engineering PASS; physical checks deferred
 - Phase 2A.1 — deterministic Balloon Pop through normalized test input: PASS
 - Phase 2A.2a — production real-Pose route/runtime: engineering PASS
+- Phase 2A.2b — reusable Camera Presentation Layer: engineering PASS; physical validation pending
 
 ## Product constraints reaffirmed
 
@@ -33,34 +34,37 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - The target is a mature exercise + entertainment product, not a collection of sensor demos.
 - Legacy projects are gameplay references; new implementations must use the current normalized runtime architecture.
 
-## Current physical finding
-
-The first real-person test of Phase 2A.2a found an important usability problem:
-
-- the production game can start the front camera/Pose path, but the player does not have a sufficiently usable visible front-camera presentation for positioning/framing;
-- this makes full-body baseline setup inconvenient even though the sensing pipeline itself is present.
-
-Therefore Phase 2A.2a remains **Engineering PASS / Physical UX incomplete**, and the next step is not more detector expansion.
-
 ## Current phase
 
 ### Phase 2A.2b — Camera Presentation Layer
 
-Goal: make the front camera a reliable, reusable player-facing presentation layer for production gameplay.
+Engineering status: PASS. Physical Windows/iPhone/projector validation remains pending.
 
-Required outcomes:
+Implemented outcomes:
 
-- setup/baselining uses a large or full-screen mirrored camera preview;
-- player can clearly adjust body position and understand whether the usable body area is in frame;
-- add framing guidance and obvious READY feedback suitable for projected display;
+- shared `CameraPresentationStage` and pure state resolver live outside Balloon Pop;
+- setup/baselining uses the mirrored camera as the dominant stage with a large
+  full-body guide and obvious READY feedback;
 - mirrored preview remains display-only; anatomical/canonical coordinates remain unchanged;
-- active gameplay keeps the player visible through an intentional Camera AR composition rather than hiding the feed;
-- tracking-lost state prioritizes recovery/framing guidance while game time remains frozen;
-- result/replay/exit retain correct camera lifecycle and cleanup;
-- implementation should be reusable by later Camera AR games, not a Balloon Pop-only visual patch;
-- phone landscape/safe-area/projector readability are acceptance requirements.
+- production Phaser uses a transparent `1280 × 720` FIT projection above a
+  subdued live camera, while the development/test renderer stays opaque;
+- tracking loss makes camera/framing dominant while existing readiness freezes time;
+- result keeps a healthy camera dimmed; replay reuses it; exit/unmount still disposes it;
+- camera uses `object-fit: contain` to prevent confusing crop during positioning;
+- the active landscape shell remains `100dvh`, safe-area padded, and overflow hidden.
 
-Do not add spatial wrist collision in this same phase unless it is strictly required for camera presentation. Spatial interaction is Phase 2A.3.
+Focused details: [Phase 2A.2b Camera Presentation Layer](./PHASE_2A_2B_CAMERA_PRESENTATION.md).
+
+Automated validation:
+
+- Typecheck: PASS
+- Lint: PASS
+- Tests: 213 / 213 PASS across 33 files
+- Build: PASS
+- Production browser QA at desktop and `852 × 393`: PASS
+- `git diff --check`: PASS
+
+Spatial wrist collision remains Phase 2A.3 and was not added.
 
 ## Immediately following phases
 
@@ -101,7 +105,8 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 ## Manual / physical testing still open
 
-- Phase 2A.2b Camera Presentation Layer on Windows Chrome.
+- Phase 2A.2b Camera Presentation Layer on Windows Chrome, including real
+  framing, READY/lost states, retry, replay, and cleanup.
 - iPhone Safari landscape: front-camera framing, safe areas/FIT, lifecycle, thermal behavior, projector readability.
 - Real-person held-arm/repeat-hit behavior remains relevant until Balloon Pop is replaced by spatial contact.
 - Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open; later batch them in real games.

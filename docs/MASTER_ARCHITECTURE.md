@@ -1,12 +1,12 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 2A.2a implementation boundary (production real-Pose Balloon Pop input)
+Status: Phase 2A.2b implementation boundary (reusable Camera Presentation Layer)
 
 Date: 2026-08-31
 
 Primary target: iPhone Safari, landscape
 
-Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. Phase 1D.3a adds LOW_MOTION/SLOW_RESPONSE composition. Phase 1D.3b adds SEATED/UPPER_BODY torso baselines and safely disables SQUAT/JUMP in those modes. Phase 2A.1 registers the first formal game and proves a pure deterministic Game Core → dedicated Phaser projection using the existing normalized test provider. Phase 2A.2a adds explicit-gesture production Pose acquisition, readiness-gated gameplay, tracking-loss pause/recovery, and fail-closed lifecycle cleanup for Balloon Pop. Microphone, Hands, Voice, adaptive gameplay selection, and multi-person assignment remain deferred.
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. Phase 1D.3a adds LOW_MOTION/SLOW_RESPONSE composition. Phase 1D.3b adds SEATED/UPPER_BODY torso baselines and safely disables SQUAT/JUMP in those modes. Phase 2A.1 registers the first formal game and proves a pure deterministic Game Core → dedicated Phaser projection using the existing normalized test provider. Phase 2A.2a adds explicit-gesture production Pose acquisition, readiness-gated gameplay, tracking-loss pause/recovery, and fail-closed lifecycle cleanup for Balloon Pop. Phase 2A.2b adds a reusable DOM camera presentation, full-body framing states, and transparent Phaser Camera AR composition without changing acquisition or action semantics. Microphone, Hands, Voice, adaptive gameplay selection, and multi-person assignment remain deferred.
 
 ## 1. Product constraints
 
@@ -28,7 +28,7 @@ Phase 1A implements the normalized input, adaptive profile, game-registry, devel
 - The playfield parent has explicit grid dimensions and no padding, allowing Phaser ScaleManager to measure it correctly.
 - Safari browser chrome, orientation changes, Dynamic Island/notches, and visual viewport changes must not reset provider or game state.
 - Any future camera/microphone request requires HTTPS, an explicit therapist gesture, readable denied/unavailable recovery, and immediate track cleanup.
-- Future camera video uses `autoplay`, `muted`, and `playsinline`; `facingMode: "user"` remains a preference rather than a guarantee.
+- Camera presentation uses `autoplay`, `muted`, and `playsinline`; `facingMode: "user"` remains a preference rather than a guarantee.
 - A future `AudioContext` is created/resumed from a therapist gesture and closed when unused.
 
 Phase 1A browser evidence at `852 × 393`:
@@ -63,6 +63,7 @@ No production claim of “no third-party network communication” is allowed wit
 React/DOM owns:
 
 - application routing/shell, homepage, category discovery, therapist controls, settings, accessibility, permissions onboarding, and debug tooling;
+- reusable camera presentation, framing guidance, lifecycle overlays, HUD, and result foreground;
 - input-provider selection and configuration;
 - Phaser creation/destruction and loading/error UI.
 
@@ -99,7 +100,7 @@ MotionInputProvider ──► immutable MotionInputSnapshot
 - Cleanup is idempotent and calls `game.destroy(true)` once.
 - React StrictMode cannot leave duplicate Phaser instances.
 
-The production build currently emits the home shell, separate Developer Input Lab and Pose Sensor Lab chunks, and lazy Balloon Pop Pose/Phaser chunks. HOME does not initialize Phaser, MediaPipe, a Worker, or camera access. Entering Balloon Pop loads its Pose runtime but camera/model startup still requires the explicit 啟動相機 gesture.
+The production build currently emits the home shell, separate Developer Input Lab and Pose Sensor Lab chunks, and lazy Balloon Pop Pose/Camera Presentation/Phaser chunks. HOME does not initialize Phaser, MediaPipe, a Worker, or camera access. Entering Balloon Pop loads its presentation/runtime code but camera/model startup still requires the explicit 啟動相機 gesture.
 
 ## 5. Sensor architecture
 
@@ -127,6 +128,11 @@ Game control scheme sensor requirements
 A future multi-sensor `SensorManager` will own control-scheme selection. Until then, `PoseGameplayInputRuntime` owns the real acquisition resources for one active Pose game. Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
 
 Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`. Phase 1D.2 resolves validated v1 calibration into a session-specific `PoseMotionConfig` before analyzer construction. Phase 1D.3a composes bounded LOW_MOTION range scaling and timestamp-based SLOW_RESPONSE candidate timing into that same effective config. Phase 1D.3b resolves full-body versus upper-body baseline requirements in the same config and reports both readiness levels without changing the game-facing snapshot. Phase 2A.2a composes these existing layers in `PoseGameplayInputRuntime` and gates game time from coarse analyzer readiness without exposing thresholds, frames, or landmarks to the Game Core or Phaser.
+
+Phase 2A.2b adds no sensor ownership. `CameraPresentationStage` receives the same
+runtime-bound video ref and layers CSS treatment, framing guidance, transparent
+Phaser output, and React foreground UI. CSS mirrors only the DOM video;
+inference frames and canonical/anatomical coordinates are unchanged.
 
 The focused gameplay runtime now implements:
 
@@ -176,6 +182,8 @@ Implemented guarantees:
 - stale Pose actions neutralize during snapshot polling without requiring another inference frame;
 - the Pose analyzer publishes only existing action IDs through the existing provider contract.
 - production Balloon Pop pauses core time unless STANDARD full-body Pose readiness is READY.
+- production Camera AR uses one display-only mirrored DOM video and a transparent
+  `1280 × 720` FIT Phaser projection; no camera frame enters Phaser.
 
 ### Coordinate freeze
 
@@ -340,8 +348,10 @@ Implemented automated tests cover:
   replay, normalized test-provider integration, and formal registry validity.
 - production Balloon Pop routing, explicit Pose startup, readiness/loss recovery,
   fail-closed inference cleanup, and provider/acquisition disposal.
+- Camera Presentation state mapping, one-video layer order, display-only mirror
+  boundary, camera/session reuse, and production real-Pose selection.
 
-Browser QA covers shell/Lab navigation, keyboard, pointer, sliders, players, profiles, canvas mount/unmount, console, media element absence, desktop layout, and `852 × 393` landscape overflow/FIT behavior. Phase 2A.1 adds the Balloon Pop home entry, 3-2-1 playfield, Z/C and DOM test controls, result/replay/home flow, and 1280 × 720 FIT projection.
+Browser QA covers shell/Lab navigation, keyboard, pointer, sliders, players, profiles, canvas mount/unmount, console, media element absence, desktop layout, and `852 × 393` landscape overflow/FIT behavior. Phase 2A.1 adds the Balloon Pop home entry, 3-2-1 playfield, Z/C and DOM test controls, result/replay/home flow, and 1280 × 720 FIT projection. Phase 2A.2b verifies the production setup route, no automatic camera stream, display-only mirror/object-fit boundary, transparent Camera AR canvas, zero desktop/phone-landscape document overflow, and return-home flow without claiming physical camera behavior.
 
 Required device matrix remains:
 
@@ -384,7 +394,7 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
 - final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
 - MediaPipe metrics acceptance, blocking policy, consent language, and production legal approval;
-- production onboarding, calibration persistence, control-scheme-specific thresholds, and patient-facing lost-tracking UX;
+- production onboarding beyond the current game, calibration persistence, and control-scheme-specific thresholds;
 - multi-person identity continuity and four-person device tier;
 - team relay/turn/shared-control details;
 - replay file format and long-term regression corpus;
@@ -392,4 +402,4 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
 - formal art, audio assets, and additional production game scenes.
 
-Phase 2A.2a stops at single-player STANDARD Pose input for Balloon Pop. It does not authorize duplicated motion detectors, calibration/adaptive gameplay selection, deferred actions, multi-person tracking, persistence, audio, formal art, or a speculative generic SensorManager.
+Phase 2A.2b stops at reusable camera presentation for single-player STANDARD Pose Balloon Pop. It does not authorize spatial wrist contracts/collision, Balloon Rally physics, duplicated motion detectors, calibration/adaptive gameplay selection, multi-person tracking, persistence, audio, formal art, or a speculative generic SensorManager.

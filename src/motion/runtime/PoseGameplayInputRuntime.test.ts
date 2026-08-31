@@ -216,4 +216,14 @@ describe('PoseGameplayInputRuntime', () => {
     expect(harness.backend.close).toHaveBeenCalledOnce()
     await expect(harness.runtime.start(POSE_REQUEST)).rejects.toThrow('disposed')
   })
+
+  it('reuses an already-running camera and Pose session', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+
+    await harness.runtime.start(POSE_REQUEST)
+
+    expect(harness.camera.start).toHaveBeenCalledOnce()
+    expect(harness.backend.initialize).toHaveBeenCalledOnce()
+  })
 })

@@ -6,6 +6,8 @@ import {
   useSyncExternalStore,
 } from 'react'
 
+import { CameraPresentationStage } from '../../components/camera-presentation/CameraPresentationStage'
+import { resolveCameraPresentation } from '../../components/camera-presentation/cameraPresentationModel'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
 import {
   PoseGameplayInputRuntime,
@@ -26,19 +28,6 @@ const INITIAL_POSE_SNAPSHOT: PoseGameplayInputSnapshot = Object.freeze({
   status: 'CAMERA_NOT_STARTED',
   error: null,
 })
-
-function lifecycleLabel(
-  pose: PoseGameplayInputSnapshot,
-  phase: ReturnType<BalloonPopSession['getState']>['phase'],
-): string {
-  if (phase === 'FINISHED') return 'RESULT'
-  if (pose.status === 'CAMERA_NOT_STARTED') return '相機尚未啟動'
-  if (pose.status === 'PERMISSION_STARTING') return '正在啟動相機'
-  if (pose.status === 'BASELINING') return '建立動作基準中'
-  if (pose.status === 'TRACKING_LOST') return '追蹤暫停'
-  if (pose.status === 'ERROR') return '需要處理'
-  return phase === 'PLAYING' ? 'PLAYING' : 'READY'
-}
 
 export default function BalloonPopPoseGameScreen({
   onExit,
@@ -107,12 +96,17 @@ export default function BalloonPopPoseGameScreen({
   }, [])
 
   const secondsRemaining = Math.ceil(state.roundRemainingMs / 1_000)
-  const showPreview =
-    poseSnapshot.status !== 'CAMERA_NOT_STARTED' &&
-    poseSnapshot.status !== 'ERROR'
+  const presentation = resolveCameraPresentation(
+    poseSnapshot,
+    state.phase === 'FINISHED' ? 'RESULT' : state.phase,
+  )
 
   return (
-    <main className="balloon-pop-shell" data-input-mode="pose">
+    <main
+      className="balloon-pop-shell"
+      data-input-mode="pose"
+      data-presentation-mode={presentation.mode}
+    >
       <header className="balloon-pop-topbar">
         <button className="balloon-pop-home" type="button" onClick={onExit}>
           ← 回首頁
@@ -123,32 +117,19 @@ export default function BalloonPopPoseGameScreen({
         </div>
         <div className="balloon-pop-hud" aria-label="遊戲狀態">
           <span className="balloon-pop-lifecycle">
-            {lifecycleLabel(poseSnapshot, state.phase)}
+            {presentation.statusLabel}
           </span>
           <span>分數 <strong>{state.score}</strong></span>
           <span>時間 <strong>{secondsRemaining}</strong></span>
         </div>
       </header>
 
-      <section className="balloon-pop-stage">
-        <BalloonPopCanvas session={session} />
-        <video
-          ref={videoRef}
-          className="balloon-pop-camera-preview"
-          data-visible={showPreview}
-          aria-label="鏡像相機預覽"
-          autoPlay
-          muted
-          playsInline
-        />
-
-        <PoseLifecycleOverlay
-          pose={poseSnapshot}
-          phase={state.phase}
-          onStartCamera={() => void startCamera()}
-        />
-
-        {state.phase === 'FINISHED' ? (
+      <CameraPresentationStage
+        className="balloon-pop-stage"
+        presentation={presentation}
+        videoRef={videoRef}
+        onStartCamera={() => void startCamera()}
+        foreground={state.phase === 'FINISHED' ? (
           <div className="balloon-pop-result" role="dialog" aria-modal="true">
             <div className="balloon-pop-result-card">
               <p>ROUND COMPLETE</p>
@@ -167,79 +148,9 @@ export default function BalloonPopPoseGameScreen({
             </div>
           </div>
         ) : null}
-      </section>
+      >
+        <BalloonPopCanvas session={session} presentation="CAMERA_AR" />
+      </CameraPresentationStage>
     </main>
-  )
-}
-
-function PoseLifecycleOverlay({
-  pose,
-  phase,
-  onStartCamera,
-}: {
-  readonly pose: PoseGameplayInputSnapshot
-  readonly phase: ReturnType<BalloonPopSession['getState']>['phase']
-  readonly onStartCamera: () => void
-}) {
-  if (phase === 'FINISHED' || pose.status === 'READY') return null
-
-  if (pose.status === 'CAMERA_NOT_STARTED') {
-    return (
-      <div className="balloon-pop-pose-overlay" role="status">
-        <div>
-          <p>REAL POSE INPUT</p>
-          <h2>準備好後啟動相機</h2>
-          <span>相機只會在你按下按鈕後啟動。</span>
-          <button type="button" onClick={onStartCamera}>啟動相機</button>
-        </div>
-      </div>
-    )
-  }
-
-  if (pose.status === 'ERROR') {
-    return (
-      <div className="balloon-pop-pose-overlay" role="alert">
-        <div>
-          <p>{pose.error?.code ?? 'ERROR'}</p>
-          <h2>無法使用姿勢辨識</h2>
-          <span>{pose.error?.message}</span>
-          <button type="button" onClick={onStartCamera}>重新啟動相機</button>
-        </div>
-      </div>
-    )
-  }
-
-  if (pose.status === 'TRACKING_LOST') {
-    return (
-      <div className="balloon-pop-pose-overlay" role="status">
-        <div>
-          <p>GAME PAUSED</p>
-          <h2>請回到畫面中</h2>
-          <span>確認全身可見；追蹤恢復後會自動繼續。</span>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="balloon-pop-pose-overlay" role="status">
-      <div>
-        <p>
-          {pose.status === 'PERMISSION_STARTING'
-            ? 'STARTING CAMERA'
-            : 'BASELINING'}
-        </p>
-        <h2>
-          {pose.status === 'PERMISSION_STARTING'
-            ? '正在啟動相機…'
-            : '請站在畫面中央'}
-        </h2>
-        <span>
-          {pose.status === 'PERMISSION_STARTING'
-            ? '請在瀏覽器提示中允許相機權限。'
-            : '讓肩膀、髖部、膝蓋與腳踝保持清楚可見。'}
-        </span>
-      </div>
-    </div>
   )
 }

@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { mountPhaserGame } from '../../game/phaser/mountPhaserGame'
+import type { BalloonPopScenePresentation } from './BalloonPopScene'
 import type { BalloonPopSession } from './BalloonPopSession'
 
 interface BalloonPopCanvasProps {
   readonly session: BalloonPopSession
+  readonly presentation?: BalloonPopScenePresentation
 }
 
-export function BalloonPopCanvas({ session }: BalloonPopCanvasProps) {
+export function BalloonPopCanvas({
+  session,
+  presentation = 'STANDARD',
+}: BalloonPopCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [loadError, setLoadError] = useState<string>()
 
@@ -18,7 +23,8 @@ export function BalloonPopCanvas({ session }: BalloonPopCanvasProps) {
     let cancelled = false
     const factoryPromise = import('./createBalloonPopPhaserGame').then(
       ({ createBalloonPopPhaserGame }) =>
-        (parent: HTMLElement) => createBalloonPopPhaserGame(parent, session),
+        (parent: HTMLElement) =>
+          createBalloonPopPhaserGame(parent, session, presentation),
     )
     const mount = mountPhaserGame.lazy(host, factoryPromise)
     void mount.ready.catch((error: unknown) => {
@@ -31,7 +37,7 @@ export function BalloonPopCanvas({ session }: BalloonPopCanvasProps) {
       cancelled = true
       mount.unmount()
     }
-  }, [session])
+  }, [presentation, session])
 
   return (
     <div

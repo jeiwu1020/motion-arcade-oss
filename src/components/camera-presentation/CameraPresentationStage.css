@@ -1,0 +1,299 @@
+.camera-presentation-stage {
+  --camera-guide-color: rgb(247 251 255 / 88%);
+  --camera-ready-color: #72e1bf;
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #061421;
+}
+
+.camera-presentation-video,
+.camera-presentation-treatment,
+.camera-presentation-playfield,
+.camera-presentation-framing,
+.camera-presentation-status,
+.camera-presentation-foreground {
+  position: absolute;
+  inset: 0;
+}
+
+.camera-presentation-video {
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #061421;
+  pointer-events: none;
+  transform: scaleX(-1);
+  transition: filter 220ms ease, opacity 220ms ease;
+}
+
+.camera-presentation-stage[data-camera-treatment='HIDDEN']
+  .camera-presentation-video {
+  opacity: 0;
+}
+
+.camera-presentation-stage[data-camera-treatment='DOMINANT']
+  .camera-presentation-video {
+  opacity: 1;
+  filter: brightness(0.82) saturate(0.82) contrast(1.04);
+}
+
+.camera-presentation-stage[data-camera-treatment='SUBDUED']
+  .camera-presentation-video {
+  opacity: 0.92;
+  filter: brightness(0.48) saturate(0.58) contrast(1.08);
+}
+
+.camera-presentation-stage[data-camera-treatment='DIMMED']
+  .camera-presentation-video {
+  opacity: 0.8;
+  filter: brightness(0.3) saturate(0.48);
+}
+
+.camera-presentation-treatment {
+  z-index: 1;
+  pointer-events: none;
+  background: rgb(4 17 30 / 10%);
+  transition: background-color 220ms ease;
+}
+
+.camera-presentation-stage[data-camera-treatment='HIDDEN']
+  .camera-presentation-treatment {
+  background: rgb(4 17 30 / 96%);
+}
+
+.camera-presentation-stage[data-camera-treatment='SUBDUED']
+  .camera-presentation-treatment {
+  background: rgb(5 21 36 / 28%);
+}
+
+.camera-presentation-stage[data-camera-treatment='DIMMED']
+  .camera-presentation-treatment {
+  background: rgb(4 17 30 / 52%);
+}
+
+.camera-presentation-playfield {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.camera-presentation-framing {
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.camera-presentation-framing[data-framing-guide='PROMINENT'],
+.camera-presentation-framing[data-framing-guide='CONFIRMED'],
+.camera-presentation-framing[data-framing-guide='SUBTLE'] {
+  opacity: 1;
+}
+
+.camera-presentation-frame-boundary {
+  position: absolute;
+  inset: 5% 19%;
+  border: 0.22rem solid var(--camera-guide-color);
+  border-radius: clamp(1rem, 3vw, 2rem);
+  box-shadow: inset 0 0 0 1px rgb(5 20 35 / 60%);
+}
+
+.camera-presentation-body-guide {
+  position: absolute;
+  top: 7%;
+  left: 50%;
+  width: min(28%, 12rem);
+  height: 76%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--camera-guide-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 12;
+  transform: translateX(-50%);
+}
+
+.camera-presentation-framing > span {
+  position: absolute;
+  right: 50%;
+  bottom: 7%;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  color: #061c2d;
+  background: rgb(247 251 255 / 92%);
+  font-size: clamp(0.82rem, 1.45vw, 1.05rem);
+  font-weight: 950;
+  transform: translateX(50%);
+}
+
+.camera-presentation-framing[data-framing-guide='CONFIRMED'] {
+  --camera-guide-color: rgb(114 225 191 / 92%);
+}
+
+.camera-presentation-framing[data-framing-guide='CONFIRMED'] > span {
+  color: #06271e;
+  background: var(--camera-ready-color);
+}
+
+.camera-presentation-framing[data-framing-guide='SUBTLE'] {
+  opacity: 0.18;
+}
+
+.camera-presentation-framing[data-framing-guide='SUBTLE']
+  .camera-presentation-body-guide,
+.camera-presentation-framing[data-framing-guide='SUBTLE'] > span {
+  display: none;
+}
+
+.camera-presentation-status {
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  color: #f7fbff;
+  text-align: center;
+  pointer-events: none;
+}
+
+.camera-presentation-status[data-overlay='BLOCKING'] {
+  background: rgb(4 17 30 / 78%);
+  pointer-events: auto;
+}
+
+.camera-presentation-status[data-overlay='GUIDANCE'] {
+  align-items: end;
+  background: rgb(4 17 30 / 10%);
+}
+
+.camera-presentation-status[data-overlay='READY_BADGE'] {
+  align-items: start;
+}
+
+.camera-presentation-status-card {
+  width: min(38rem, 92%);
+  border: 2px solid rgb(255 255 255 / 54%);
+  border-radius: 1.2rem;
+  padding: clamp(0.9rem, 2.2vw, 1.45rem);
+  background: rgb(6 27 45 / 88%);
+  box-shadow: 0 0.8rem 2.4rem rgb(0 0 0 / 35%);
+}
+
+.camera-presentation-status[data-overlay='GUIDANCE']
+  .camera-presentation-status-card {
+  background: rgb(6 27 45 / 82%);
+}
+
+.camera-presentation-status[data-overlay='READY_BADGE']
+  .camera-presentation-status-card {
+  width: auto;
+  min-width: min(22rem, 72%);
+  border-color: rgb(114 225 191 / 84%);
+  padding: 0.55rem 1.2rem;
+  background: rgb(5 42 34 / 88%);
+}
+
+.camera-presentation-status-card p,
+.camera-presentation-status-card h2,
+.camera-presentation-status-card span {
+  display: block;
+  margin: 0;
+}
+
+.camera-presentation-status-card p {
+  color: #7be4c5;
+  font-size: clamp(0.68rem, 1.2vw, 0.82rem);
+  font-weight: 950;
+  letter-spacing: 0.13em;
+}
+
+.camera-presentation-status-card h2 {
+  margin-top: 0.18rem;
+  font-size: clamp(1.8rem, 4.5vw, 3.7rem);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+}
+
+.camera-presentation-status-card span {
+  margin-top: 0.4rem;
+  color: #d5e7f1;
+  font-size: clamp(0.92rem, 1.7vw, 1.2rem);
+  font-weight: 750;
+}
+
+.camera-presentation-status-card button {
+  min-width: min(19rem, 92%);
+  min-height: 3.75rem;
+  margin-top: 1rem;
+  border: 2px solid #fff;
+  border-radius: 0.95rem;
+  color: #0b2638;
+  background: #72e1bf;
+  cursor: pointer;
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  font-weight: 950;
+  pointer-events: auto;
+}
+
+.camera-presentation-status-card button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+}
+
+.camera-presentation-status[data-overlay='READY_BADGE']
+  .camera-presentation-status-card h2 {
+  font-size: clamp(1.25rem, 2.6vw, 2rem);
+}
+
+.camera-presentation-status[data-overlay='READY_BADGE']
+  .camera-presentation-status-card span {
+  display: none;
+}
+
+.camera-presentation-foreground {
+  z-index: 5;
+}
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  .camera-presentation-frame-boundary {
+    inset-block: 3%;
+  }
+
+  .camera-presentation-body-guide {
+    top: 4%;
+    height: 78%;
+  }
+
+  .camera-presentation-framing > span {
+    bottom: 4%;
+    padding-block: 0.3rem;
+  }
+
+  .camera-presentation-status-card {
+    padding: 0.65rem 1rem;
+  }
+
+  .camera-presentation-status-card h2 {
+    font-size: clamp(1.35rem, 4.5vw, 2.25rem);
+  }
+
+  .camera-presentation-status-card span {
+    margin-top: 0.2rem;
+    font-size: 0.82rem;
+  }
+
+  .camera-presentation-status-card button {
+    min-height: 3.1rem;
+    margin-top: 0.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera-presentation-video,
+  .camera-presentation-treatment,
+  .camera-presentation-framing {
+    transition: none;
+  }
+}

@@ -253,7 +253,7 @@ Purpose:
 
 ### Phase 2A.2b — Camera Presentation Layer
 
-**Current next implementation phase.**
+**Status: Engineering PASS; physical Windows/iPhone/projector validation pending.**
 
 Goals:
 
@@ -272,6 +272,16 @@ Suggested presentation:
 - results: camera may remain dimmed behind the result card.
 
 Acceptance requires physical Windows testing first, then iPhone Safari landscape/projector testing.
+
+Implemented boundary refinement:
+
+- shared DOM `CameraPresentationStage` + pure presentation-state resolver;
+- one runtime-bound video reused across setup, play, tracking recovery, and result;
+- CSS-only display mirroring and `object-fit: contain` framing;
+- transparent `1280 × 720` Phaser Camera AR presentation above the video while
+  the development/test presentation remains opaque;
+- camera dominance changes by lifecycle state without changing sensor ownership,
+  analyzer semantics, or Game Core time.
 
 ### Phase 2A.3 — Normalized Spatial Hand Interaction
 

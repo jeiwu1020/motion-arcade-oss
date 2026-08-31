@@ -6,34 +6,51 @@ const WORLD_WIDTH = 1280
 const WORLD_HEIGHT = 720
 const TARGET_X = { LEFT: 330, RIGHT: 950 } as const
 
+export type BalloonPopScenePresentation = 'STANDARD' | 'CAMERA_AR'
+
 export class BalloonPopScene extends Phaser.Scene {
   readonly #session: BalloonPopSession
+  readonly #presentation: BalloonPopScenePresentation
   #balloon!: Phaser.GameObjects.Container
   #balloonBody!: Phaser.GameObjects.Ellipse
   #countdownText!: Phaser.GameObjects.Text
   #statusText!: Phaser.GameObjects.Text
   #lastTargetId: number | null = null
 
-  constructor(session: BalloonPopSession) {
+  constructor(
+    session: BalloonPopSession,
+    presentation: BalloonPopScenePresentation = 'STANDARD',
+  ) {
     super('balloon-pop')
     this.#session = session
+    this.#presentation = presentation
   }
 
   create(): void {
-    this.add.rectangle(
-      WORLD_WIDTH / 2,
-      WORLD_HEIGHT / 2,
-      WORLD_WIDTH,
-      WORLD_HEIGHT,
-      0x10284b,
-    )
-    this.add.circle(150, 105, 230, 0x2f8cff, 0.15)
-    this.add.circle(1140, 590, 290, 0xff7c9c, 0.12)
-    this.add.rectangle(320, 390, 540, 500, 0x76c7ff, 0.08)
-    this.add.rectangle(960, 390, 540, 500, 0xff9aac, 0.08)
+    if (this.#presentation === 'STANDARD') {
+      this.add.rectangle(
+        WORLD_WIDTH / 2,
+        WORLD_HEIGHT / 2,
+        WORLD_WIDTH,
+        WORLD_HEIGHT,
+        0x10284b,
+      )
+      this.add.circle(150, 105, 230, 0x2f8cff, 0.15)
+      this.add.circle(1140, 590, 290, 0xff7c9c, 0.12)
+    }
 
-    this.#addSideGuide(330, '左邊', 'Z', 0x65c7ff)
-    this.#addSideGuide(950, '右邊', 'C', 0xff8fa8)
+    this.#addSideGuide(
+      330,
+      '左邊',
+      this.#presentation === 'STANDARD' ? 'Z' : null,
+      0x65c7ff,
+    )
+    this.#addSideGuide(
+      950,
+      '右邊',
+      this.#presentation === 'STANDARD' ? 'C' : null,
+      0xff8fa8,
+    )
 
     const string = this.add
       .line(0, 155, 0, 0, 0, 155, 0xffffff, 0.68)
@@ -115,7 +132,12 @@ export class BalloonPopScene extends Phaser.Scene {
     this.#statusText.setText(target.side === 'LEFT' ? '伸左手！' : '伸右手！')
   }
 
-  #addSideGuide(x: number, label: string, key: string, color: number): void {
+  #addSideGuide(
+    x: number,
+    label: string,
+    key: string | null,
+    color: number,
+  ): void {
     this.add
       .rectangle(x, 350, 500, 520, color, 0.05)
       .setStrokeStyle(4, color, 0.32)
@@ -127,13 +149,15 @@ export class BalloonPopScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
-    this.add
-      .text(x, 548, `測試鍵 ${key}`, {
-        color: '#bcd8ee',
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '24px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
+    if (key) {
+      this.add
+        .text(x, 548, `測試鍵 ${key}`, {
+          color: '#bcd8ee',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '24px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5)
+    }
   }
 }

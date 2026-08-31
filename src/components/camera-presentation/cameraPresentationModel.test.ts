@@ -1,0 +1,141 @@
+import { describe, expect, it } from 'vitest'
+
+import type { PoseGameplayInputSnapshot } from '../../motion/runtime/PoseGameplayInputRuntime'
+import {
+  resolveCameraPresentation,
+  type CameraPresentationGamePhase,
+} from './cameraPresentationModel'
+
+function snapshot(
+  status: PoseGameplayInputSnapshot['status'],
+): PoseGameplayInputSnapshot {
+  return {
+    status,
+    error:
+      status === 'ERROR'
+        ? { code: 'CAMERA_BUSY', message: '相機正在被其他程式使用。' }
+        : null,
+  }
+}
+
+describe('camera presentation model', () => {
+  it.each<
+    readonly [
+      PoseGameplayInputSnapshot['status'],
+      CameraPresentationGamePhase,
+      {
+        readonly mode: string
+        readonly cameraTreatment: string
+        readonly framingGuide: string
+        readonly overlay: string
+        readonly headline: string | null
+      },
+    ]
+  >([
+    [
+      'CAMERA_NOT_STARTED',
+      'COUNTDOWN',
+      {
+        mode: 'SETUP',
+        cameraTreatment: 'HIDDEN',
+        framingGuide: 'HIDDEN',
+        overlay: 'BLOCKING',
+        headline: '準備好後啟動相機',
+      },
+    ],
+    [
+      'PERMISSION_STARTING',
+      'COUNTDOWN',
+      {
+        mode: 'STARTING',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'PROMINENT',
+        overlay: 'GUIDANCE',
+        headline: '正在開啟相機',
+      },
+    ],
+    [
+      'BASELINING',
+      'COUNTDOWN',
+      {
+        mode: 'BASELINING',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'PROMINENT',
+        overlay: 'GUIDANCE',
+        headline: '全身保持在框內',
+      },
+    ],
+    [
+      'READY',
+      'COUNTDOWN',
+      {
+        mode: 'READY',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'CONFIRMED',
+        overlay: 'READY_BADGE',
+        headline: '準備完成',
+      },
+    ],
+    [
+      'READY',
+      'PLAYING',
+      {
+        mode: 'PLAYING',
+        cameraTreatment: 'SUBDUED',
+        framingGuide: 'SUBTLE',
+        overlay: 'NONE',
+        headline: null,
+      },
+    ],
+    [
+      'TRACKING_LOST',
+      'PLAYING',
+      {
+        mode: 'TRACKING_LOST',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'PROMINENT',
+        overlay: 'GUIDANCE',
+        headline: '請回到畫面中',
+      },
+    ],
+    [
+      'ERROR',
+      'COUNTDOWN',
+      {
+        mode: 'ERROR',
+        cameraTreatment: 'HIDDEN',
+        framingGuide: 'HIDDEN',
+        overlay: 'BLOCKING',
+        headline: '無法使用姿勢辨識',
+      },
+    ],
+  ])(
+    'maps %s during %s to a projector-readable presentation',
+    (status, phase, expected) => {
+      expect(resolveCameraPresentation(snapshot(status), phase)).toMatchObject(
+        expected,
+      )
+    },
+  )
+
+  it('keeps a healthy camera dimmed behind results', () => {
+    expect(
+      resolveCameraPresentation(snapshot('READY'), 'RESULT'),
+    ).toMatchObject({
+      mode: 'RESULT',
+      cameraTreatment: 'DIMMED',
+      framingGuide: 'HIDDEN',
+      overlay: 'NONE',
+    })
+  })
+
+  it('preserves the readable runtime error and offers retry', () => {
+    expect(
+      resolveCameraPresentation(snapshot('ERROR'), 'COUNTDOWN'),
+    ).toMatchObject({
+      detail: '相機正在被其他程式使用。',
+      actionLabel: '重新啟動相機',
+      alert: true,
+    })
+  })
+})
