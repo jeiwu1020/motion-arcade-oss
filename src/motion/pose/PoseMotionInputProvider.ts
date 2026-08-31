@@ -16,6 +16,7 @@ import type {
 } from '../contracts/motion'
 import type { PoseSensorFrame } from '../../sensors/pose/poseTypes'
 import { PoseMotionAnalyzer } from './PoseMotionAnalyzer'
+import { POSE_MOTION_CONFIG } from './poseMotionConfig'
 import type { PoseMotionAnalyzerSnapshot } from './poseMotionTypes'
 
 export interface PoseMotionInputProviderOptions {
@@ -77,7 +78,7 @@ export class PoseMotionInputProvider implements MotionInputProvider {
       requestedPlayer?.abilityProfile ?? resolveAbilityProfile(['STANDARD']),
     )
     this.#analyzer =
-      this.#effectiveConfig.source === 'STANDARD' && this.#injectedAnalyzer
+      this.#effectiveConfig.config === POSE_MOTION_CONFIG && this.#injectedAnalyzer
         ? this.#injectedAnalyzer
         : new PoseMotionAnalyzer(this.#effectiveConfig.config)
     this.#analyzer.reset()
