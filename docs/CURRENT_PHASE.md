@@ -23,34 +23,34 @@ Subsequent repository work may contain narrow fixes/docs checkpoints; use curren
 
 ## Current phase
 
-### Phase 1D.3a — LOW_MOTION + SLOW_RESPONSE
+### Phase 1D.3b — SEATED + UPPER_BODY Pose
 
 Engineering status: PASS
 
-Exact feature implementation SHA:
-
-`f5297c0a94d4b55e606711ba7c795d9c8e769c4d`
-
-Automated validation at that SHA:
+Automated validation on the implementation worktree:
 
 - Typecheck: PASS
 - Lint: PASS
-- Tests: 163 / 163 PASS across 25 files
+- Tests: 177 / 177 PASS across 26 files
 - Build: PASS
-- GitHub Actions: PASS
-- Vercel: PASS
 
 Implemented behavior:
 
-- STANDARD: range scale `1.0`, reaction scale `1.0`
-- LOW_MOTION: range scale `0.6`, reaction scale `1.0`
-- SLOW_RESPONSE: range scale `1.0`, reaction scale `1.75`, currently resolving to `240 ms` candidate grace
-- LOW_MOTION + SLOW_RESPONSE compose independently
-- JUMP remains outside profile adaptation
+- STANDARD keeps its exact full-body standing baseline and all existing actions.
+- SEATED and UPPER_BODY establish an upper-body baseline from shoulders and hips
+  without requiring knees or ankles.
+- Both modes support MOVE_LEFT/RIGHT, LEAN_LEFT/RIGHT, REACH, and anatomical
+  REACH_LEFT/RIGHT.
+- SQUAT and JUMP are explicitly unavailable and stay neutral.
+- Upper-body and full-body readiness are reported separately.
+- LOW_MOTION and SLOW_RESPONSE still compose with supported upper-body actions.
+- Standing calibration is not applied to SEATED/UPPER_BODY.
+- Pose Lab exposes 標準動作, 坐姿模式, 上半身模式, readiness, and exact action
+  availability.
 
 Physical/manual status: DEFERRED by project decision
 
-The project may continue to Phase 1D.3b before these physical checks are completed. Before formal gameplay depends on LOW_MOTION/SLOW_RESPONSE, return and complete:
+Before formal gameplay depends on Phase 1D.3a/1D.3b, complete:
 
 - STANDARD regression
 - LOW_MOTION MOVE / LEAN / REACH / deliberate shallow SQUAT
@@ -60,17 +60,14 @@ The project may continue to Phase 1D.3b before these physical checks are complet
 - squat-to-stand must not trigger JUMP
 - Windows real camera
 - physical iPhone Safari / 2–4 m usability where relevant
+- seated and upper-body-only framing with knees/ankles unavailable
+- seated MOVE versus LEAN separation and anatomical REACH
+- 30–60 second seated idle/chair-adjustment false-positive checks
+- confirmation that SQUAT/JUMP remain neutral in both new modes
+
+Focused design and manual checks: [Phase 1D.3b — SEATED + UPPER_BODY Pose](./PHASE_1D_3B_UPPER_BODY_POSE.md).
 
 ## Next planned architecture work
-
-### Phase 1D.3b
-
-Implement the body-availability profiles that require deeper tracking changes:
-
-- SEATED
-- UPPER_BODY
-
-Do not assume ankles/full-body standing baseline for these modes. Lower-body-inappropriate actions must remain safely neutral.
 
 LEFT_SIDE / RIGHT_SIDE full Pose behavior can follow separately unless the task explicitly groups them.
 

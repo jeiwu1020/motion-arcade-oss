@@ -1,6 +1,6 @@
 # Motion Input Contract
 
-Status: Phase 1D.2 calibration adaptation boundary
+Status: Phase 1D.3b body-availability profile boundary
 
 Contract version: `1.0-phase-1a`
 
@@ -142,7 +142,16 @@ Resolved profile metadata drives provider-local adaptation but remains descripti
 - `requiredMotionRangeScale` is `0.6` for LOW_MOTION and `1` otherwise. The Pose provider applies it to MOVE, LEAN, REACH normalization, and SQUAT through the established safety clamps. It does not slow a character or reduce a normalized action value.
 - `reactionWindowScale` is `1.75` for SLOW_RESPONSE and `1` otherwise. The Pose provider converts it to a timestamp-based 240 ms activation-candidate grace without lowering physical gates. It does not slow Phaser animation playback.
 
-LOW_MOTION and SLOW_RESPONSE compose independently. STANDARD retains exact Phase 1D.2 behavior. JUMP is excluded, and SEATED/UPPER_BODY/LEFT_SIDE/RIGHT_SIDE remain deferred Pose behavior.
+LOW_MOTION and SLOW_RESPONSE compose independently. STANDARD retains exact Phase
+1D.2 behavior and full-body readiness requirements. SEATED and UPPER_BODY select
+an upper-body analyzer baseline that requires shoulders and hips, not knees or
+ankles. Both support MOVE_LEFT/RIGHT from pelvis translation, LEAN_LEFT/RIGHT,
+REACH, and anatomical REACH_LEFT/RIGHT. SQUAT and JUMP remain neutral and
+unavailable in those modes even when lower-body landmarks are visible. Existing
+standing calibration is ignored for these modes because its measurements are not
+valid for the profile; bounded STANDARD torso fallback and explicit
+LOW_MOTION/SLOW_RESPONSE modifiers remain available. LEFT_SIDE/RIGHT_SIDE Pose
+expansion remains deferred.
 
 The Developer Input Lab consumes normalized action values consistently across profiles; it displays the selected profile for diagnostics only.
 
@@ -246,6 +255,6 @@ The React control panel writes provider values. The Phaser test scene only reads
 
 ## 12. Replay and freshness
 
-The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame.
+The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame. Analyzer diagnostics distinguish `upperBodyReady` from `fullBodyReady`; these readiness fields stay outside the game-facing snapshot.
 
 The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D calibration remains caller-provided and in memory. Provider stop releases its calibration request; there is no persistence or upload. Replay serialization, calibration persistence, general capability negotiation, multi-person tracking continuity, production onboarding, and JUMP adaptation remain deferred. These additions must extend the provider boundary without exposing raw sensors or body-unit values to games.

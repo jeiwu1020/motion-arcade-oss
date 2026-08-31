@@ -1,12 +1,12 @@
 # Motion Arcade — Master Architecture
 
-Status: Phase 1D.2 implementation boundary (session-only calibrated Pose adaptation; no formal game)
+Status: Phase 1D.3b implementation boundary (upper-body Pose availability; no formal game)
 
 Date: 2026-08-30
 
 Primary target: iPhone Safari, landscape
 
-Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. There is still no formal game, microphone, Hands, Voice, multi-person assignment, or Web Audio provider.
+Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. Phase 1D.3a adds LOW_MOTION/SLOW_RESPONSE composition. Phase 1D.3b adds SEATED/UPPER_BODY torso baselines and safely disables SQUAT/JUMP in those modes. There is still no formal game, microphone, Hands, Voice, multi-person assignment, or Web Audio provider.
 
 ## 1. Product constraints
 
@@ -125,7 +125,7 @@ Game control scheme sensor requirements
 
 `SensorManager` will be the sole owner of real acquisition. It starts only the sensors declared by the selected control scheme; Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
 
-Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`. Phase 1D.2 resolves validated v1 calibration into a session-specific `PoseMotionConfig` before analyzer construction. Phase 1D.3a composes bounded LOW_MOTION range scaling and timestamp-based SLOW_RESPONSE candidate timing into that same effective config. These layers do not duplicate camera/MediaPipe ownership or expose calibration/profile thresholds to games. Neither branch replaces the future `SensorManager`.
+Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`. Phase 1D.2 resolves validated v1 calibration into a session-specific `PoseMotionConfig` before analyzer construction. Phase 1D.3a composes bounded LOW_MOTION range scaling and timestamp-based SLOW_RESPONSE candidate timing into that same effective config. Phase 1D.3b resolves full-body versus upper-body baseline requirements in the same config and reports both readiness levels without changing the game-facing snapshot. These layers do not duplicate camera/MediaPipe ownership or expose calibration/profile thresholds to games. Neither branch replaces the future `SensorManager`.
 
 Future responsibilities:
 
@@ -208,7 +208,7 @@ Capability presets:
 - `RIGHT_SIDE`
 - `SLOW_RESPONSE`
 
-`ResolvedAbilityProfile` composes presets into posture, body range, allowed anatomical sides, required motion range scale, and reaction window scale. Phase 1D.3a implements `LOW_MOTION` as a bounded `0.6` range scale for MOVE, LEAN, REACH, and SQUAT, and `SLOW_RESPONSE` as a `1.75` reaction scale that resolves to a 240 ms activation-candidate grace. These dimensions compose without changing normalized game output or animation playback. STANDARD remains unchanged, JUMP is excluded, and SEATED/UPPER_BODY/LEFT_SIDE/RIGHT_SIDE are not yet claimed as complete Pose modes.
+`ResolvedAbilityProfile` composes presets into posture, body range, allowed anatomical sides, required motion range scale, and reaction window scale. Phase 1D.3a implements `LOW_MOTION` as a bounded `0.6` range scale for MOVE, LEAN, REACH, and SQUAT, and `SLOW_RESPONSE` as a `1.75` reaction scale that resolves to a 240 ms activation-candidate grace. Phase 1D.3b maps `SEATED` and `UPPER_BODY` to a shoulders-and-hips baseline, keeps torso MOVE/LEAN and anatomical REACH usable, and explicitly neutralizes SQUAT/JUMP. These dimensions compose without changing normalized game output or animation playback. STANDARD remains unchanged; LEFT_SIDE/RIGHT_SIDE Pose expansion is not yet claimed.
 
 `PlayerCalibration` remains separate from `ResolvedAbilityProfile`. Version 1 contains normalized MOVE, LEAN, anatomical REACH, comfortable SQUAT ranges, per-step availability, and quality metadata. The policy validates it, maps each available side/action, applies functional scaling, and enforces the Phase 1D.2 safety clamps. In LOW_MOTION, an unavailable action uses the bounded scaled STANDARD fallback; otherwise it retains STANDARD. The result and effective config are session-only and contain no raw landmarks or saved body measurements. JUMP is not calibration- or profile-driven.
 
@@ -327,6 +327,7 @@ Implemented automated tests cover:
 - build-time test-mode gate.
 - Pose feature geometry, confidence validity, anatomical-side preservation, and raw-frame immutability;
 - session baseline readiness/reset, stale neutralization, and long-loss re-baselining;
+- separate full-body and upper-body readiness, including torso-only baselines;
 - MOVE/LEAN/REACH/SQUAT hysteresis and JUMP pulse/refractory state behavior;
 - immutable Pose provider mapping, profile gating, and coordinator lifecycle.
 

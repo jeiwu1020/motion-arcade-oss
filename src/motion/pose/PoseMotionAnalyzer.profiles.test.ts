@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveAbilityProfile } from '../adaptive/profiles'
+import {
+  resolveAbilityProfile,
+  type AbilityProfileId,
+} from '../adaptive/profiles'
 import { resolvePoseMotionConfig } from '../calibration/calibrationAdaptation'
 import type { MotionActionId } from '../contracts/motion'
 import type { PoseSensorFrame } from '../../sensors/pose/poseTypes'
 import { PoseMotionAnalyzer } from './PoseMotionAnalyzer'
 import {
   createSyntheticPoseFrame,
+  withLandmarkConfidence,
   withPoseTranslation,
 } from './syntheticPoseFixtures'
 
-type FunctionalProfile = 'STANDARD' | 'LOW_MOTION' | 'SLOW_RESPONSE'
-
-function analyzer(profiles: readonly FunctionalProfile[]): PoseMotionAnalyzer {
+function analyzer(profiles: readonly AbilityProfileId[]): PoseMotionAnalyzer {
   const resolved = resolvePoseMotionConfig(
     undefined,
     resolveAbilityProfile(profiles),
@@ -21,6 +23,22 @@ function analyzer(profiles: readonly FunctionalProfile[]): PoseMotionAnalyzer {
     ...resolved.config,
     smoothingAlpha: 1,
   })
+}
+
+function withoutLowerBody(frame: PoseSensorFrame): PoseSensorFrame {
+  return [25, 26, 27, 28].reduce(
+    (current, landmarkIndex) =>
+      withLandmarkConfidence(current, landmarkIndex, 0.1),
+    frame,
+  )
+}
+
+function establishUpperBodyBaseline(target: PoseMotionAnalyzer): void {
+  for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+    target.ingest(
+      withoutLowerBody(createSyntheticPoseFrame('neutral', { timestampMs })),
+    )
+  }
 }
 
 function establishBaseline(target: PoseMotionAnalyzer): void {
@@ -258,5 +276,113 @@ describe('combined functional profiles', () => {
     expect(action(lowOnly, 'MOVE_LEFT', lowNow)).toBe(0)
     expect(action(combined, 'MOVE_LEFT', combinedNow)).toBeGreaterThan(0)
     expect(action(combined, 'JUMP', combinedNow)).toBe(0)
+  })
+})
+
+describe('SEATED and UPPER_BODY analyzer behavior', () => {
+  it('keeps the STANDARD baseline blocked when knees and ankles are unavailable', () => {
+    const target = analyzer(['STANDARD'])
+
+    establishUpperBodyBaseline(target)
+
+    expect(target.getSnapshot(900)).toMatchObject({
+      quality: 'LIMITED',
+      baselineReady: false,
+      upperBodyReady: false,
+      fullBodyReady: false,
+    })
+  })
+
+  it.each(['SEATED', 'UPPER_BODY'] as const)(
+    'establishes %s upper-body readiness from the same torso-only frames',
+    (profile) => {
+      const target = analyzer([profile])
+
+      establishUpperBodyBaseline(target)
+
+      expect(target.getSnapshot(900)).toMatchObject({
+        quality: 'READY',
+        baselineReady: true,
+        upperBodyReady: true,
+        fullBodyReady: false,
+      })
+    },
+  )
+
+  it.each(['SEATED', 'UPPER_BODY'] as const)(
+    'keeps torso MOVE, LEAN, and anatomical REACH usable in %s',
+    (profile) => {
+      const move = analyzer([profile])
+      const lean = analyzer([profile])
+      const reach = analyzer([profile])
+      establishUpperBodyBaseline(move)
+      establishUpperBodyBaseline(lean)
+      establishUpperBodyBaseline(reach)
+
+      for (const timestampMs of [1_000, 1_050]) {
+        move.ingest(
+          withoutLowerBody(
+            createSyntheticPoseFrame('move-left', { timestampMs }),
+          ),
+        )
+        lean.ingest(
+          withoutLowerBody(
+            createSyntheticPoseFrame('lean-right', { timestampMs }),
+          ),
+        )
+        reach.ingest(
+          withoutLowerBody(
+            createSyntheticPoseFrame('reach-left', { timestampMs }),
+          ),
+        )
+      }
+
+      expect(action(move, 'MOVE_LEFT', 1_050)).toBeGreaterThan(0)
+      expect(action(lean, 'LEAN_RIGHT', 1_050)).toBeGreaterThan(0)
+      expect(action(reach, 'REACH_LEFT', 1_050)).toBeGreaterThan(0)
+      expect(action(reach, 'REACH_RIGHT', 1_050)).toBe(0)
+    },
+  )
+
+  it.each(['SEATED', 'UPPER_BODY'] as const)(
+    'keeps SQUAT and JUMP neutral in %s even when lower-body frames are present',
+    (profile) => {
+      const squat = analyzer([profile])
+      const jump = analyzer([profile])
+      establishBaseline(squat)
+      establishBaseline(jump)
+
+      squat.ingest(createSyntheticPoseFrame('squat', { timestampMs: 1_000 }))
+      squat.ingest(createSyntheticPoseFrame('squat', { timestampMs: 1_050 }))
+      jump.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 950 }))
+      jump.ingest(
+        createSyntheticPoseFrame('jump-takeoff', { timestampMs: 1_000 }),
+      )
+      jump.ingest(
+        createSyntheticPoseFrame('jump-airborne', { timestampMs: 1_050 }),
+      )
+
+      expect(action(squat, 'SQUAT', 1_050)).toBe(0)
+      expect(action(jump, 'JUMP', 1_050)).toBe(0)
+      expect(squat.getSnapshot(1_050).squatState).toBe('STANDING')
+      expect(jump.getSnapshot(1_050).jumpState).toBe('GROUNDED')
+    },
+  )
+
+  it('composes upper-body availability with LOW_MOTION and SLOW_RESPONSE', () => {
+    const target = analyzer(['UPPER_BODY', 'LOW_MOTION', 'SLOW_RESPONSE'])
+    establishUpperBodyBaseline(target)
+
+    target.ingest(withoutLowerBody(translatedMove(1_000, true, 0.026)))
+    for (const timestampMs of [1_083, 1_166]) {
+      target.ingest(
+        withoutLowerBody(createSyntheticPoseFrame('neutral', { timestampMs })),
+      )
+    }
+    target.ingest(withoutLowerBody(translatedMove(1_230, true, 0.026)))
+
+    expect(action(target, 'MOVE_LEFT', 1_230)).toBeGreaterThan(0)
+    expect(action(target, 'SQUAT', 1_230)).toBe(0)
+    expect(action(target, 'JUMP', 1_230)).toBe(0)
   })
 })

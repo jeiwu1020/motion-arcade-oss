@@ -102,6 +102,8 @@ export class PoseMotionAnalyzer {
   #baselineAccumulator: BaselineAccumulator | undefined
   #baselineProgress = 0
   #lastPoseTimestampMs: number | undefined
+  #upperBodyTrackingValid = false
+  #fullBodyTrackingValid = false
   #actionSequence = 0
   #snapshotSequence = 0
   #moveState: HorizontalState = 'NONE'
@@ -145,6 +147,8 @@ export class PoseMotionAnalyzer {
     this.#baselineAccumulator = undefined
     this.#baselineProgress = 0
     this.#lastPoseTimestampMs = undefined
+    this.#upperBodyTrackingValid = false
+    this.#fullBodyTrackingValid = false
     this.#snapshotSequence += 1
     this.#resetTransientStates()
     this.#initializeActions(0)
@@ -157,6 +161,8 @@ export class PoseMotionAnalyzer {
 
     if (!features.posePresent || !features.coreValid) {
       this.#quality = features.posePresent ? 'LIMITED' : 'LOST'
+      this.#upperBodyTrackingValid = false
+      this.#fullBodyTrackingValid = false
       this.#resetTransientStates()
       this.#neutralizeActions(frame.timestampMs)
       this.#snapshotSequence += 1
@@ -177,9 +183,15 @@ export class PoseMotionAnalyzer {
       this.#neutralizeActions(frame.timestampMs)
     }
     this.#lastPoseTimestampMs = frame.timestampMs
+    this.#upperBodyTrackingValid = true
+    this.#fullBodyTrackingValid = features.fullBodyValid
 
     if (!this.#baseline) {
-      if (!features.fullBodyValid) {
+      const baselineFrameValid =
+        this.#config.bodyTrackingMode === 'UPPER_BODY'
+          ? features.coreValid
+          : features.fullBodyValid
+      if (!baselineFrameValid) {
         this.#baselineAccumulator = undefined
         this.#baselineProgress = 0
         this.#quality = 'LIMITED'
@@ -195,13 +207,20 @@ export class PoseMotionAnalyzer {
       return
     }
 
-    this.#quality = features.fullBodyValid ? 'READY' : 'LIMITED'
+    this.#quality =
+      this.#config.bodyTrackingMode === 'UPPER_BODY' || features.fullBodyValid
+        ? 'READY'
+        : 'LIMITED'
     this.#advanceJumpPulse(frame.timestampMs)
     this.#analyzeMove(features)
     this.#analyzeLean(features)
     this.#analyzeReach(features)
-    this.#analyzeSquat(features)
-    this.#analyzeJump(features)
+    if (this.#config.bodyTrackingMode === 'FULL_BODY') {
+      this.#analyzeSquat(features)
+      this.#analyzeJump(features)
+    } else {
+      this.#neutralizeUnsupportedLowerBody(features.timestampMs)
+    }
     this.#previousHipY = features.hipMidpoint.y
     this.#previousFeatureTimestampMs = features.timestampMs
     this.#snapshotSequence += 1
@@ -217,6 +236,8 @@ export class PoseMotionAnalyzer {
       freshnessMs = Math.max(0, nowMs - this.#lastPoseTimestampMs)
       if (freshnessMs > this.#config.staleAfterMs) {
         this.#quality = 'LOST'
+        this.#upperBodyTrackingValid = false
+        this.#fullBodyTrackingValid = false
         this.#resetTransientStates()
         this.#neutralizeActions(nowMs)
       }
@@ -237,6 +258,12 @@ export class PoseMotionAnalyzer {
       sequence: this.#snapshotSequence,
       quality: this.#quality,
       baselineReady: Boolean(this.#baseline),
+      upperBodyReady:
+        Boolean(this.#baseline) && this.#upperBodyTrackingValid,
+      fullBodyReady:
+        Boolean(this.#baseline) &&
+        this.#config.bodyTrackingMode === 'FULL_BODY' &&
+        this.#fullBodyTrackingValid,
       baselineProgress: this.#baselineProgress,
       freshnessMs,
       squatState: this.#squatState,
@@ -324,7 +351,10 @@ export class PoseMotionAnalyzer {
       aspectRatio: accumulator.aspectRatio / divisor,
     }
     this.#baselineProgress = 1
-    this.#quality = features.fullBodyValid ? 'READY' : 'LIMITED'
+    this.#quality =
+      this.#config.bodyTrackingMode === 'UPPER_BODY' || features.fullBodyValid
+        ? 'READY'
+        : 'LIMITED'
     this.#previousHipY = features.hipMidpoint.y
     this.#previousFeatureTimestampMs = features.timestampMs
   }
@@ -813,6 +843,18 @@ export class PoseMotionAnalyzer {
     }
   }
 
+  #neutralizeUnsupportedLowerBody(timestampMs: number): void {
+    this.#squatState = 'STANDING'
+    this.#squatCandidateFrames = 0
+    this.#squatCandidateLastQualifiedAtMs = 0
+    this.#jumpState = 'GROUNDED'
+    this.#jumpCandidateStartedAtMs = 0
+    this.#jumpRefractoryUntilMs = 0
+    this.#smoothedSquatDepth = 0
+    this.#setAction('SQUAT', 0, 0, timestampMs)
+    this.#setAction('JUMP', 0, 0, timestampMs)
+  }
+
   #setAction(
     actionId: MotionActionId,
     rawValue: number,
@@ -894,6 +936,8 @@ export class PoseMotionAnalyzer {
     this.#baselineAccumulator = undefined
     this.#baselineProgress = 0
     this.#quality = 'LOST'
+    this.#upperBodyTrackingValid = false
+    this.#fullBodyTrackingValid = false
     this.#resetTransientStates()
   }
 }

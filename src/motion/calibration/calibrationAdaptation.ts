@@ -270,11 +270,19 @@ export function resolvePoseMotionConfig(
   const candidateGraceMs = reactionCandidateGraceMs(
     abilityProfile.reactionWindowScale,
   )
+  const upperBodyMode = abilityProfile.bodyRange === 'UPPER_BODY'
   const canonicalCalibration =
-    isCanonicalV1(calibration) && calibration.steps.NEUTRAL === 'COMPLETE'
+    !upperBodyMode &&
+    isCanonicalV1(calibration) &&
+    calibration.steps.NEUTRAL === 'COMPLETE'
       ? calibration
       : undefined
-  if (!canonicalCalibration && abilityScale === 1 && candidateGraceMs === 0) {
+  if (
+    !upperBodyMode &&
+    !canonicalCalibration &&
+    abilityScale === 1 &&
+    candidateGraceMs === 0
+  ) {
     return standardResult()
   }
   const adapted = {
@@ -430,6 +438,7 @@ export function resolvePoseMotionConfig(
 
   const config = freezeConfig({
     ...POSE_MOTION_CONFIG,
+    bodyTrackingMode: upperBodyMode ? 'UPPER_BODY' : 'FULL_BODY',
     detectorCandidateGraceMs: candidateGraceMs,
     move: { left: moveLeft, right: moveRight },
     lean: { left: leanLeft, right: leanRight },
