@@ -163,7 +163,8 @@ describe('CameraPresentationStage', () => {
     expect(markup).toContain('data-framing-requirement="UPPER_BODY"')
     expect(markup).toContain('camera-presentation-silhouette-head')
     expect(markup).toContain('camera-presentation-silhouette-body')
-    expect(markup).toContain('請將上半身移到人形範圍內')
+    expect(markup).toContain('camera-presentation-silhouette-hand')
+    expect(markup).toContain('請對準人形範圍')
     expect(markup).not.toContain('M120 98 L120 286')
   })
 

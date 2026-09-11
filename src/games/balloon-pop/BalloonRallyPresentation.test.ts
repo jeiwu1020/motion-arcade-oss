@@ -65,9 +65,12 @@ describe('Balloon Rally presentation helpers', () => {
   it('maps multi-hit balloons to readable damage stages while one-hit targets stay clean', () => {
     expect(getBalloonRallyDamageStage('STANDARD', 2, 2)).toBe('NONE')
     expect(getBalloonRallyDamageStage('STANDARD', 1, 2)).toBe('CRACKED')
+    expect(getBalloonRallyDamageStage('GIANT', 3, 3)).toBe('NONE')
+    expect(getBalloonRallyDamageStage('GIANT', 2, 3)).toBe('CRACKED')
+    expect(getBalloonRallyDamageStage('GIANT', 1, 3)).toBe('HEAVILY_CRACKED')
     expect(getBalloonRallyDamageStage('GIANT', 4, 4)).toBe('NONE')
     expect(getBalloonRallyDamageStage('GIANT', 3, 4)).toBe('CRACKED')
-    expect(getBalloonRallyDamageStage('GIANT', 2, 4)).toBe('CRACKED')
+    expect(getBalloonRallyDamageStage('GIANT', 2, 4)).toBe('CRACKED_DOUBLE')
     expect(getBalloonRallyDamageStage('GIANT', 1, 4)).toBe('HEAVILY_CRACKED')
     expect(getBalloonRallyDamageStage('GOLDEN', 1, 1)).toBe('NONE')
     expect(getBalloonRallyDamageStage('PARTY', 1, 1)).toBe('NONE')

@@ -153,8 +153,8 @@ describe('camera presentation model', () => {
 
     expect(upperBodyBaseline).toMatchObject({
       framingRequirement: 'UPPER_BODY',
-      headline: '上半身保持在框內',
-      detail: '讓頭部、肩膀與雙手清楚可見，左右留出揮手空間。',
+      headline: '請對準人形範圍',
+      detail: '讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。',
     })
     expect(upperBodyLoss.detail).toContain('頭部、肩膀與雙手')
     expect(resolveCameraPresentation(snapshot('BASELINING'), 'COUNTDOWN'))

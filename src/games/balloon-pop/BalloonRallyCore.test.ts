@@ -219,26 +219,45 @@ describe('Balloon Rally v2 core', () => {
     expect(expired.balloons.some((balloon) => balloon.kind === 'GOLDEN')).toBe(false)
   })
 
-  it('spawns one four-hit Giant Balloon during Fever and removes it at Party Rush', () => {
-    let state = begin(41)
-    state = advanceBalloonRally(state, {
-      deltaMs: BALLOON_RALLY_RULES.giantSpawnMs,
+  it('runs two deterministic Giant moments with distinct durability, radius, value, and safe expiry', () => {
+    let earlyState = begin(41)
+    earlyState = advanceBalloonRally(earlyState, {
+      deltaMs: BALLOON_RALLY_RULES.giantEarlySpawnMs,
       interactionRegion: REGION,
       contacts: [],
     })
-    const giant = state.balloons.find((balloon) => balloon.kind === 'GIANT')
-    expect(giant).toMatchObject({ hp: 4, maxHp: 4, radius: BALLOON_RALLY_RULES.giantRadius })
+    const early = earlyState.balloons.find((balloon) => balloon.kind === 'GIANT')
+    expect(early).toMatchObject({ giantVariant: 1, hp: 3, maxHp: 3, radius: BALLOON_RALLY_RULES.giantEarlyRadius })
+    for (let index = 0; index < 3; index += 1) earlyState = hit(earlyState, early?.id ?? -1)
+    expect(earlyState).toMatchObject({ score: 6, hits: 3, pops: 1, giantsSpawned: 1 })
 
-    for (let index = 0; index < 4; index += 1) state = hit(state, giant?.id ?? -1)
-    expect(state).toMatchObject({ score: 8, hits: 4, pops: 1 })
-    expect(state.balloons.some((balloon) => balloon.kind === 'GIANT')).toBe(false)
-
-    state = advanceBalloonRally(state, {
-      deltaMs: BALLOON_RALLY_RULES.partyRushStartMs - state.elapsedMs,
+    const expired = advanceBalloonRally(begin(41), {
+      deltaMs: BALLOON_RALLY_RULES.giantEarlyExpiryMs,
       interactionRegion: REGION,
       contacts: [],
     })
-    expect(state.balloons.some((balloon) => balloon.kind === 'GIANT')).toBe(false)
+    expect(expired.giantsSpawned).toBe(1)
+    expect(expired.pops).toBe(0)
+    expect(expired.balloons.some((balloon) => balloon.kind === 'GIANT')).toBe(false)
+
+    let mainState = advanceBalloonRally(expired, {
+      deltaMs: BALLOON_RALLY_RULES.giantMainSpawnMs - expired.elapsedMs,
+      interactionRegion: REGION,
+      contacts: [],
+    })
+    const main = mainState.balloons.find((balloon) => balloon.kind === 'GIANT')
+    expect(main).toMatchObject({ giantVariant: 2, hp: 4, maxHp: 4, radius: BALLOON_RALLY_RULES.giantMainRadius })
+    expect(mainState.balloons.filter((balloon) => balloon.kind === 'GIANT')).toHaveLength(1)
+    for (let index = 0; index < 4; index += 1) mainState = hit(mainState, main?.id ?? -1)
+    expect(mainState).toMatchObject({ score: 8, hits: 4, pops: 1, giantsSpawned: 2 })
+    expect(mainState.balloons.some((balloon) => balloon.kind === 'GIANT')).toBe(false)
+
+    const party = advanceBalloonRally(mainState, {
+      deltaMs: BALLOON_RALLY_RULES.partyRushStartMs - mainState.elapsedMs,
+      interactionRegion: REGION,
+      contacts: [],
+    })
+    expect(party.balloons.some((balloon) => balloon.kind === 'GIANT')).toBe(false)
   })
 
   it('selects exactly one deterministic mini-event and bounds event targets', () => {
@@ -276,7 +295,7 @@ describe('Balloon Rally v2 core', () => {
 
   it('preserves standard population separately from specials and cleans specials at Party Rush', () => {
     let state = begin(7)
-    state = advanceBalloonRally(state, { deltaMs: 40_000, interactionRegion: REGION, contacts: [] })
+    state = advanceBalloonRally(state, { deltaMs: 42_000, interactionRegion: REGION, contacts: [] })
     expect(state.balloons.filter((balloon) => balloon.kind === 'STANDARD')).toHaveLength(4)
     expect(state.balloons.some((balloon) => balloon.kind === 'GIANT')).toBe(true)
     state = advanceBalloonRally(state, { deltaMs: 10_000, interactionRegion: REGION, contacts: [] })

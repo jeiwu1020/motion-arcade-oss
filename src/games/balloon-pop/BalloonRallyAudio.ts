@@ -22,6 +22,7 @@ export const BALLOON_RALLY_AUDIO_ASSETS = Object.freeze({
   partyRush: '/audio/balloon-rally/party-rush.mp3',
   countdown: '/audio/balloon-rally/countdown.mp3',
   finish: '/audio/balloon-rally/finish.mp3',
+  cheer: '/audio/balloon-rally/cheer.mp3',
 })
 
 export const BALLOON_RALLY_AUDIO_CONFIG = Object.freeze({
@@ -42,7 +43,7 @@ const SFX_SOURCES: Readonly<Record<BalloonRallySfxEvent, readonly string[]>> = O
   MINI_EVENT_START: [BALLOON_RALLY_AUDIO_ASSETS.eventStart],
   PARTY_RUSH_START: [BALLOON_RALLY_AUDIO_ASSETS.partyRush],
   COUNTDOWN_TICK: [BALLOON_RALLY_AUDIO_ASSETS.countdown],
-  ROUND_FINISH: [BALLOON_RALLY_AUDIO_ASSETS.finish],
+  ROUND_FINISH: [BALLOON_RALLY_AUDIO_ASSETS.finish, BALLOON_RALLY_AUDIO_ASSETS.cheer],
 })
 
 const SFX_GAINS: Readonly<Record<BalloonRallySfxEvent, readonly number[]>> = Object.freeze({
@@ -56,7 +57,7 @@ const SFX_GAINS: Readonly<Record<BalloonRallySfxEvent, readonly number[]>> = Obj
   MINI_EVENT_START: [0.6],
   PARTY_RUSH_START: [0.72],
   COUNTDOWN_TICK: [0.6],
-  ROUND_FINISH: [0.66],
+  ROUND_FINISH: [0.68, 0.43],
 })
 
 export function getBalloonRallyAudioSources(event: BalloonRallySfxEvent): readonly string[] {
@@ -80,6 +81,7 @@ export class BalloonRallyAudio {
   #voices = new Set<AudioBufferSourceNode>()
   #bgm: HTMLAudioElement | null = null
   #bgmFadeFrame: number | null = null
+  #pendingTimers = new Set<ReturnType<typeof setTimeout>>()
   readonly #environment: BalloonRallyAudioEnvironment
 
   constructor(environment: BalloonRallyAudioEnvironment = {}) {
@@ -105,6 +107,11 @@ export class BalloonRallyAudio {
     if (!this.#unlocked || !this.#context) return
     const sources = SFX_SOURCES[event]
     const gains = SFX_GAINS[event]
+    if (event === 'ROUND_FINISH') {
+      this.#playBuffer(sources[0] ?? BALLOON_RALLY_AUDIO_ASSETS.finish, gains[0] ?? 0.68)
+      this.#scheduleDelayedBuffer(sources[1] ?? BALLOON_RALLY_AUDIO_ASSETS.cheer, gains[1] ?? 0.43, 300)
+      return
+    }
     sources.forEach((source, index) => this.#playBuffer(source, gains[index] ?? 0.6))
   }
 
@@ -153,7 +160,13 @@ export class BalloonRallyAudio {
     return this.#bgm !== null
   }
 
+  /** Cancels delayed one-shot effects when a round is replayed or abandoned. */
+  resetRoundAudio(): void {
+    this.#cancelPendingTimers()
+  }
+
   async dispose(): Promise<void> {
+    this.#cancelPendingTimers()
     this.stopBgm(true)
     this.#bgm = null
     for (const voice of this.#voices) {
@@ -224,6 +237,19 @@ export class BalloonRallyAudio {
     } catch {
       // A browser audio implementation can fail transiently after suspension.
     }
+  }
+
+  #scheduleDelayedBuffer(url: string, gainValue: number, delayMs: number): void {
+    const timer = setTimeout(() => {
+      this.#pendingTimers.delete(timer)
+      this.#playBuffer(url, gainValue)
+    }, delayMs)
+    this.#pendingTimers.add(timer)
+  }
+
+  #cancelPendingTimers(): void {
+    for (const timer of this.#pendingTimers) clearTimeout(timer)
+    this.#pendingTimers.clear()
   }
 
   #fadeBgmTo(target: number, onComplete?: () => void): void {

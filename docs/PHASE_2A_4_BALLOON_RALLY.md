@@ -38,7 +38,10 @@ foundation remains unchanged. v3 adds the following game-local rules:
 
 - deterministic Golden Balloons: one normal concurrent, 1 HP, 3,500 ms lifetime,
   `+1` hit plus `+4` pop bonus;
-- one Giant Balloon at 40 seconds: radius 112, 4 HP, `+4` pop bonus;
+- two deterministic Giant moments: #1 at 22 seconds (radius 96, 3 HP, five-
+  second maximum lifetime, `+3` pop bonus) and #2 at 42 seconds (radius 112,
+  4 HP, `+4` pop bonus); at most one Giant is active and unfinished Giants are
+removed harmlessly before/at Party Rush;
 - one seeded 6-second event between 27 and 33 seconds: GOLD_RUSH, BALLOON_RAIN,
   or SCORE_FEVER;
 - standard movement personalities FLOAT, DRIFT, and BOUNCE with bounded initial
@@ -99,10 +102,10 @@ targets stay clean. Party Rush remains capped at 420 logical px/s but escalates
 to 5/6/7 targets at 50/55/58 seconds, uses a 2,000 ms Combo window, and shows
 a non-blocking final 3/2/1 countdown while gameplay continues.
 
-The shared Camera Presentation layer now shows a translucent rounded human
-alignment silhouette rather than a stick figure. UPPER_BODY shows a broad
-head/shoulder/torso region and FULL_BODY adds legs. The guide copy is
-`請將上半身移到人形範圍內` or `請將全身移到人形範圍內`; the graphic remains
+The shared Camera Presentation layer now shows a large, lower translucent
+raised-arm human alignment silhouette rather than a stick figure. UPPER_BODY
+shows a broad relaxed-W posture and FULL_BODY remains the whole-body variant.
+Baseline guidance uses the compact copy `請對準人形範圍` plus `讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。`; the graphic remains
 presentation-only and does not alter readiness or Pose logic. `SCORE_FEVER` is
 the canonical mini-event spelling.
 

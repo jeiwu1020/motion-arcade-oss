@@ -49,11 +49,13 @@ event spawn cap described below. Normal Golden spawning stops at Party Rush.
 
 ## Giant Balloon
 
-Exactly one Giant Balloon is scheduled at 40 seconds, during FEVER and before
-Party Rush. It is an additional target with radius 112, 4 HP, and a slower
-55–90 px/s initial drift. Each separated contact gives `+1` and advances
-Combo; the fourth contact pops it for a `+4` bonus (`8` base points total).
-An unfinished Giant is removed without penalty at Party Rush.
+Two deterministic Giant moments are scheduled before and during FEVER. Giant #1 enters at
+22 seconds with radius 96, 3 HP, a slower 55–90 px/s drift, and a five-second
+maximum lifetime. Each separated contact gives `+1`; the third contact pops it
+for a `+3` bonus (`6` base points total). It expires harmlessly at 27 seconds.
+Giant #2 enters at 42 seconds with radius 112 and 4 HP; its fourth contact pops
+it for a `+4` bonus (`8` base points total). At most one Giant exists at a time,
+and any unfinished Giant is removed harmlessly at Party Rush.
 
 ## Combo and milestones
 

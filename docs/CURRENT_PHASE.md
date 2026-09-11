@@ -6,9 +6,9 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current implementation baseline before the final Balloon Rally game-feel pass:
+Current implementation baseline for the final Balloon Rally UX / variety pass:
 
-`fcf96686798041ceda68e09b6c549fcf454318e2` — Balloon Rally v2 tracking-policy fix
+`b70e72b32ed1e162328fe31981bf481eeb2aa9d7` — Balloon Rally v3 game-feel baseline
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -46,16 +46,18 @@ Windows/iPhone physical gameplay, audio, and framing validation remains
 required.
 
 Production 氣球拍拍樂 now uses deterministic 3-second/60-second Balloon Rally
-v3 rules: 2→3→4 standard 2-HP balloons at 0/15/35 seconds, seeded Golden and
-Giant reward targets, one six-second mini-event, then a distinct 5→6→7 target
-1-HP PARTY RUSH at 50/55/58 seconds. Separated spatial hand contacts, bounded arcade
+v3 rules: 2→3→4 standard 2-HP balloons at 0/15/35 seconds, seeded Golden,
+two separated Giant reward moments at 22/42 seconds, one six-second mini-event,
+then a distinct 5→6→7 target 1-HP PARTY RUSH at 50/55/58 seconds. Separated spatial
+hand contacts, bounded arcade
 impulses, immediate replacement, Combo, and result metrics remain authoritative
 in `BalloonRallyCore`; Phaser renders immutable state only. A bounded production
 Hand Glow Trail uses the same logical interaction points and remains cosmetic.
 Local MP3 SFX are gesture-unlocked and fail-silent; a single local BGM instance
-is limited to the active round. The shared setup/recovery guide uses a
-translucent UPPER_BODY or FULL_BODY human alignment silhouette and remains
-presentation-only.
+is limited to the active round, and finish layers the Victory Fanfare with a
+delayed crowd cheer. The shared setup/recovery guide uses a large lower raised-
+arm UPPER_BODY or FULL_BODY human alignment silhouette and remains presentation-
+only.
 
 Balloon Rally explicitly opts into UPPER_BODY readiness: a stable torso/core
 baseline and READY quality remain required, while knees/ankles are not. After

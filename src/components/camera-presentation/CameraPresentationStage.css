@@ -167,7 +167,8 @@
 
 .camera-presentation-silhouette-head,
 .camera-presentation-silhouette-body,
-.camera-presentation-silhouette-legs {
+.camera-presentation-silhouette-legs,
+.camera-presentation-silhouette-hand {
   vector-effect: non-scaling-stroke;
 }
 
@@ -176,7 +177,9 @@
 }
 
 .camera-presentation-silhouette-body,
-.camera-presentation-silhouette-legs {
+.camera-presentation-silhouette-legs,
+.camera-presentation-silhouette-upper,
+.camera-presentation-silhouette-hand {
   fill: rgb(247 251 255 / 10%);
 }
 
@@ -204,18 +207,59 @@
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
   .camera-presentation-frame-boundary {
-  inset: 9% 13%;
+  inset: 8% 7%;
+  border-width: 0.12rem;
+  opacity: 0.48;
 }
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
   .camera-presentation-body-guide {
-  top: 8%;
-  width: min(48%, 20rem);
-  height: 64%;
+  top: 2%;
+  width: 62%;
+  height: 94%;
 }
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY'] > span {
-  bottom: 12%;
+  bottom: 4%;
+}
+
+.camera-presentation-stage[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-status[data-overlay='GUIDANCE'] {
+  align-items: end;
+  padding: 0 clamp(0.5rem, 2vw, 1.25rem) clamp(0.45rem, 1.2vh, 0.85rem);
+}
+
+.camera-presentation-stage[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-status[data-overlay='GUIDANCE']
+  .camera-presentation-status-card {
+  width: min(52rem, 94%);
+  border-radius: 0.85rem;
+  padding: clamp(0.45rem, 1.1vw, 0.8rem) clamp(0.8rem, 2vw, 1.4rem);
+  background: rgb(6 27 45 / 78%);
+}
+
+.camera-presentation-stage[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-status[data-overlay='GUIDANCE']
+  .camera-presentation-status-card h2 {
+  font-size: clamp(1.15rem, 2.7vw, 2.15rem);
+}
+
+.camera-presentation-stage[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-framing[data-framing-guide='PROMINENT'] > span {
+  display: none;
+}
+
+.camera-presentation-stage[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-status[data-overlay='GUIDANCE']
+  .camera-presentation-status-card p {
+  display: none;
+}
+
+.camera-presentation-stage[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-status[data-overlay='GUIDANCE']
+  .camera-presentation-status-card span {
+  margin-top: 0.16rem;
+  font-size: clamp(0.76rem, 1.35vw, 1rem);
 }
 
 .camera-presentation-framing[data-framing-guide='SUBTLE'] {
@@ -365,6 +409,12 @@
   .camera-presentation-body-guide {
     top: 4%;
     height: 78%;
+  }
+
+  .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
+    .camera-presentation-body-guide {
+    top: 0;
+    height: 94%;
   }
 
   .camera-presentation-framing > span {

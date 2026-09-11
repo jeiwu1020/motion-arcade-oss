@@ -40,7 +40,7 @@ export class BalloonRallyScene extends Phaser.Scene {
     right: { anchor: null, points: [] },
   }
   #partyRushSeen = false
-  #giantCueSeen = false
+  #lastGiantsSpawned = 0
   #lastPops = 0
   #lastPartyPopulation = 0
   #lastCountdownNumber = 0
@@ -114,12 +114,13 @@ export class BalloonRallyScene extends Phaser.Scene {
     const state = this.#session.getState()
     if (!state.partyRush) this.#partyRushSeen = false
     if (state.phase === 'COUNTDOWN') {
+      this.#audio?.resetRoundAudio()
       this.#audio?.stopBgm(true)
       this.#activeBgmStarted = false
       this.#finishAudioSeen = false
       this.#clearBalloons()
       this.#clearHandGlow()
-      this.#giantCueSeen = false
+      this.#lastGiantsSpawned = 0
       this.#lastPops = 0
       this.#lastPartyPopulation = 0
       this.#previousPresentationState = this.#toPresentationState(state)
@@ -196,9 +197,9 @@ export class BalloonRallyScene extends Phaser.Scene {
       this.#pulsePartyEdge(0xffdc69)
     }
     this.#lastPartyPopulation = partyPopulation
-    if (state.giantSpawned && !this.#giantCueSeen) {
+    if (state.giantsSpawned > this.#lastGiantsSpawned) {
       this.#showAnnouncement('GIANT BALLOON!', '#ffd75f', 76, 0xd9a8ff)
-      this.#giantCueSeen = true
+      this.#lastGiantsSpawned = state.giantsSpawned
     }
   }
 
@@ -361,12 +362,12 @@ export class BalloonRallyScene extends Phaser.Scene {
         this.#audio?.play(balloon.kind === 'GIANT' ? 'GIANT_HIT' : 'NORMAL_HIT')
         this.#impact(balloon.x, balloon.y, balloon.kind)
         this.tweens.killTweensOf(rendered.container)
-        rendered.container.setScale(1.18, 0.78)
+        rendered.container.setScale(balloon.kind === 'GIANT' ? 1.3 : 1.18, balloon.kind === 'GIANT' ? 0.7 : 0.78)
         this.tweens.add({
           targets: rendered.container,
           scaleX: 1,
           scaleY: 1,
-          duration: 150,
+          duration: balloon.kind === 'GIANT' ? 190 : 150,
           ease: 'Back.Out',
         })
         this.#balloons.set(balloon.id, { ...rendered, lastHp: balloon.hp })
@@ -394,14 +395,19 @@ export class BalloonRallyScene extends Phaser.Scene {
     const rendered = { container, body, damage, bodyColor, kind: balloon.kind, lastHp: balloon.hp }
     this.#updateDamageVisual(rendered, balloon)
     this.#balloons.set(balloon.id, rendered)
-    this.tweens.add({ targets: container, scale: { from: 0.72, to: 1 }, duration: 170, ease: 'Back.Out' })
+    this.tweens.add({
+      targets: container,
+      scale: { from: giant ? 0.5 : 0.72, to: 1 },
+      duration: giant ? 260 : 170,
+      ease: 'Back.Out',
+    })
     return rendered
   }
 
   #updateDamageVisual(rendered: RenderedBalloon, balloon: BalloonRallyBalloon): void {
     const stage = getBalloonRallyDamageStage(balloon.kind, balloon.hp, balloon.maxHp)
     const damagedColor = balloon.kind === 'GIANT'
-      ? (stage === 'HEAVILY_CRACKED' ? 0x754f9a : stage === 'CRACKED' ? 0x9565bd : rendered.bodyColor)
+      ? (stage === 'HEAVILY_CRACKED' ? 0x65417f : stage === 'CRACKED_DOUBLE' ? 0x794f9f : stage === 'CRACKED' ? 0x9565bd : rendered.bodyColor)
       : stage === 'CRACKED' ? 0xb84d73 : rendered.bodyColor
     rendered.body.setFillStyle(damagedColor)
     rendered.damage.clear()
@@ -415,12 +421,14 @@ export class BalloonRallyScene extends Phaser.Scene {
     rendered.damage.lineTo(-radius * 0.16, radius * 0.12)
     rendered.damage.lineTo(radius * 0.12, radius * 0.72)
     rendered.damage.strokePath()
-    if (stage === 'HEAVILY_CRACKED') {
+    if (stage === 'CRACKED_DOUBLE' || stage === 'HEAVILY_CRACKED') {
       rendered.damage.beginPath()
       rendered.damage.moveTo(radius * 0.36, -radius * 0.56)
       rendered.damage.lineTo(radius * 0.18, -radius * 0.12)
       rendered.damage.lineTo(radius * 0.42, radius * 0.28)
       rendered.damage.strokePath()
+    }
+    if (stage === 'HEAVILY_CRACKED') {
       rendered.damage.beginPath()
       rendered.damage.moveTo(-radius * 0.48, radius * 0.44)
       rendered.damage.lineTo(-radius * 0.22, radius * 0.2)
@@ -430,10 +438,10 @@ export class BalloonRallyScene extends Phaser.Scene {
 
   #impact(x: number, y: number, kind: BalloonRallyBalloon['kind']): void {
     const strong = kind === 'PARTY' || kind === 'GOLDEN' || kind === 'GIANT'
-    const ring = this.add.circle(x, y, kind === 'GIANT' ? 34 : 24, 0xffffff, 0).setStrokeStyle(strong ? 12 : 9, kind === 'GOLDEN' ? 0xffec70 : kind === 'GIANT' ? 0xd9a8ff : strong ? 0xffec70 : 0xffffff, 1)
+    const ring = this.add.circle(x, y, kind === 'GIANT' ? 45 : 24, 0xffffff, 0).setStrokeStyle(kind === 'GIANT' ? 14 : strong ? 12 : 9, kind === 'GOLDEN' ? 0xffec70 : kind === 'GIANT' ? 0xd9a8ff : strong ? 0xffec70 : 0xffffff, 1)
     this.tweens.add({
       targets: ring,
-      scale: kind === 'GIANT' ? 2.8 : strong ? 2.5 : 1.85,
+      scale: kind === 'GIANT' ? 3.2 : strong ? 2.5 : 1.85,
       alpha: 0,
       duration: strong ? 220 : 170,
       onComplete: () => ring.destroy(),
@@ -442,13 +450,13 @@ export class BalloonRallyScene extends Phaser.Scene {
 
   #pop(x: number, y: number, kind: BalloonRallyBalloon['kind']): void {
     const strong = kind === 'PARTY' || kind === 'GOLDEN' || kind === 'GIANT'
-    const radius = kind === 'GIANT' ? 55 : strong ? 38 : 32
+    const radius = kind === 'GIANT' ? 64 : strong ? 38 : 32
     const color = kind === 'GOLDEN' ? 0xffd85c : kind === 'GIANT' ? 0xd9a8ff : strong ? 0xffd85c : 0xffef8a
     const ring = this.add.circle(x, y, radius, 0xffffff, 0)
-      .setStrokeStyle(kind === 'GIANT' ? 18 : strong ? 14 : 10, color, 1)
+      .setStrokeStyle(kind === 'GIANT' ? 20 : strong ? 14 : 10, color, 1)
     this.tweens.add({
       targets: ring,
-      scale: kind === 'GIANT' ? 3.4 : strong ? 3 : 2.3,
+      scale: kind === 'GIANT' ? 3.7 : strong ? 3 : 2.3,
       alpha: 0,
       duration: kind === 'GIANT' ? 380 : strong ? 300 : 250,
       onComplete: () => ring.destroy(),

@@ -11,11 +11,13 @@ export const BALLOON_RALLY_RULES = Object.freeze({
   ordinaryMaxHp: 2,
   partyMaxHp: 1,
   goldenMaxHp: 1,
-  giantMaxHp: 4,
+  giantEarlyMaxHp: 3,
+  giantMainMaxHp: 4,
   bonusMaxHp: 1,
   visualRadius: 68,
   goldenRadius: 68,
-  giantRadius: 112,
+  giantEarlyRadius: 96,
+  giantMainRadius: 112,
   bonusRadius: 62,
   spawnSeparation: 18,
   initialMinimumSpeed: 70,
@@ -38,14 +40,17 @@ export const BALLOON_RALLY_RULES = Object.freeze({
   standardPopBonus: 2,
   partyPopBonus: 1,
   goldenPopBonus: 4,
-  giantPopBonus: 4,
+  giantEarlyPopBonus: 3,
+  giantMainPopBonus: 4,
   bonusPopBonus: 1,
   goldenLifetimeMs: 3_500,
   goldenFirstMinimumMs: 8_000,
   goldenFirstMaximumMs: 12_000,
   goldenIntervalMinimumMs: 8_000,
   goldenIntervalMaximumMs: 12_000,
-  giantSpawnMs: 40_000,
+  giantEarlySpawnMs: 22_000,
+  giantEarlyExpiryMs: 27_000,
+  giantMainSpawnMs: 42_000,
   miniEventMinimumStartMs: 27_000,
   miniEventMaximumStartMs: 33_000,
   miniEventDurationMs: 6_000,
@@ -67,12 +72,14 @@ export type BalloonRallyPhase = 'COUNTDOWN' | 'PLAYING' | 'FINISHED'
 export type BalloonHandSide = 'LEFT' | 'RIGHT'
 export type BalloonRallyProgression = 'WARM_UP' | 'RALLY' | 'FEVER' | 'PARTY_RUSH'
 export type BalloonRallyBalloonKind = 'STANDARD' | 'PARTY' | 'GOLDEN' | 'GIANT' | 'BONUS'
+export type BalloonRallyGiantVariant = 1 | 2
 export type BalloonRallyMiniEventKind = 'GOLD_RUSH' | 'BALLOON_RAIN' | 'SCORE_FEVER'
 export type BalloonRallyMovementPersonality = 'FLOAT' | 'DRIFT' | 'BOUNCE'
 
 export interface BalloonRallyBalloon {
   readonly id: number
   readonly kind: BalloonRallyBalloonKind
+  readonly giantVariant: BalloonRallyGiantVariant | null
   readonly personality: BalloonRallyMovementPersonality
   readonly x: number
   readonly y: number
@@ -114,7 +121,7 @@ export interface BalloonRallyState {
   readonly randomState: number
   readonly initialSeed: number
   readonly goldenNextSpawnMs: number
-  readonly giantSpawned: boolean
+  readonly giantsSpawned: 0 | 1 | 2
   readonly miniEventKind: BalloonRallyMiniEventKind
   readonly miniEventStartMs: number
   readonly miniEventStarted: boolean
@@ -184,8 +191,8 @@ function hasUsableRegion(region: LogicalPlayfieldRect | null): region is Logical
       Number.isFinite(region.y) &&
       Number.isFinite(region.width) &&
       Number.isFinite(region.height) &&
-      region.width >= BALLOON_RALLY_RULES.giantRadius * 2 + 2 &&
-      region.height >= BALLOON_RALLY_RULES.giantRadius * 2 + 2,
+      region.width >= BALLOON_RALLY_RULES.giantMainRadius * 2 + 2 &&
+      region.height >= BALLOON_RALLY_RULES.giantMainRadius * 2 + 2,
   )
 }
 
@@ -200,8 +207,8 @@ function speedLimit(vx: number, vy: number, maximumSpeed: number): readonly [num
   return [vx * multiplier, vy * multiplier]
 }
 
-function radiusFor(kind: BalloonRallyBalloonKind): number {
-  if (kind === 'GIANT') return BALLOON_RALLY_RULES.giantRadius
+function radiusFor(kind: BalloonRallyBalloonKind, giantVariant: BalloonRallyGiantVariant | null = null): number {
+  if (kind === 'GIANT') return giantVariant === 1 ? BALLOON_RALLY_RULES.giantEarlyRadius : BALLOON_RALLY_RULES.giantMainRadius
   if (kind === 'BONUS') return BALLOON_RALLY_RULES.bonusRadius
   return BALLOON_RALLY_RULES.visualRadius
 }
@@ -214,10 +221,10 @@ function maximumSpeedFor(balloon: BalloonRallyBalloon): number {
   return BALLOON_RALLY_RULES.ordinaryMaximumSpeed
 }
 
-function maxHpFor(kind: BalloonRallyBalloonKind): number {
+function maxHpFor(kind: BalloonRallyBalloonKind, giantVariant: BalloonRallyGiantVariant | null = null): number {
   if (kind === 'PARTY') return BALLOON_RALLY_RULES.partyMaxHp
   if (kind === 'GOLDEN') return BALLOON_RALLY_RULES.goldenMaxHp
-  if (kind === 'GIANT') return BALLOON_RALLY_RULES.giantMaxHp
+  if (kind === 'GIANT') return giantVariant === 1 ? BALLOON_RALLY_RULES.giantEarlyMaxHp : BALLOON_RALLY_RULES.giantMainMaxHp
   if (kind === 'BONUS') return BALLOON_RALLY_RULES.bonusMaxHp
   return BALLOON_RALLY_RULES.ordinaryMaxHp
 }
@@ -294,7 +301,7 @@ function personalityForUnit(unit: number): BalloonRallyMovementPersonality {
   return 'BOUNCE'
 }
 
-function speedRangeFor(kind: BalloonRallyBalloonKind, personality: BalloonRallyMovementPersonality): Readonly<{ minimum: number; maximum: number }> {
+function speedRangeFor(kind: BalloonRallyBalloonKind, personality: BalloonRallyMovementPersonality, _giantVariant: BalloonRallyGiantVariant | null = null): Readonly<{ minimum: number; maximum: number }> {
   if (kind === 'PARTY') return { minimum: BALLOON_RALLY_RULES.partyInitialMinimumSpeed, maximum: BALLOON_RALLY_RULES.partyInitialMaximumSpeed }
   if (kind === 'GOLDEN') return { minimum: BALLOON_RALLY_RULES.goldenInitialMinimumSpeed, maximum: BALLOON_RALLY_RULES.goldenInitialMaximumSpeed }
   if (kind === 'GIANT') return { minimum: BALLOON_RALLY_RULES.giantInitialMinimumSpeed, maximum: BALLOON_RALLY_RULES.giantInitialMaximumSpeed }
@@ -304,8 +311,8 @@ function speedRangeFor(kind: BalloonRallyBalloonKind, personality: BalloonRallyM
   return { minimum: BALLOON_RALLY_RULES.initialMinimumSpeed, maximum: BALLOON_RALLY_RULES.initialMaximumSpeed }
 }
 
-function initialVelocity(kind: BalloonRallyBalloonKind, personality: BalloonRallyMovementPersonality, angleUnit: number, speedUnit: number): Readonly<{ vx: number; vy: number }> {
-  const range = speedRangeFor(kind, personality)
+function initialVelocity(kind: BalloonRallyBalloonKind, personality: BalloonRallyMovementPersonality, angleUnit: number, speedUnit: number, giantVariant: BalloonRallyGiantVariant | null = null): Readonly<{ vx: number; vy: number }> {
+  const range = speedRangeFor(kind, personality, giantVariant)
   const speed = range.minimum + (range.maximum - range.minimum) * speedUnit
   if (personality === 'DRIFT') {
     const direction = angleUnit < 0.5 ? -1 : 1
@@ -316,8 +323,8 @@ function initialVelocity(kind: BalloonRallyBalloonKind, personality: BalloonRall
   return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed }
 }
 
-function spawnBalloon(state: BalloonRallyState, existing: readonly BalloonRallyBalloon[], region: LogicalPlayfieldRect, kind: BalloonRallyBalloonKind): Readonly<{ balloon: BalloonRallyBalloon; randomState: number }> {
-  const radius = radiusFor(kind)
+function spawnBalloon(state: BalloonRallyState, existing: readonly BalloonRallyBalloon[], region: LogicalPlayfieldRect, kind: BalloonRallyBalloonKind, giantVariant: BalloonRallyGiantVariant | null = null): Readonly<{ balloon: BalloonRallyBalloon; randomState: number }> {
+  const radius = radiusFor(kind, giantVariant)
   const bounds = interior(region, radius)
   let randomState = state.randomState
   let candidate: BalloonRallyBalloon | null = null
@@ -329,18 +336,19 @@ function spawnBalloon(state: BalloonRallyState, existing: readonly BalloonRallyB
     const [personalityUnit, afterPersonality] = nextRandom(afterSpeed)
     randomState = afterPersonality
     const personality = kind === 'STANDARD' ? personalityForUnit(personalityUnit) : kind === 'BONUS' ? 'BOUNCE' : 'FLOAT'
-    const velocity = initialVelocity(kind, personality, angleUnit, speedUnit)
+    const velocity = initialVelocity(kind, personality, angleUnit, speedUnit, giantVariant)
     candidate = {
       id: state.nextBalloonId,
       kind,
+      giantVariant,
       personality,
       x: bounds.left + (bounds.right - bounds.left) * xUnit,
       y: bounds.top + (bounds.bottom - bounds.top) * yUnit,
       vx: velocity.vx,
       vy: velocity.vy,
       radius,
-      hp: maxHpFor(kind),
-      maxHp: maxHpFor(kind),
+      hp: maxHpFor(kind, giantVariant),
+      maxHp: maxHpFor(kind, giantVariant),
       ageMs: 0,
     }
     if (!candidateOverlaps(candidate, existing)) break
@@ -349,14 +357,15 @@ function spawnBalloon(state: BalloonRallyState, existing: readonly BalloonRallyB
     balloon: candidate ?? {
       id: state.nextBalloonId,
       kind,
+      giantVariant,
       personality: kind === 'STANDARD' ? 'FLOAT' : 'FLOAT',
       x: (bounds.left + bounds.right) / 2,
       y: (bounds.top + bounds.bottom) / 2,
-      vx: speedRangeFor(kind, 'FLOAT').minimum,
+      vx: speedRangeFor(kind, 'FLOAT', giantVariant).minimum,
       vy: 0,
       radius,
-      hp: maxHpFor(kind),
-      maxHp: maxHpFor(kind),
+      hp: maxHpFor(kind, giantVariant),
+      maxHp: maxHpFor(kind, giantVariant),
       ageMs: 0,
     },
     randomState,
@@ -367,8 +376,8 @@ function countKind(state: BalloonRallyState, kind: BalloonRallyBalloonKind): num
   return state.balloons.filter((balloon) => balloon.kind === kind).length
 }
 
-function spawnOne(state: BalloonRallyState, region: LogicalPlayfieldRect, kind: BalloonRallyBalloonKind): BalloonRallyState {
-  const spawned = spawnBalloon(state, state.balloons, region, kind)
+function spawnOne(state: BalloonRallyState, region: LogicalPlayfieldRect, kind: BalloonRallyBalloonKind, giantVariant: BalloonRallyGiantVariant | null = null): BalloonRallyState {
+  const spawned = spawnBalloon(state, state.balloons, region, kind, giantVariant)
   return { ...state, balloons: [...state.balloons, spawned.balloon], nextBalloonId: state.nextBalloonId + 1, randomState: spawned.randomState }
 }
 
@@ -425,8 +434,13 @@ function synchronizeMiniEvent(state: BalloonRallyState, region: LogicalPlayfield
 function ensureSpecialTargets(state: BalloonRallyState, region: LogicalPlayfieldRect): BalloonRallyState {
   if (state.partyRush) return state
   let nextState = state
-  if (nextState.elapsedMs >= BALLOON_RALLY_RULES.giantSpawnMs && !nextState.giantSpawned && nextState.elapsedMs < BALLOON_RALLY_RULES.partyRushStartMs) {
-    nextState = { ...spawnOne(nextState, region, 'GIANT'), giantSpawned: true }
+  if (nextState.giantsSpawned === 0 && nextState.elapsedMs >= BALLOON_RALLY_RULES.giantEarlySpawnMs) {
+    nextState = nextState.elapsedMs < BALLOON_RALLY_RULES.giantEarlyExpiryMs
+      ? { ...spawnOne(nextState, region, 'GIANT', 1), giantsSpawned: 1 }
+      : { ...nextState, giantsSpawned: 1 }
+  }
+  if (nextState.giantsSpawned === 1 && nextState.elapsedMs >= BALLOON_RALLY_RULES.giantMainSpawnMs && nextState.elapsedMs < BALLOON_RALLY_RULES.partyRushStartMs) {
+    nextState = { ...spawnOne(nextState, region, 'GIANT', 2), giantsSpawned: 2 }
   }
   const goldenWindowOpen = (!nextState.miniEventStarted && nextState.elapsedMs < nextState.miniEventStartMs) || nextState.miniEventCompleted
   if (goldenWindowOpen && nextState.elapsedMs >= nextState.goldenNextSpawnMs && nextState.elapsedMs < BALLOON_RALLY_RULES.partyRushStartMs && countKind(nextState, 'GOLDEN') === 0) {
@@ -436,7 +450,13 @@ function ensureSpecialTargets(state: BalloonRallyState, region: LogicalPlayfield
 }
 
 function expireShortLivedTargets(state: BalloonRallyState): BalloonRallyState {
-  return { ...state, balloons: state.balloons.filter((balloon) => balloon.kind !== 'GOLDEN' || balloon.ageMs < BALLOON_RALLY_RULES.goldenLifetimeMs) }
+  return {
+    ...state,
+    balloons: state.balloons.filter((balloon) =>
+      (balloon.kind !== 'GOLDEN' || balloon.ageMs < BALLOON_RALLY_RULES.goldenLifetimeMs) &&
+      (balloon.kind !== 'GIANT' || balloon.giantVariant !== 1 || balloon.ageMs < BALLOON_RALLY_RULES.giantEarlyExpiryMs - BALLOON_RALLY_RULES.giantEarlySpawnMs),
+    ),
+  }
 }
 
 function updateComboForElapsedTime(state: BalloonRallyState, deltaMs: number): BalloonRallyState {
@@ -453,11 +473,11 @@ function scoreHit(state: BalloonRallyState): BalloonRallyState {
   return { ...state, score: state.score + 1 + comboBonus + eventBonus, hits: state.hits + 1, combo, bestCombo: Math.max(state.bestCombo, combo), comboRemainingMs: comboWindowMs }
 }
 
-function popBonusFor(kind: BalloonRallyBalloonKind): number {
-  if (kind === 'PARTY') return BALLOON_RALLY_RULES.partyPopBonus
-  if (kind === 'GOLDEN') return BALLOON_RALLY_RULES.goldenPopBonus
-  if (kind === 'GIANT') return BALLOON_RALLY_RULES.giantPopBonus
-  if (kind === 'BONUS') return BALLOON_RALLY_RULES.bonusPopBonus
+function popBonusFor(balloon: BalloonRallyBalloon): number {
+  if (balloon.kind === 'GIANT') return balloon.giantVariant === 1 ? BALLOON_RALLY_RULES.giantEarlyPopBonus : BALLOON_RALLY_RULES.giantMainPopBonus
+  if (balloon.kind === 'PARTY') return BALLOON_RALLY_RULES.partyPopBonus
+  if (balloon.kind === 'GOLDEN') return BALLOON_RALLY_RULES.goldenPopBonus
+  if (balloon.kind === 'BONUS') return BALLOON_RALLY_RULES.bonusPopBonus
   return BALLOON_RALLY_RULES.standardPopBonus
 }
 
@@ -469,7 +489,7 @@ function applyContact(inputState: BalloonRallyState, contact: BalloonRallyContac
   const state = scoreHit(inputState)
   const remainingHp = target.hp - 1
   if (remainingHp > 0) return { ...state, balloons: state.balloons.map((balloon) => balloon.id === target.id ? { ...balloon, hp: remainingHp, vx, vy } : balloon) }
-  const stateAfterPop: BalloonRallyState = { ...state, score: state.score + popBonusFor(target.kind), pops: state.pops + 1, balloons: state.balloons.filter((balloon) => balloon.id !== target.id) }
+  const stateAfterPop: BalloonRallyState = { ...state, score: state.score + popBonusFor(target), pops: state.pops + 1, balloons: state.balloons.filter((balloon) => balloon.id !== target.id) }
   const repopulated = stateAfterPop.partyRush ? populateParty(stateAfterPop, region) : populateStandard(stateAfterPop, region)
   return synchronizeMiniEvent(ensureSpecialTargets(repopulated, region), region)
 }
@@ -494,7 +514,7 @@ export function createBalloonRallyState(options: CreateBalloonRallyStateOptions 
   randomState = afterEventKind
   const miniEventKind: BalloonRallyMiniEventKind = eventUnit < 1 / 3 ? 'GOLD_RUSH' : eventUnit < 2 / 3 ? 'BALLOON_RAIN' : 'SCORE_FEVER'
   return freezeState({
-    phase: 'COUNTDOWN', countdownRemainingMs: BALLOON_RALLY_RULES.countdownMs, roundRemainingMs: BALLOON_RALLY_RULES.roundMs, elapsedMs: 0, progression: 'WARM_UP', score: 0, hits: 0, pops: 0, combo: 0, bestCombo: 0, comboRemainingMs: 0, partyRush: false, balloons: [], nextBalloonId: 1, randomState, initialSeed: seed, goldenNextSpawnMs: Math.round(goldenDelay), giantSpawned: false, miniEventKind, miniEventStartMs: Math.round(eventStart), miniEventStarted: false, miniEventCompleted: false, miniEventRemainingMs: 0, miniEventSpawnedCount: 0, miniEventSequence: 0,
+    phase: 'COUNTDOWN', countdownRemainingMs: BALLOON_RALLY_RULES.countdownMs, roundRemainingMs: BALLOON_RALLY_RULES.roundMs, elapsedMs: 0, progression: 'WARM_UP', score: 0, hits: 0, pops: 0, combo: 0, bestCombo: 0, comboRemainingMs: 0, partyRush: false, balloons: [], nextBalloonId: 1, randomState, initialSeed: seed, goldenNextSpawnMs: Math.round(goldenDelay), giantsSpawned: 0, miniEventKind, miniEventStartMs: Math.round(eventStart), miniEventStarted: false, miniEventCompleted: false, miniEventRemainingMs: 0, miniEventSpawnedCount: 0, miniEventSequence: 0,
   })
 }
 

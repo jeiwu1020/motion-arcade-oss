@@ -70,7 +70,7 @@ export function getBalloonRallyOneShotCues(
   return cues
 }
 
-export type BalloonRallyDamageStage = 'NONE' | 'CRACKED' | 'HEAVILY_CRACKED'
+export type BalloonRallyDamageStage = 'NONE' | 'CRACKED' | 'CRACKED_DOUBLE' | 'HEAVILY_CRACKED'
 
 /** Presentation-only damage mapping. One-hit targets intentionally stay clean. */
 export function getBalloonRallyDamageStage(
@@ -81,6 +81,7 @@ export function getBalloonRallyDamageStage(
   if (kind === 'STANDARD') return hp < maxHp ? 'CRACKED' : 'NONE'
   if (kind === 'GIANT') {
     if (hp <= 1) return 'HEAVILY_CRACKED'
+    if (maxHp >= 4 && hp === 2) return 'CRACKED_DOUBLE'
     if (hp < maxHp) return 'CRACKED'
   }
   return 'NONE'

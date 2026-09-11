@@ -44,7 +44,7 @@ describe('Balloon Rally local MP3 audio', () => {
       MINI_EVENT_START: [BALLOON_RALLY_AUDIO_ASSETS.eventStart],
       PARTY_RUSH_START: [BALLOON_RALLY_AUDIO_ASSETS.partyRush],
       COUNTDOWN_TICK: [BALLOON_RALLY_AUDIO_ASSETS.countdown],
-      ROUND_FINISH: [BALLOON_RALLY_AUDIO_ASSETS.finish],
+      ROUND_FINISH: [BALLOON_RALLY_AUDIO_ASSETS.finish, BALLOON_RALLY_AUDIO_ASSETS.cheer],
     }
     for (const [event, sources] of Object.entries(expected) as [BalloonRallySfxEvent, readonly string[]][]) {
       expect(getBalloonRallyAudioSources(event)).toEqual(sources)
@@ -90,5 +90,44 @@ describe('Balloon Rally local MP3 audio', () => {
     expect(() => audio.startBgm()).not.toThrow()
     await expect(audio.dispose()).resolves.toBeUndefined()
     expect(BALLOON_RALLY_AUDIO_CONFIG.maxSfxVoices).toBe(24)
+  })
+
+  it('plays the finish immediately, schedules one delayed cheer, and cancels it on reset/dispose', async () => {
+    vi.useFakeTimers()
+    const started: string[] = []
+    const audio = new BalloonRallyAudio({
+      audioContextFactory: () => ({
+        state: 'running',
+        resume: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+        decodeAudioData: vi.fn(async () => ({} as AudioBuffer)),
+        destination: {},
+        createBufferSource: () => {
+          const source = {
+            buffer: null,
+            connect: vi.fn(() => ({ connect: vi.fn() })),
+            addEventListener: vi.fn(),
+            start: vi.fn(() => { started.push('voice') }),
+            stop: vi.fn(),
+          }
+          return source
+        },
+        createGain: () => ({ gain: { value: 0 } }),
+      } as unknown as AudioContext),
+      fetchAsset: vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) } as Response)),
+    })
+    await audio.unlock()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    audio.play('ROUND_FINISH')
+    await vi.runOnlyPendingTimersAsync()
+    expect(started).toHaveLength(2)
+    audio.play('ROUND_FINISH')
+    audio.resetRoundAudio()
+    await vi.advanceTimersByTimeAsync(400)
+    expect(started).toHaveLength(3)
+    await audio.dispose()
+    vi.useRealTimers()
   })
 })

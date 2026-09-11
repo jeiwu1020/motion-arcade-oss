@@ -132,6 +132,7 @@ export function CameraPresentationStage({
       className={classes}
       data-presentation-mode={presentation.mode}
       data-camera-treatment={presentation.cameraTreatment}
+      data-framing-requirement={presentation.framingRequirement}
     >
       <video
         ref={videoRef}
@@ -166,23 +167,33 @@ export function CameraPresentationStage({
           viewBox="0 0 240 500"
           focusable="false"
         >
-          <circle className="camera-presentation-silhouette-head" cx="120" cy="58" r="34" />
-          <path
-            className="camera-presentation-silhouette-body"
-            d="M93 108 C78 113 60 122 36 144 C48 165 62 180 82 190 L84 302 C84 320 99 332 120 332 C141 332 156 320 156 302 L158 190 C178 180 192 165 204 144 C180 122 162 113 147 108 C140 119 132 126 120 126 C108 126 100 119 93 108 Z"
-          />
-          {presentation.framingRequirement === 'FULL_BODY' ? (
+          {presentation.framingRequirement === 'UPPER_BODY' ? (
             <>
+              <circle className="camera-presentation-silhouette-head" cx="120" cy="96" r="34" />
+              <path
+                className="camera-presentation-silhouette-body camera-presentation-silhouette-upper"
+                d="M94 142 C84 146 73 155 62 169 L47 143 L38 119 C34 108 40 99 50 96 C60 93 68 99 72 109 L84 137 C94 132 104 129 120 129 C136 129 146 132 156 137 L168 109 C172 99 180 93 190 96 C200 99 206 108 202 119 L193 143 L178 169 C167 155 156 146 146 142 L158 212 L164 459 C152 480 136 490 120 490 C104 490 88 480 76 459 L82 212 Z"
+              />
+              <circle className="camera-presentation-silhouette-hand" cx="44" cy="104" r="10" />
+              <circle className="camera-presentation-silhouette-hand" cx="196" cy="104" r="10" />
+            </>
+          ) : (
+            <>
+              <circle className="camera-presentation-silhouette-head" cx="120" cy="58" r="34" />
+              <path
+                className="camera-presentation-silhouette-body"
+                d="M93 108 C78 113 60 122 36 144 C48 165 62 180 82 190 L84 302 C84 320 99 332 120 332 C141 332 156 320 156 302 L158 190 C178 180 192 165 204 144 C180 122 162 113 147 108 C140 119 132 126 120 126 C108 126 100 119 93 108 Z"
+              />
               <path
                 className="camera-presentation-silhouette-legs"
                 d="M87 292 C84 330 79 374 71 454 L106 454 L120 332 L134 454 L169 454 C161 374 156 330 153 292 Z"
               />
             </>
-          ) : null}
+          )}
         </svg>
         <span>
           {presentation.framingRequirement === 'UPPER_BODY'
-            ? '請將上半身移到人形範圍內'
+            ? '請對準人形範圍'
             : '請將全身移到人形範圍內'}
         </span>
       </div>

@@ -178,9 +178,9 @@ export function resolveCameraPresentation(
       overlay: 'GUIDANCE',
       statusLabel: '正在確認站位',
       eyebrow: '站位確認',
-      headline: upperBody ? '上半身保持在框內' : '全身保持在框內',
+      headline: upperBody ? '請對準人形範圍' : '全身保持在框內',
       detail: upperBody
-        ? '讓頭部、肩膀與雙手清楚可見，左右留出揮手空間。'
+        ? '讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。'
         : '面向鏡頭，讓肩膀、髖部、膝蓋與腳踝都清楚可見。',
       actionLabel: null,
       alert: false,
