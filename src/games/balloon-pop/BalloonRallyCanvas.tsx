@@ -2,14 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 
 import { mountPhaserGame } from '../../game/phaser/mountPhaserGame'
 import type { BalloonRallySession } from './BalloonRallySession'
+import type { BalloonRallyAudio } from './BalloonRallyAudio'
 
 interface BalloonRallyCanvasProps {
   readonly session: BalloonRallySession
+  readonly audio?: BalloonRallyAudio
 }
 
 /** Lazy production Camera AR playfield; no DOM diagnostic or sensor ownership. */
 export function BalloonRallyCanvas({
   session,
+  audio,
 }: BalloonRallyCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [loadError, setLoadError] = useState<string>()
@@ -22,7 +25,7 @@ export function BalloonRallyCanvas({
     const factoryPromise = import('./createBalloonRallyPhaserGame').then(
       ({ createBalloonRallyPhaserGame }) =>
         (parent: HTMLElement) =>
-          createBalloonRallyPhaserGame(parent, session),
+          createBalloonRallyPhaserGame(parent, session, audio),
     )
     const mount = mountPhaserGame.lazy(host, factoryPromise)
     void mount.ready.catch((error: unknown) => {
@@ -35,7 +38,7 @@ export function BalloonRallyCanvas({
       cancelled = true
       mount.unmount()
     }
-  }, [session])
+  }, [audio, session])
 
   return (
     <div

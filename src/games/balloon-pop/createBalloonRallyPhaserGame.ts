@@ -2,10 +2,12 @@ import Phaser from 'phaser'
 
 import { BalloonRallyScene } from './BalloonRallyScene'
 import type { BalloonRallySession } from './BalloonRallySession'
+import type { BalloonRallyAudio } from './BalloonRallyAudio'
 
 export function createBalloonRallyPhaserGame(
   parent: HTMLElement,
   session: BalloonRallySession,
+  audio?: BalloonRallyAudio,
 ): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
@@ -18,6 +20,6 @@ export function createBalloonRallyPhaserGame(
       width: 1280,
       height: 720,
     },
-    scene: [new BalloonRallyScene(session)],
+    scene: [new BalloonRallyScene(session, audio)],
   })
 }

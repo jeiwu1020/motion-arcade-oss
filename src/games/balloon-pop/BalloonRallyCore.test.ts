@@ -57,7 +57,7 @@ describe('Balloon Rally v2 core', () => {
     )).toBe(true)
   })
 
-  it('uses the 15 / 35 / 50 second population progression and converts cleanly to five Party balloons', () => {
+  it('uses the 15 / 35 / 50 second population progression and escalates Party Rush from five to seven balloons', () => {
     let state = begin()
     state = advanceBalloonRally(state, { deltaMs: 15_000, interactionRegion: REGION, contacts: [] })
     expect(state).toMatchObject({ progression: 'RALLY', partyRush: false })
@@ -73,6 +73,13 @@ describe('Balloon Rally v2 core', () => {
     expect(state.balloons.every((balloon) =>
       balloon.hp === 1 && balloon.maxHp === 1 && balloon.kind === 'PARTY',
     )).toBe(true)
+    state = advanceBalloonRally(state, { deltaMs: 5_000, interactionRegion: REGION, contacts: [] })
+    expect(state.balloons).toHaveLength(6)
+    state = advanceBalloonRally(state, { deltaMs: 3_000, interactionRegion: REGION, contacts: [] })
+    expect(state.balloons).toHaveLength(7)
+    state = advanceBalloonRally(state, { deltaMs: 2_000, interactionRegion: REGION, contacts: [] })
+    expect(state).toMatchObject({ phase: 'FINISHED', roundRemainingMs: 0 })
+    expect(state.balloons).toHaveLength(7)
   })
 
   it('requires two separated valid contacts to pop a standard balloon for four base points and immediately replaces it', () => {
@@ -108,7 +115,7 @@ describe('Balloon Rally v2 core', () => {
     expect(expired).toMatchObject({ combo: 0, bestCombo: 5, comboRemainingMs: 0 })
   })
 
-  it('makes each Party balloon one-hit, worth two base points, and immediately maintains five targets', () => {
+  it('makes each Party balloon one-hit, worth two base points, and immediately maintains the rush population', () => {
     let state = begin()
     state = advanceBalloonRally(state, {
       deltaMs: BALLOON_RALLY_RULES.partyRushStartMs,
@@ -123,6 +130,29 @@ describe('Balloon Rally v2 core', () => {
     expect(state.balloons.every((balloon) =>
       balloon.hp === 1 && balloon.maxHp === 1 && balloon.kind === 'PARTY',
     )).toBe(true)
+  })
+
+  it('uses the longer Party Rush Combo window without resetting the active Combo', () => {
+    let state = begin()
+    state = advanceBalloonRally(state, { deltaMs: 49_000, interactionRegion: REGION, contacts: [] })
+    state = hit(state, state.balloons[0]?.id ?? -1)
+    state = advanceBalloonRally(state, { deltaMs: 999, interactionRegion: REGION, contacts: [] })
+    expect(state.combo).toBe(1)
+    state = advanceBalloonRally(state, {
+      deltaMs: 1,
+      interactionRegion: REGION,
+      contacts: [],
+    })
+    expect(state.partyRush).toBe(true)
+    expect(state.combo).toBe(1)
+    state = hit(state, state.balloons[0]?.id ?? -1)
+    expect(state.comboRemainingMs).toBe(BALLOON_RALLY_RULES.partyComboWindowMs)
+    const stillActive = advanceBalloonRally(state, {
+      deltaMs: BALLOON_RALLY_RULES.comboWindowMs + 1,
+      interactionRegion: REGION,
+      contacts: [],
+    })
+    expect(stillActive.combo).toBeGreaterThan(0)
   })
 
   it('never expires balloons, safely recovers them into resized bounds, applies bounded anti-corner steering, and caps speed', () => {
@@ -237,7 +267,7 @@ describe('Balloon Rally v2 core', () => {
 
   it('applies Score Fever to accepted hits only while the event is active', () => {
     let state = begin(2)
-    state = { ...state, miniEventKind: 'SCORE_FEEVER', miniEventStartMs: 1, miniEventRemainingMs: 6_000, miniEventStarted: true, miniEventSequence: 1 }
+    state = { ...state, miniEventKind: 'SCORE_FEVER', miniEventStartMs: 1, miniEventRemainingMs: 6_000, miniEventStarted: true, miniEventSequence: 1 }
     const scored = hit(state, state.balloons[0]?.id ?? -1)
     expect(scored.score).toBe(2)
     const withoutEvent = { ...scored, miniEventKind: 'GOLD_RUSH' as const }

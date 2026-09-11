@@ -18,6 +18,7 @@ import {
   type PoseGameplayInputSnapshot,
 } from '../../motion/runtime/PoseGameplayInputRuntime'
 import { BalloonRallyCanvas } from './BalloonRallyCanvas'
+import { BalloonRallyAudio } from './BalloonRallyAudio'
 import {
   BALLOON_RALLY_POSE_INPUT_REQUEST,
   BalloonRallySession,
@@ -53,6 +54,7 @@ export default function BalloonPopPoseGameScreen({
     () =>
       new BalloonRallySession(spatialCollisionInput),
   )
+  const [audio] = useState(() => new BalloonRallyAudio())
   const [poseSnapshot, setPoseSnapshot] = useState(INITIAL_POSE_SNAPSHOT)
   const sessionSnapshot = useSyncExternalStore(
     session.subscribe,
@@ -118,16 +120,19 @@ export default function BalloonPopPoseGameScreen({
       if (runtimeRef.current === runtime) runtimeRef.current = null
       spatialCollisionInput.reset()
       void Promise.all([session.stop(), runtime.dispose()])
+      void audio.dispose()
     }
-  }, [provider, session, spatialCollisionInput])
+  }, [audio, provider, session, spatialCollisionInput])
 
   const startCamera = useCallback(async () => {
     try {
+      // The explicit camera button is also the safe mobile-Safari audio unlock gesture.
+      await audio.unlock()
       await runtimeRef.current?.start(BALLOON_RALLY_POSE_INPUT_REQUEST)
     } catch {
       // The runtime publishes a readable, recoverable ERROR snapshot.
     }
-  }, [])
+  }, [audio])
 
   const handleSpatialLayoutChange = useCallback(
     (layout: CameraPresentationSpatialLayout) => {
@@ -207,6 +212,7 @@ export default function BalloonPopPoseGameScreen({
       >
         <BalloonRallyCanvas
           session={session}
+          audio={audio}
         />
       </CameraPresentationStage>
     </main>

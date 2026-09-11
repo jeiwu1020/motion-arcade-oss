@@ -22,12 +22,14 @@ has no score, collision, Pose, camera, DOM, or MediaPipe authority.
 - WARM UP/RALLY/FEVER population: 2/3/4 standard balloons at 0/15/35 seconds.
 - Standard balloons have 2 HP. Each separated hit is `+1`; a second hit pops
   for another `+2`, so a completed standard balloon is worth four base points.
-- At 50 seconds, PARTY RUSH converts all current balloons to Party balloons
-  and maintains five 1-HP targets. Each Party hit pops immediately for two base
-  points total (`+1` hit plus `+1` Party pop bonus).
+- At 50 seconds, PARTY RUSH converts all current balloons to Party balloons and
+  maintains 5 targets from 50–55 seconds, 6 from 55–58 seconds, and 7 from
+  58–60 seconds. Each Party hit pops immediately for two base points total
+  (`+1` hit plus `+1` Party pop bonus).
 - Ordinary balloons never expire and the result has no miss metric.
-- Combo window is 1,500 ms. Combo five or higher adds one score per accepted
-  hit; `bestCombo` is shown in results.
+- Combo window is 1,500 ms outside Party Rush and 2,000 ms during Party Rush.
+  Combo five or higher adds one score per accepted hit; `bestCombo` is shown in
+  results.
 
 ## v3 gameplay additions
 
@@ -38,14 +40,14 @@ foundation remains unchanged. v3 adds the following game-local rules:
   `+1` hit plus `+4` pop bonus;
 - one Giant Balloon at 40 seconds: radius 112, 4 HP, `+4` pop bonus;
 - one seeded 6-second event between 27 and 33 seconds: GOLD_RUSH, BALLOON_RAIN,
-  or SCORE_FEEVER;
+  or SCORE_FEVER;
 - standard movement personalities FLOAT, DRIFT, and BOUNCE with bounded initial
   motion;
 - Combo milestone cues at 5 and each later multiple of 5;
 - a Phaser-only cyan/amber Hand Glow Trail with 200 ms samples, 180 ms recovery
   fade, an 8 px emission threshold, and a 12-point cap per hand.
 
-Party Rush removes all pre-Party special targets before maintaining its five
+Party Rush removes all pre-Party special targets before maintaining its 5/6/7
 1-HP targets. Event and special feedback is presentation-only except for the
 explicit deterministic Core scoring rules. The existing `42` virtual-hand
 radius and `10` logical-pixel tolerance remain unchanged.
@@ -82,6 +84,18 @@ adds Golden/Giant/Bonus styles, hit squash/rings, Combo milestone and event
 cues, Party outline/pop treatment, the bounded Hand Glow Trail, and a short
 PARTY RUSH cue with an edge pulse. The live HUD is score/time plus contextual
 Combo only; results show score, hits, pops, and best Combo.
+
+## Final game-feel pass
+
+The final pass adds a gesture-unlocked, fail-silent local Web Audio helper for
+normal hit/pop, Golden and Giant feedback, Combo milestones, mini-event start,
+Party Rush, countdown ticks, and round finish. Production HP dots are replaced
+with projector-readable vector damage: Standard HP 1 has a thick crack; Giant
+HP 3/2/1 uses progressively heavier cracks; one-hit targets stay clean.
+Party Rush remains capped at 420 logical px/s but escalates to 5/6/7 targets at
+50/55/58 seconds, uses a 2,000 ms Combo window, and shows a non-blocking final
+3/2/1 countdown while gameplay continues. `SCORE_FEVER` is the canonical
+mini-event spelling.
 
 ## Privacy and physical validation
 

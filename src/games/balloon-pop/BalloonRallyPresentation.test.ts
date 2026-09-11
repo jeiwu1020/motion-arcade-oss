@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getBalloonRallyDamageStage,
   getComboMilestoneCrossed,
+  getBalloonRallyOneShotCues,
   updateBalloonRallyHandGlowTrail,
   type BalloonRallyHandVisualSnapshot,
   type BalloonRallyHandGlowTrailState,
@@ -58,5 +60,31 @@ describe('Balloon Rally presentation helpers', () => {
     expect(getComboMilestoneCrossed(9, 10)).toEqual({ value: 10, label: 'SUPER COMBO!' })
     expect(getComboMilestoneCrossed(14, 15)).toEqual({ value: 15, label: '15 COMBO!' })
     expect(getComboMilestoneCrossed(24, 25)).toEqual({ value: 25, label: '25 COMBO!' })
+  })
+
+  it('maps multi-hit balloons to readable damage stages while one-hit targets stay clean', () => {
+    expect(getBalloonRallyDamageStage('STANDARD', 2, 2)).toBe('NONE')
+    expect(getBalloonRallyDamageStage('STANDARD', 1, 2)).toBe('CRACKED')
+    expect(getBalloonRallyDamageStage('GIANT', 4, 4)).toBe('NONE')
+    expect(getBalloonRallyDamageStage('GIANT', 3, 4)).toBe('CRACKED')
+    expect(getBalloonRallyDamageStage('GIANT', 2, 4)).toBe('CRACKED')
+    expect(getBalloonRallyDamageStage('GIANT', 1, 4)).toBe('HEAVILY_CRACKED')
+    expect(getBalloonRallyDamageStage('GOLDEN', 1, 1)).toBe('NONE')
+    expect(getBalloonRallyDamageStage('PARTY', 1, 1)).toBe('NONE')
+    expect(getBalloonRallyDamageStage('BONUS', 1, 1)).toBe('NONE')
+  })
+
+  it('emits one-shot transition cues only when the corresponding state boundary is crossed', () => {
+    const playing = { phase: 'PLAYING' as const, combo: 4, miniEventSequence: 0, partyRush: false, roundRemainingMs: 3_100 }
+    const party = { ...playing, combo: 5, partyRush: true, roundRemainingMs: 3_000 }
+    expect(getBalloonRallyOneShotCues(playing, party)).toEqual([
+      { kind: 'COMBO_MILESTONE', milestone: { value: 5, label: '5 COMBO!' } },
+      { kind: 'PARTY_RUSH_START' },
+      { kind: 'FINAL_COUNTDOWN', value: 3 },
+    ])
+    expect(getBalloonRallyOneShotCues(party, party)).toEqual([])
+    expect(getBalloonRallyOneShotCues({ ...party, phase: 'PLAYING' }, { ...party, phase: 'FINISHED', roundRemainingMs: 0 })).toEqual([
+      { kind: 'ROUND_FINISH' },
+    ])
   })
 })

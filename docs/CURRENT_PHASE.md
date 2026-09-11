@@ -6,7 +6,7 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current implementation baseline before Balloon Rally v3 work:
+Current implementation baseline before the final Balloon Rally game-feel pass:
 
 `fcf96686798041ceda68e09b6c549fcf454318e2` — Balloon Rally v2 tracking-policy fix
 
@@ -38,15 +38,16 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ## Current phase
 
-### Phase 2A.4 — Balloon Rally v3
+### Phase 2A.4 — Balloon Rally v3 / final game-feel pass
 
-Engineering status: v3 gameplay/presentation implementation complete; Windows/iPhone
-physical gameplay validation remains required.
+Engineering status: v3 gameplay/presentation implementation complete; final
+game-feel pass is engineering complete. Windows/iPhone physical gameplay and
+audio validation remains required.
 
 Production 氣球拍拍樂 now uses deterministic 3-second/60-second Balloon Rally
 v3 rules: 2→3→4 standard 2-HP balloons at 0/15/35 seconds, seeded Golden and
-Giant reward targets, one six-second mini-event, then a distinct five-target
-1-HP PARTY RUSH at 50 seconds. Separated spatial hand contacts, bounded arcade
+Giant reward targets, one six-second mini-event, then a distinct 5→6→7 target
+1-HP PARTY RUSH at 50/55/58 seconds. Separated spatial hand contacts, bounded arcade
 impulses, immediate replacement, Combo, and result metrics remain authoritative
 in `BalloonRallyCore`; Phaser renders immutable state only. A bounded production
 Hand Glow Trail uses the same logical interaction points and remains cosmetic.
@@ -139,7 +140,7 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 ## Scope still deferred
 
-- formal art/audio polish until Phase 2A.5
+- broader art/audio polish beyond this bounded SFX/game-feel pass
 - gameplay calibration/profile selection
 - multiplayer and multi-person Pose
 - full Hand Tracking unless Pose wrist evidence requires it

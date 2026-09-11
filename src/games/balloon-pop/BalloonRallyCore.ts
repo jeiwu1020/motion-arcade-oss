@@ -6,6 +6,8 @@ export const BALLOON_RALLY_RULES = Object.freeze({
   rallyStartMs: 15_000,
   feverStartMs: 35_000,
   partyRushStartMs: 50_000,
+  partyRushSecondWaveMs: 55_000,
+  partyRushFinalWaveMs: 58_000,
   ordinaryMaxHp: 2,
   partyMaxHp: 1,
   goldenMaxHp: 1,
@@ -53,6 +55,7 @@ export const BALLOON_RALLY_RULES = Object.freeze({
   balloonRainSpawnCap: 6,
   scoreFeverHitBonus: 1,
   comboWindowMs: 1_500,
+  partyComboWindowMs: 2_000,
   comboBonusStartsAt: 5,
   comboHitBonus: 1,
   antiCornerBandPx: 88,
@@ -64,7 +67,7 @@ export type BalloonRallyPhase = 'COUNTDOWN' | 'PLAYING' | 'FINISHED'
 export type BalloonHandSide = 'LEFT' | 'RIGHT'
 export type BalloonRallyProgression = 'WARM_UP' | 'RALLY' | 'FEVER' | 'PARTY_RUSH'
 export type BalloonRallyBalloonKind = 'STANDARD' | 'PARTY' | 'GOLDEN' | 'GIANT' | 'BONUS'
-export type BalloonRallyMiniEventKind = 'GOLD_RUSH' | 'BALLOON_RAIN' | 'SCORE_FEEVER'
+export type BalloonRallyMiniEventKind = 'GOLD_RUSH' | 'BALLOON_RAIN' | 'SCORE_FEVER'
 export type BalloonRallyMovementPersonality = 'FLOAT' | 'DRIFT' | 'BOUNCE'
 
 export interface BalloonRallyBalloon {
@@ -166,6 +169,12 @@ function desiredStandardPopulation(progression: BalloonRallyProgression): number
     case 'RALLY': return 3
     case 'WARM_UP': return 2
   }
+}
+
+function desiredPartyPopulation(elapsedMs: number): number {
+  if (elapsedMs >= BALLOON_RALLY_RULES.partyRushFinalWaveMs) return 7
+  if (elapsedMs >= BALLOON_RALLY_RULES.partyRushSecondWaveMs) return 6
+  return 5
 }
 
 function hasUsableRegion(region: LogicalPlayfieldRect | null): region is LogicalPlayfieldRect {
@@ -371,7 +380,7 @@ function populateStandard(state: BalloonRallyState, region: LogicalPlayfieldRect
 
 function populateParty(state: BalloonRallyState, region: LogicalPlayfieldRect): BalloonRallyState {
   let nextState = state
-  while (countKind(nextState, 'PARTY') < 5) nextState = spawnOne(nextState, region, 'PARTY')
+  while (countKind(nextState, 'PARTY') < desiredPartyPopulation(nextState.elapsedMs)) nextState = spawnOne(nextState, region, 'PARTY')
   return nextState
 }
 
@@ -439,8 +448,9 @@ function updateComboForElapsedTime(state: BalloonRallyState, deltaMs: number): B
 function scoreHit(state: BalloonRallyState): BalloonRallyState {
   const combo = state.comboRemainingMs > 0 ? state.combo + 1 : 1
   const comboBonus = combo >= BALLOON_RALLY_RULES.comboBonusStartsAt ? BALLOON_RALLY_RULES.comboHitBonus : 0
-  const eventBonus = state.miniEventKind === 'SCORE_FEEVER' && state.miniEventRemainingMs > 0 ? BALLOON_RALLY_RULES.scoreFeverHitBonus : 0
-  return { ...state, score: state.score + 1 + comboBonus + eventBonus, hits: state.hits + 1, combo, bestCombo: Math.max(state.bestCombo, combo), comboRemainingMs: BALLOON_RALLY_RULES.comboWindowMs }
+  const eventBonus = state.miniEventKind === 'SCORE_FEVER' && state.miniEventRemainingMs > 0 ? BALLOON_RALLY_RULES.scoreFeverHitBonus : 0
+  const comboWindowMs = state.partyRush ? BALLOON_RALLY_RULES.partyComboWindowMs : BALLOON_RALLY_RULES.comboWindowMs
+  return { ...state, score: state.score + 1 + comboBonus + eventBonus, hits: state.hits + 1, combo, bestCombo: Math.max(state.bestCombo, combo), comboRemainingMs: comboWindowMs }
 }
 
 function popBonusFor(kind: BalloonRallyBalloonKind): number {
@@ -482,7 +492,7 @@ export function createBalloonRallyState(options: CreateBalloonRallyStateOptions 
   randomState = afterEventStart
   const [eventUnit, afterEventKind] = nextRandom(randomState)
   randomState = afterEventKind
-  const miniEventKind: BalloonRallyMiniEventKind = eventUnit < 1 / 3 ? 'GOLD_RUSH' : eventUnit < 2 / 3 ? 'BALLOON_RAIN' : 'SCORE_FEEVER'
+  const miniEventKind: BalloonRallyMiniEventKind = eventUnit < 1 / 3 ? 'GOLD_RUSH' : eventUnit < 2 / 3 ? 'BALLOON_RAIN' : 'SCORE_FEVER'
   return freezeState({
     phase: 'COUNTDOWN', countdownRemainingMs: BALLOON_RALLY_RULES.countdownMs, roundRemainingMs: BALLOON_RALLY_RULES.roundMs, elapsedMs: 0, progression: 'WARM_UP', score: 0, hits: 0, pops: 0, combo: 0, bestCombo: 0, comboRemainingMs: 0, partyRush: false, balloons: [], nextBalloonId: 1, randomState, initialSeed: seed, goldenNextSpawnMs: Math.round(goldenDelay), giantSpawned: false, miniEventKind, miniEventStartMs: Math.round(eventStart), miniEventStarted: false, miniEventCompleted: false, miniEventRemainingMs: 0, miniEventSpawnedCount: 0, miniEventSequence: 0,
   })
@@ -504,6 +514,8 @@ export function advanceBalloonRally(inputState: BalloonRallyState, frame: Balloo
   state = updateComboForElapsedTime({ ...state, elapsedMs, roundRemainingMs: state.roundRemainingMs - activeDeltaMs, progression: progressionAt(elapsedMs), balloons: state.balloons.map((balloon) => ({ ...balloon, ageMs: balloon.ageMs + activeDeltaMs })) }, activeDeltaMs)
   if (!state.partyRush && state.progression === 'PARTY_RUSH') {
     state = enterPartyRush(state)
+    state = populateParty(state, region)
+  } else if (state.partyRush) {
     state = populateParty(state, region)
   } else if (!state.partyRush) {
     state = synchronizeMiniEvent(state, region)

@@ -77,7 +77,7 @@ sequence becomes crowded.
 - `BALLOON_RAIN`: up to two concurrent 1-HP `BONUS` targets and at most six
   event spawns. Each hit pops for `+1` plus a `+1` bonus (`2` base points).
   Remaining Bonus targets are removed at event end.
-- `SCORE_FEEVER`: no extra targets. Every accepted hit receives `+1` event
+- `SCORE_FEVER`: no extra targets. Every accepted hit receives `+1` event
   score while the event is active, including Golden and Giant hits. Combo is
   independent.
 
@@ -87,7 +87,8 @@ they do not block the camera or enter Core scoring beyond the explicit rules.
 ## Party Rush
 
 Party Rush still begins at 50 seconds, replaces all pre-Party specials, and
-maintains five 1-HP Party targets with immediate replacement. A Party contact
+maintains 5 1-HP Party targets from 50–55 seconds, 6 from 55–58 seconds, and 7
+from 58–60 seconds with immediate replacement. A Party contact
 scores `+1`; the pop adds the existing `+1` Party bonus. Party movement uses
 the existing 420 px/s cap and stronger climax cue. The Hand Glow Trail remains
 active.

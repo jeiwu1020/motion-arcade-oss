@@ -2,11 +2,14 @@ import Phaser from 'phaser'
 
 import type { BalloonRallyBalloon, BalloonRallyState } from './BalloonRallyCore'
 import type { BalloonRallySession } from './BalloonRallySession'
+import type { BalloonRallyAudio } from './BalloonRallyAudio'
 import {
   BALLOON_RALLY_HAND_GLOW_CONFIG,
-  getComboMilestoneCrossed,
+  getBalloonRallyDamageStage,
+  getBalloonRallyOneShotCues,
   updateBalloonRallyHandGlowTrail,
   type BalloonRallyHandGlowTrailState,
+  type BalloonRallyPresentationState,
 } from './BalloonRallyPresentation'
 
 const WORLD_WIDTH = 1280
@@ -16,7 +19,8 @@ const BALLOON_COLORS = [0xff668f, 0x56c7ff, 0xffc857, 0x8ce6a7] as const
 interface RenderedBalloon {
   readonly container: Phaser.GameObjects.Container
   readonly body: Phaser.GameObjects.Ellipse
-  readonly hp: Phaser.GameObjects.Text
+  readonly damage: Phaser.GameObjects.Graphics
+  readonly bodyColor: number
   readonly kind: BalloonRallyBalloon['kind']
   readonly lastHp: number
 }
@@ -36,13 +40,17 @@ export class BalloonRallyScene extends Phaser.Scene {
     right: { anchor: null, points: [] },
   }
   #partyRushSeen = false
-  #lastCombo = 0
-  #lastMiniEventSequence = 0
   #giantCueSeen = false
+  #lastPops = 0
+  #lastPartyPopulation = 0
+  #lastCountdownNumber = 0
+  #previousPresentationState: BalloonRallyPresentationState | null = null
+  readonly #audio: BalloonRallyAudio | null
 
-  constructor(session: BalloonRallySession) {
+  constructor(session: BalloonRallySession, audio?: BalloonRallyAudio) {
     super('balloon-rally')
     this.#session = session
+    this.#audio = audio ?? null
   }
 
   create(): void {
@@ -106,10 +114,19 @@ export class BalloonRallyScene extends Phaser.Scene {
     if (state.phase === 'COUNTDOWN') {
       this.#clearBalloons()
       this.#clearHandGlow()
-      this.#lastCombo = 0
       this.#giantCueSeen = false
+      this.#lastPops = 0
+      this.#lastPartyPopulation = 0
+      this.#previousPresentationState = this.#toPresentationState(state)
+      const countdownNumber = Math.max(1, Math.ceil(state.countdownRemainingMs / 1_000))
+      if (countdownNumber !== this.#lastCountdownNumber && countdownNumber <= 3) {
+        this.#audio?.play('COUNTDOWN_TICK')
+      }
+      this.#lastCountdownNumber = countdownNumber
       this.#countdownText
-        .setText(String(Math.max(1, Math.ceil(state.countdownRemainingMs / 1_000))))
+        .setAlpha(1)
+        .setScale(1)
+        .setText(String(countdownNumber))
         .setVisible(true)
       this.#statusText.setText('雙手準備好，拍破氣球！').setVisible(true)
       return
@@ -117,6 +134,7 @@ export class BalloonRallyScene extends Phaser.Scene {
 
     this.#countdownText.setVisible(false)
     if (state.phase === 'FINISHED') {
+      this.#showGameplayCues(state)
       this.#clearBalloons()
       this.#clearHandGlow()
       this.#statusText.setText('時間到！').setVisible(true)
@@ -133,28 +151,69 @@ export class BalloonRallyScene extends Phaser.Scene {
   }
 
   #showGameplayCues(state: BalloonRallyState): void {
-    if (state.miniEventSequence < this.#lastMiniEventSequence) this.#lastMiniEventSequence = 0
-    const milestone = getComboMilestoneCrossed(this.#lastCombo, state.combo)
-    if (milestone) this.#showAnnouncement(milestone.label, milestone.value >= 10 ? '#ffec70' : '#ffffff', milestone.value >= 10 ? 82 : 70)
-    this.#lastCombo = state.combo
-
-    if (state.miniEventSequence > this.#lastMiniEventSequence) {
-      const eventLabel = state.miniEventKind === 'GOLD_RUSH'
-        ? 'GOLD RUSH!'
-        : state.miniEventKind === 'BALLOON_RAIN'
-          ? 'BALLOON RAIN!'
-          : 'SCORE FEVER!'
-      const eventColor = state.miniEventKind === 'GOLD_RUSH'
-        ? 0xffd45c
-        : state.miniEventKind === 'BALLOON_RAIN'
-          ? 0x62e6d4
-          : 0xbd92ff
-      this.#showAnnouncement(eventLabel, '#ffe978', 76, eventColor)
-      this.#lastMiniEventSequence = state.miniEventSequence
+    const previous = this.#previousPresentationState
+    for (const cue of getBalloonRallyOneShotCues(previous, this.#toPresentationState(state))) {
+      if (cue.kind === 'COMBO_MILESTONE') {
+        this.#showAnnouncement(cue.milestone.label, cue.milestone.value >= 10 ? '#ffec70' : '#ffffff', cue.milestone.value >= 10 ? 82 : 70)
+        this.#audio?.play(cue.milestone.value >= 10 ? 'COMBO_MILESTONE_STRONG' : 'COMBO_MILESTONE')
+      } else if (cue.kind === 'MINI_EVENT_START') {
+        const eventLabel = state.miniEventKind === 'GOLD_RUSH'
+          ? 'GOLD RUSH!'
+          : state.miniEventKind === 'BALLOON_RAIN'
+            ? 'BALLOON RAIN!'
+            : 'SCORE FEVER!'
+        const eventColor = state.miniEventKind === 'GOLD_RUSH'
+          ? 0xffd45c
+          : state.miniEventKind === 'BALLOON_RAIN'
+            ? 0x62e6d4
+            : 0xbd92ff
+        this.#showAnnouncement(eventLabel, '#ffe978', 76, eventColor)
+        this.#audio?.play('MINI_EVENT_START')
+      } else if (cue.kind === 'PARTY_RUSH_START') {
+        this.#showPartyRushCue()
+      } else if (cue.kind === 'FINAL_COUNTDOWN') {
+        this.#showFinalCountdown(cue.value)
+      } else if (cue.kind === 'ROUND_FINISH') {
+        this.#audio?.play('ROUND_FINISH')
+      }
     }
+    this.#previousPresentationState = this.#toPresentationState(state)
+    const partyPopulation = state.balloons.filter((balloon) => balloon.kind === 'PARTY').length
+    if (state.partyRush && this.#lastPartyPopulation > 0 && partyPopulation > this.#lastPartyPopulation) {
+      this.#pulsePartyEdge(0xffdc69)
+    }
+    this.#lastPartyPopulation = partyPopulation
     if (state.giantSpawned && !this.#giantCueSeen) {
       this.#showAnnouncement('GIANT BALLOON!', '#ffd75f', 76, 0xd9a8ff)
       this.#giantCueSeen = true
+    }
+  }
+
+  #showFinalCountdown(value: 3 | 2 | 1): void {
+    this.#countdownText
+      .setText(String(value))
+      .setAlpha(1)
+      .setScale(0.78)
+      .setVisible(true)
+    this.#audio?.play('COUNTDOWN_TICK')
+    this.tweens.killTweensOf(this.#countdownText)
+    this.tweens.add({
+      targets: this.#countdownText,
+      alpha: 0,
+      scale: 1.12,
+      duration: 520,
+      ease: 'Sine.Out',
+      onComplete: () => this.#countdownText.setVisible(false),
+    })
+  }
+
+  #toPresentationState(state: BalloonRallyState): BalloonRallyPresentationState {
+    return {
+      phase: state.phase,
+      combo: state.combo,
+      miniEventSequence: state.miniEventSequence,
+      partyRush: state.partyRush,
+      roundRemainingMs: state.roundRemainingMs,
     }
   }
 
@@ -226,6 +285,7 @@ export class BalloonRallyScene extends Phaser.Scene {
 
   #showPartyRushCue(): void {
     this.#partyRushSeen = true
+    this.#audio?.play('PARTY_RUSH_START')
     this.#partyRushText.setAlpha(1).setScale(0.72).setVisible(true)
     this.#partyEdgePulse
       .setAlpha(1)
@@ -248,11 +308,29 @@ export class BalloonRallyScene extends Phaser.Scene {
     })
   }
 
+  #pulsePartyEdge(color: number): void {
+    this.#partyEdgePulse
+      .setAlpha(0.7)
+      .setFillStyle(color, 0.06)
+      .setStrokeStyle(14, color, 0.62)
+    this.tweens.add({
+      targets: this.#partyEdgePulse,
+      alpha: 0,
+      duration: 360,
+      ease: 'Sine.Out',
+      onComplete: () => this.#partyEdgePulse.setFillStyle(0xffca5f, 0).setStrokeStyle(28, 0xffef8a, 0),
+    })
+  }
+
   #reconcileBalloons(state: BalloonRallyState): void {
     const expectedIds = new Set(state.balloons.map((balloon) => balloon.id))
     for (const [id, rendered] of this.#balloons) {
       if (!expectedIds.has(id)) {
-        this.#pop(rendered.container.x, rendered.container.y, rendered.kind)
+        const didPop = state.pops > this.#lastPops
+        if (didPop) {
+          this.#pop(rendered.container.x, rendered.container.y, rendered.kind)
+          this.#audio?.play(rendered.kind === 'GOLDEN' ? 'GOLDEN_POP' : rendered.kind === 'GIANT' ? 'GIANT_POP' : 'NORMAL_POP')
+        }
         rendered.container.destroy()
         this.#balloons.delete(id)
       }
@@ -264,8 +342,9 @@ export class BalloonRallyScene extends Phaser.Scene {
         rendered = this.#createBalloon(balloon)
       }
       rendered.container.setPosition(balloon.x, balloon.y).setVisible(true)
-      rendered.hp.setText('●'.repeat(balloon.hp) + '○'.repeat(balloon.maxHp - balloon.hp))
+      this.#updateDamageVisual(rendered, balloon)
       if (balloon.hp < rendered.lastHp) {
+        this.#audio?.play(balloon.kind === 'GIANT' ? 'GIANT_HIT' : 'NORMAL_HIT')
         this.#impact(balloon.x, balloon.y, balloon.kind)
         this.tweens.killTweensOf(rendered.container)
         rendered.container.setScale(1.18, 0.78)
@@ -279,6 +358,7 @@ export class BalloonRallyScene extends Phaser.Scene {
         this.#balloons.set(balloon.id, { ...rendered, lastHp: balloon.hp })
       }
     }
+    this.#lastPops = state.pops
   }
 
   #createBalloon(balloon: BalloonRallyBalloon): RenderedBalloon {
@@ -295,21 +375,43 @@ export class BalloonRallyScene extends Phaser.Scene {
       .ellipse(0, 0, balloon.radius * 1.56, balloon.radius * 1.95, bodyColor)
       .setStrokeStyle(giant || golden || party ? 12 : 8, outline, giant || golden || party ? 1 : 0.92)
     const shine = this.add.ellipse(-balloon.radius * 0.32, -balloon.radius * 0.42, giant ? 30 : 22, giant ? 64 : 50, 0xffffff, golden || giant || party ? 0.86 : 0.62)
-    const hp = this.add
-      .text(0, 8, '●'.repeat(balloon.hp), {
-        color: golden || giant || party ? '#fff4ab' : '#ffffff',
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: giant ? '34px' : party ? '28px' : '24px',
-        fontStyle: 'bold',
-        stroke: '#10284b',
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5)
-    const container = this.add.container(balloon.x, balloon.y, [string, knot, body, shine, hp])
-    const rendered = { container, body, hp, kind: balloon.kind, lastHp: balloon.hp }
+    const damage = this.add.graphics()
+    const container = this.add.container(balloon.x, balloon.y, [string, knot, body, shine, damage])
+    const rendered = { container, body, damage, bodyColor, kind: balloon.kind, lastHp: balloon.hp }
+    this.#updateDamageVisual(rendered, balloon)
     this.#balloons.set(balloon.id, rendered)
     this.tweens.add({ targets: container, scale: { from: 0.72, to: 1 }, duration: 170, ease: 'Back.Out' })
     return rendered
+  }
+
+  #updateDamageVisual(rendered: RenderedBalloon, balloon: BalloonRallyBalloon): void {
+    const stage = getBalloonRallyDamageStage(balloon.kind, balloon.hp, balloon.maxHp)
+    const damagedColor = balloon.kind === 'GIANT'
+      ? (stage === 'HEAVILY_CRACKED' ? 0x754f9a : stage === 'CRACKED' ? 0x9565bd : rendered.bodyColor)
+      : stage === 'CRACKED' ? 0xb84d73 : rendered.bodyColor
+    rendered.body.setFillStyle(damagedColor)
+    rendered.damage.clear()
+    if (stage === 'NONE') return
+    const radius = balloon.radius
+    const lineWidth = balloon.kind === 'GIANT' ? 10 : 9
+    rendered.damage.lineStyle(lineWidth, 0xfff4da, 0.96)
+    rendered.damage.beginPath()
+    rendered.damage.moveTo(-radius * 0.12, -radius * 0.72)
+    rendered.damage.lineTo(radius * 0.02, -radius * 0.2)
+    rendered.damage.lineTo(-radius * 0.16, radius * 0.12)
+    rendered.damage.lineTo(radius * 0.12, radius * 0.72)
+    rendered.damage.strokePath()
+    if (stage === 'HEAVILY_CRACKED') {
+      rendered.damage.beginPath()
+      rendered.damage.moveTo(radius * 0.36, -radius * 0.56)
+      rendered.damage.lineTo(radius * 0.18, -radius * 0.12)
+      rendered.damage.lineTo(radius * 0.42, radius * 0.28)
+      rendered.damage.strokePath()
+      rendered.damage.beginPath()
+      rendered.damage.moveTo(-radius * 0.48, radius * 0.44)
+      rendered.damage.lineTo(-radius * 0.22, radius * 0.2)
+      rendered.damage.strokePath()
+    }
   }
 
   #impact(x: number, y: number, kind: BalloonRallyBalloon['kind']): void {

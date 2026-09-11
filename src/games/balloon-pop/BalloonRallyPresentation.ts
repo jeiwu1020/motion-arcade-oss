@@ -35,6 +35,57 @@ export interface BalloonRallyComboMilestone {
   readonly label: string
 }
 
+export interface BalloonRallyPresentationState {
+  readonly phase: 'COUNTDOWN' | 'PLAYING' | 'FINISHED'
+  readonly combo: number
+  readonly miniEventSequence: number
+  readonly partyRush: boolean
+  readonly roundRemainingMs: number
+}
+
+export type BalloonRallyOneShotCue =
+  | Readonly<{ kind: 'COMBO_MILESTONE'; milestone: BalloonRallyComboMilestone }>
+  | Readonly<{ kind: 'MINI_EVENT_START' }>
+  | Readonly<{ kind: 'PARTY_RUSH_START' }>
+  | Readonly<{ kind: 'FINAL_COUNTDOWN'; value: 3 | 2 | 1 }>
+  | Readonly<{ kind: 'ROUND_FINISH' }>
+
+/** Pure transition detection keeps one-shot SFX/cues out of authoritative Core rules. */
+export function getBalloonRallyOneShotCues(
+  previous: BalloonRallyPresentationState | null,
+  next: BalloonRallyPresentationState,
+): readonly BalloonRallyOneShotCue[] {
+  if (!previous) return []
+  const cues: BalloonRallyOneShotCue[] = []
+  const milestone = getComboMilestoneCrossed(previous.combo, next.combo)
+  if (milestone) cues.push({ kind: 'COMBO_MILESTONE', milestone })
+  if (next.miniEventSequence > previous.miniEventSequence) cues.push({ kind: 'MINI_EVENT_START' })
+  if (!previous.partyRush && next.partyRush) cues.push({ kind: 'PARTY_RUSH_START' })
+  if (previous.phase === 'PLAYING' && next.phase === 'FINISHED') cues.push({ kind: 'ROUND_FINISH' })
+  for (const threshold of [3_000, 2_000, 1_000] as const) {
+    if (previous.roundRemainingMs > threshold && next.roundRemainingMs <= threshold && next.roundRemainingMs > 0) {
+      cues.push({ kind: 'FINAL_COUNTDOWN', value: (threshold / 1_000) as 3 | 2 | 1 })
+    }
+  }
+  return cues
+}
+
+export type BalloonRallyDamageStage = 'NONE' | 'CRACKED' | 'HEAVILY_CRACKED'
+
+/** Presentation-only damage mapping. One-hit targets intentionally stay clean. */
+export function getBalloonRallyDamageStage(
+  kind: 'STANDARD' | 'PARTY' | 'GOLDEN' | 'GIANT' | 'BONUS',
+  hp: number,
+  maxHp: number,
+): BalloonRallyDamageStage {
+  if (kind === 'STANDARD') return hp < maxHp ? 'CRACKED' : 'NONE'
+  if (kind === 'GIANT') {
+    if (hp <= 1) return 'HEAVILY_CRACKED'
+    if (hp < maxHp) return 'CRACKED'
+  }
+  return 'NONE'
+}
+
 export function getComboMilestoneCrossed(previousCombo: number, nextCombo: number): BalloonRallyComboMilestone | null {
   const previousBucket = Math.floor(Math.max(0, previousCombo) / 5)
   const nextBucket = Math.floor(Math.max(0, nextCombo) / 5)
