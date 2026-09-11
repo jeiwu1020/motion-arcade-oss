@@ -1,6 +1,9 @@
-import type { ReactNode, RefObject } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
+import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
+import { CameraSpatialDiagnosticOverlay } from './CameraSpatialDiagnosticOverlay'
 import type { CameraPresentation } from './cameraPresentationModel'
+import type { CameraPresentationDimensions } from './spatialDisplayMapping'
 import './CameraPresentationStage.css'
 
 export interface CameraPresentationStageProps {
@@ -10,6 +13,85 @@ export interface CameraPresentationStageProps {
   readonly children: ReactNode
   readonly foreground?: ReactNode
   readonly className?: string
+  readonly spatialSnapshot?: SpatialHandSnapshot
+}
+
+const EMPTY_DIMENSIONS: CameraPresentationDimensions = Object.freeze({
+  width: 0,
+  height: 0,
+})
+
+function dimensionsMatch(
+  first: CameraPresentationDimensions,
+  second: CameraPresentationDimensions,
+): boolean {
+  return first.width === second.width && first.height === second.height
+}
+
+function useCameraPresentationDimensions(
+  stageRef: RefObject<HTMLElement | null>,
+  videoRef: RefObject<HTMLVideoElement | null>,
+): {
+  readonly stageDimensions: CameraPresentationDimensions
+  readonly sourceDimensions: CameraPresentationDimensions
+} {
+  const [stageDimensions, setStageDimensions] =
+    useState<CameraPresentationDimensions>(EMPTY_DIMENSIONS)
+  const [sourceDimensions, setSourceDimensions] =
+    useState<CameraPresentationDimensions>(EMPTY_DIMENSIONS)
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return undefined
+
+    const updateStageDimensions = () => {
+      const nextDimensions = {
+        // Absolutely positioned stage layers resolve against this content box,
+        // not the outer border box of a game-specific stage shell.
+        width: stage.clientWidth,
+        height: stage.clientHeight,
+      }
+      setStageDimensions((currentDimensions) =>
+        dimensionsMatch(currentDimensions, nextDimensions)
+          ? currentDimensions
+          : nextDimensions,
+      )
+    }
+
+    updateStageDimensions()
+    if (typeof ResizeObserver === 'undefined') return undefined
+
+    const observer = new ResizeObserver(updateStageDimensions)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [stageRef])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return undefined
+
+    const updateSourceDimensions = () => {
+      const nextDimensions = {
+        width: video.videoWidth,
+        height: video.videoHeight,
+      }
+      setSourceDimensions((currentDimensions) =>
+        dimensionsMatch(currentDimensions, nextDimensions)
+          ? currentDimensions
+          : nextDimensions,
+      )
+    }
+
+    updateSourceDimensions()
+    video.addEventListener('loadedmetadata', updateSourceDimensions)
+    video.addEventListener('resize', updateSourceDimensions)
+    return () => {
+      video.removeEventListener('loadedmetadata', updateSourceDimensions)
+      video.removeEventListener('resize', updateSourceDimensions)
+    }
+  }, [videoRef])
+
+  return { stageDimensions, sourceDimensions }
 }
 
 export function CameraPresentationStage({
@@ -19,13 +101,20 @@ export function CameraPresentationStage({
   children,
   foreground,
   className,
+  spatialSnapshot,
 }: CameraPresentationStageProps) {
+  const stageRef = useRef<HTMLElement>(null)
+  const { stageDimensions, sourceDimensions } = useCameraPresentationDimensions(
+    stageRef,
+    videoRef,
+  )
   const classes = ['camera-presentation-stage', className]
     .filter(Boolean)
     .join(' ')
 
   return (
     <section
+      ref={stageRef}
       className={classes}
       data-presentation-mode={presentation.mode}
       data-camera-treatment={presentation.cameraTreatment}
@@ -42,6 +131,14 @@ export function CameraPresentationStage({
       <div className="camera-presentation-treatment" aria-hidden="true" />
 
       <div className="camera-presentation-playfield">{children}</div>
+
+      {spatialSnapshot ? (
+        <CameraSpatialDiagnosticOverlay
+          snapshot={spatialSnapshot}
+          sourceDimensions={sourceDimensions}
+          stageDimensions={stageDimensions}
+        />
+      ) : null}
 
       <div
         className="camera-presentation-framing"

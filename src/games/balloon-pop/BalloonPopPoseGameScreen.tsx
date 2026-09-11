@@ -8,6 +8,7 @@ import {
 
 import { CameraPresentationStage } from '../../components/camera-presentation/CameraPresentationStage'
 import { resolveCameraPresentation } from '../../components/camera-presentation/cameraPresentationModel'
+import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
 import {
   PoseGameplayInputRuntime,
@@ -29,6 +30,32 @@ const INITIAL_POSE_SNAPSHOT: PoseGameplayInputSnapshot = Object.freeze({
   error: null,
 })
 
+const INITIAL_SPATIAL_SNAPSHOT: SpatialHandSnapshot = Object.freeze({
+  timestampMs: 0,
+  sequence: 0,
+  leftHand: Object.freeze({
+    availability: 'UNAVAILABLE' as const,
+    timestampMs: 0,
+    sequence: 0,
+  }),
+  rightHand: Object.freeze({
+    availability: 'UNAVAILABLE' as const,
+    timestampMs: 0,
+    sequence: 0,
+  }),
+})
+
+function representsSameSpatialAvailability(
+  current: SpatialHandSnapshot,
+  next: SpatialHandSnapshot,
+): boolean {
+  return (
+    current.sequence === next.sequence &&
+    current.leftHand.availability === next.leftHand.availability &&
+    current.rightHand.availability === next.rightHand.availability
+  )
+}
+
 export default function BalloonPopPoseGameScreen({
   onExit,
 }: BalloonPopPoseGameScreenProps) {
@@ -42,6 +69,9 @@ export default function BalloonPopPoseGameScreen({
       }),
   )
   const [poseSnapshot, setPoseSnapshot] = useState(INITIAL_POSE_SNAPSHOT)
+  const [spatialSnapshot, setSpatialSnapshot] = useState(
+    INITIAL_SPATIAL_SNAPSHOT,
+  )
   const state = useSyncExternalStore(
     session.subscribe,
     session.getState,
@@ -55,8 +85,18 @@ export default function BalloonPopPoseGameScreen({
     })
     runtimeRef.current = runtime
     setPoseSnapshot(runtime.getSnapshot())
+    setSpatialSnapshot(runtime.getSpatialSnapshot())
+    const refreshSpatialSnapshot = () => {
+      const nextSnapshot = runtime.getSpatialSnapshot()
+      setSpatialSnapshot((currentSnapshot) =>
+        representsSameSpatialAvailability(currentSnapshot, nextSnapshot)
+          ? currentSnapshot
+          : nextSnapshot,
+      )
+    }
     const unsubscribe = runtime.subscribe(() => {
       setPoseSnapshot(runtime.getSnapshot())
+      refreshSpatialSnapshot()
     })
     let cancelled = false
     let animationFrame = 0
@@ -68,6 +108,7 @@ export default function BalloonPopPoseGameScreen({
         time - previousTime,
         runtime.getSnapshot().status === 'READY',
       )
+      refreshSpatialSnapshot()
       previousTime = time
       animationFrame = requestAnimationFrame(frame)
     }
@@ -129,6 +170,7 @@ export default function BalloonPopPoseGameScreen({
         presentation={presentation}
         videoRef={videoRef}
         onStartCamera={() => void startCamera()}
+        spatialSnapshot={spatialSnapshot}
         foreground={state.phase === 'FINISHED' ? (
           <div className="balloon-pop-result" role="dialog" aria-modal="true">
             <div className="balloon-pop-result-card">

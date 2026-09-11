@@ -6,9 +6,9 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current implementation baseline before Phase 2A.3a normalized spatial-hand work:
+Current implementation baseline before Phase 2A.3b spatial display-mapping work:
 
-`daf872ed010eea7c5cece94a1d6652dcc7e6a802` — reusable Camera Presentation Layer
+`b35eab03087f73a1cb9277c4cbdff3a7aa7fa06d` — normalized spatial hand foundation
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -38,20 +38,22 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ## Current phase
 
-### Phase 2A.3a — Normalized Spatial Interaction Foundation
+### Phase 2A.3b — Camera / Spatial Display Mapping Diagnostic
 
-Engineering status: PASS; Windows/iPhone spatial-source validation remains
-required before Phase 2A.3b.
+Engineering status: implementation complete; Windows/iPhone display-alignment
+validation remains required before spatial gameplay work.
 
-This narrow phase exposes immutable anatomical left/right Pose-wrist positions
-from the existing `PoseGameplayInputRuntime` without altering Motion Actions,
-Balloon Pop, camera ownership, MediaPipe acquisition, or current FULL_BODY
-readiness. Spatial points are camera-source-normalized, confidence/freshness
-gated, and become coordinate-free unavailable on loss or lifecycle reset.
+The existing `SpatialHandSnapshot` is now mapped only into the mirrored DOM
+`CameraPresentationStage` for an engineering diagnostic. A pure contain-fit
+helper includes letterbox/pillarbox offsets and applies horizontal display
+mirroring without changing canonical source positions or anatomical hand
+identity. The diagnostic uses the same production Pose runtime, real video
+dimensions, and observed stage bounds; it does not create another camera,
+Pose session, or MediaPipe detector.
 
-Object-fit/letterbox mapping, Phaser coordinates, cursors, swept collision, and
-Balloon Rally gameplay remain deferred. Details:
-[Phase 2A.3a Spatial Foundation](./PHASE_2A_3A_SPATIAL_FOUNDATION.md).
+Motion Actions, Balloon Pop rules, Phaser coordinates, game-world mapping,
+current FULL_BODY readiness, and collision remain unchanged. Details:
+[Phase 2A.3b Spatial Display Mapping](./PHASE_2A_3B_SPATIAL_DISPLAY_MAPPING.md).
 
 ### Prior Phase 2A.2b — Camera Presentation Layer physical-feedback tuning
 
@@ -99,16 +101,6 @@ The framing guide, Pose readiness requirement, and player setup copy should even
 
 ## Immediately following phases
 
-### Phase 2A.3b — Spatial display/playfield mapping
-
-- map the Phase 2A.3a canonical source points into the mirrored `object-fit:
-  contain` presentation rectangle;
-- account for letterbox/pillarbox offsets before Phaser/game-space collision;
-- introduce only the framing/readiness selection required by the first
-  UPPER_BODY spatial game;
-- add previous/current segments only when swept collision is ready to consume
-  them; keep Pose wrists until evidence requires full Hand Tracking.
-
 ### Phase 2A.4 — Balloon Rally gameplay rewrite
 
 - Camera AR gameplay;
@@ -145,7 +137,7 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 ## Scope still deferred
 
-- spatial display/playfield mapping and collision until Phase 2A.3b
+- Phaser/playfield mapping, swept collision, and spatial gameplay until Phase 2A.4
 - mature Balloon Rally physics until Phase 2A.4
 - formal art/audio polish until Phase 2A.5
 - gameplay calibration/profile selection

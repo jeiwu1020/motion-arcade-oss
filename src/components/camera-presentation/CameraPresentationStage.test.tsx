@@ -2,8 +2,24 @@ import { createRef } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
 import { CameraPresentationStage } from './CameraPresentationStage'
 import { resolveCameraPresentation } from './cameraPresentationModel'
+
+const SPATIAL_SNAPSHOT: SpatialHandSnapshot = Object.freeze({
+  timestampMs: 100,
+  sequence: 1,
+  leftHand: Object.freeze({
+    availability: 'UNAVAILABLE' as const,
+    timestampMs: 100,
+    sequence: 1,
+  }),
+  rightHand: Object.freeze({
+    availability: 'UNAVAILABLE' as const,
+    timestampMs: 100,
+    sequence: 1,
+  }),
+})
 
 describe('CameraPresentationStage', () => {
   it('renders one display-only mirrored video beneath treatment and playfield layers', () => {
@@ -86,5 +102,27 @@ describe('CameraPresentationStage', () => {
     expect(initialMarkup).toContain('>啟動相機</button>')
     expect(errorMarkup).toContain('>重新啟動相機</button>')
     expect(errorMarkup).toContain('role="alert"')
+  })
+
+  it('adds an engineering spatial diagnostic layer only when the live spatial snapshot is supplied', () => {
+    const markup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'READY', error: null },
+          'PLAYING',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+        spatialSnapshot={SPATIAL_SNAPSHOT}
+      >
+        <div>GAME PLAYFIELD</div>
+      </CameraPresentationStage>,
+    )
+
+    expect(markup).toContain('data-spatial-diagnostic="engineering"')
+    expect(markup.match(/<video/g)).toHaveLength(1)
+    expect(markup.indexOf('camera-presentation-playfield')).toBeLessThan(
+      markup.indexOf('camera-presentation-spatial-diagnostic'),
+    )
   })
 })

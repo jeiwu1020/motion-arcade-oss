@@ -207,9 +207,18 @@ or reset-lifecycle wrist samples are unavailable.
 
 Spatial `x = 0..1` runs from source-image left to right and `y = 0..1` from
 source-image top to bottom. These are not logical playfield coordinates. The
-mirrored DOM preview does not alter them or swap anatomy. Mapping through
-`object-fit: contain`, letterbox/pillarbox offsets, display mirror alignment,
-and Phaser/playfield coordinates is deferred to Phase 2A.3b.
+mirrored DOM preview does not alter them or swap anatomy.
+
+Phase 2A.3b maps an `AVAILABLE` source point into the current DOM
+`CameraPresentationStage` through the pure
+`mapCanonicalSourcePointToMirroredStage` helper. It first resolves the actual
+`object-fit: contain` source-video rectangle from real video and stage
+dimensions, including letterbox/pillarbox offsets, then applies a horizontal
+display mirror only at that presentation boundary. The resulting point is
+stage-local CSS pixels for the engineering diagnostic; it does not mutate a
+`SpatialHandSnapshot` and is not a Phaser/game-world coordinate. Unavailable
+hands produce no display point. Phaser/playfield mapping and collision remain
+deferred.
 
 ## 8. Snapshot and provider contract
 
