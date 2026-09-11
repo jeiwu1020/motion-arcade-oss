@@ -46,7 +46,8 @@ export class BalloonRallyScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.#handGlow = this.add.graphics().setDepth(4)
+    // Keep the cosmetic glow behind balloon bodies so it supports readability.
+    this.#handGlow = this.add.graphics().setDepth(-1)
     this.#partyEdgePulse = this.add
       .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xffd85c, 0)
       .setStrokeStyle(28, 0xffef8a, 0)
