@@ -1,14 +1,14 @@
 # Motion Arcade — Current Phase
 
-Updated: 2026-08-31
+Updated: 2026-09-11
 
 This file is the short live checkpoint. Long-term product and implementation order are canonicalized in [Master Implementation Plan](./MASTER_IMPLEMENTATION_PLAN.md).
 
 ## Current implementation baseline
 
-Current implementation baseline before Phase 2A.2b:
+Current implementation baseline before the Phase 2A.2b physical-feedback tuning:
 
-`28cd9660aacfd1c7bfc96c165b5578677dca132b` — Phase 2A.2a production real-Pose Balloon Pop input
+`daf872ed010eea7c5cece94a1d6652dcc7e6a802` — reusable Camera Presentation Layer
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -23,31 +23,37 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - Phase 1D.3b — SEATED / UPPER_BODY Pose: engineering PASS; physical checks deferred
 - Phase 2A.1 — deterministic Balloon Pop through normalized test input: PASS
 - Phase 2A.2a — production real-Pose route/runtime: engineering PASS
-- Phase 2A.2b — reusable Camera Presentation Layer: engineering PASS; physical validation pending
+- Phase 2A.2b — reusable Camera Presentation Layer: engineering PASS; Windows + iPhone functional physical checks PASS; camera brightness retest and projector check pending
 
 ## Product constraints reaffirmed
 
 - Primary target is **smartphone landscape**.
 - **Front camera** is the primary real-body sensor and should also support clear player framing / Camera AR presentation where appropriate.
+- Camera AR should keep the player visibly present; do not darken the live image so heavily that the AR effect is lost.
 - **Phone microphone** is the future voice-input sensor.
 - Gameplay is expected to be shown on a **projector / large display**, so distance readability is a core requirement.
+- Body-framing requirements are **game-specific**. Do not require full-body framing when a game only needs upper-body/arm interaction.
 - The target is a mature exercise + entertainment product, not a collection of sensor demos.
 - Legacy projects are gameplay references; new implementations must use the current normalized runtime architecture.
 
 ## Current phase
 
-### Phase 2A.2b — Camera Presentation Layer
+### Phase 2A.2b — Camera Presentation Layer physical-feedback tuning
 
-Engineering status: PASS. Physical Windows/iPhone/projector validation remains pending.
+Engineering status: PASS. Windows and iPhone functional testing found no blocking behavior. Physical feedback identified one presentation issue: gameplay camera treatment was too dark for the intended AR feeling.
 
-Implemented outcomes:
+Current tuning:
+
+- setup/baselining camera treatment is close to the original live-image brightness;
+- active Camera AR remains slightly treated for HUD/game-object contrast, but the player stays clearly visible;
+- scrim strength is reduced rather than hiding the live image;
+- mirror behavior remains CSS/display-only and sensor semantics are unchanged.
+
+Implemented outcomes retained:
 
 - shared `CameraPresentationStage` and pure state resolver live outside Balloon Pop;
-- setup/baselining uses the mirrored camera as the dominant stage with a large
-  full-body guide and obvious READY feedback;
-- mirrored preview remains display-only; anatomical/canonical coordinates remain unchanged;
-- production Phaser uses a transparent `1280 × 720` FIT projection above a
-  subdued live camera, while the development/test renderer stays opaque;
+- setup/baselining uses the mirrored camera as the dominant stage with a large full-body guide and obvious READY feedback;
+- production Phaser uses a transparent `1280 × 720` FIT projection above the camera;
 - tracking loss makes camera/framing dominant while existing readiness freezes time;
 - result keeps a healthy camera dimmed; replay reuses it; exit/unmount still disposes it;
 - camera uses `object-fit: contain` to prevent confusing crop during positioning;
@@ -55,7 +61,7 @@ Implemented outcomes:
 
 Focused details: [Phase 2A.2b Camera Presentation Layer](./PHASE_2A_2B_CAMERA_PRESENTATION.md).
 
-Automated validation:
+Automated validation for the underlying 2A.2b implementation:
 
 - Typecheck: PASS
 - Lint: PASS
@@ -64,7 +70,17 @@ Automated validation:
 - Production browser QA at desktop and `852 × 393`: PASS
 - `git diff --check`: PASS
 
-Spatial wrist collision remains Phase 2A.3 and was not added.
+## Framing direction for upcoming games
+
+The current Balloon Pop route still uses STANDARD/full-body readiness because that is the existing production Pose path. This must not become a universal game requirement.
+
+Planned framing requirements:
+
+- `FULL_BODY` — games whose rules need lower-body movement or whole-body position, such as JUMP, SQUAT, running, lane movement, or leg interaction;
+- `UPPER_BODY` — games centered on arms/hands/reach/voice where knees and ankles add no gameplay value;
+- add a broader flexible mode only if real games demonstrate a need; do not speculate early.
+
+The framing guide, Pose readiness requirement, and player setup copy should eventually derive from the selected game's framing requirement. Balloon Rally is a strong candidate for `UPPER_BODY` once the spatial-hand path is implemented and physically validated.
 
 ## Immediately following phases
 
@@ -73,7 +89,9 @@ Spatial wrist collision remains Phase 2A.3 and was not added.
 - expose canonical normalized left/right hand positions without raw landmarks;
 - include confidence/freshness and safe unavailable behavior;
 - support previous/current motion segment or equivalent for swept fast-motion collision;
-- preserve mirror semantics;
+- preserve anatomical semantics while mapping correctly into the mirrored `object-fit: contain` presentation rectangle;
+- account for letterbox/pillarbox offsets before Phaser/game-space collision;
+- begin formal game-specific framing requirements (`FULL_BODY` / `UPPER_BODY`) without changing unrelated STANDARD behavior;
 - use Pose wrists first; do not add full Hand Tracking unless evidence shows it is needed.
 
 ### Phase 2A.4 — Balloon Rally gameplay rewrite
@@ -105,9 +123,8 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 ## Manual / physical testing still open
 
-- Phase 2A.2b Camera Presentation Layer on Windows Chrome, including real
-  framing, READY/lost states, retry, replay, and cleanup.
-- iPhone Safari landscape: front-camera framing, safe areas/FIT, lifecycle, thermal behavior, projector readability.
+- Brief Windows/iPhone retest after the brighter Camera AR treatment to confirm player visibility and game-object/HUD contrast.
+- Projector: framing-guide visibility, live-player visibility, camera/game contrast, HUD readability, and result/recovery comprehension from the intended viewing distance.
 - Real-person held-arm/repeat-hit behavior remains relevant until Balloon Pop is replaced by spatial contact.
 - Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open; later batch them in real games.
 

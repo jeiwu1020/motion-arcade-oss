@@ -1,6 +1,6 @@
 # Phase 2A.2b — Camera Presentation Layer
 
-Status: Engineering complete; Windows/iPhone/projector physical validation pending
+Status: Engineering complete; Windows/iPhone functional physical checks PASS; brighter-AR retest and projector validation pending
 
 ## Scope
 
@@ -30,7 +30,7 @@ Camera AR games:
 - a single full-stage `<video>` receiving the runtime-bound stream;
 - display-only CSS mirroring;
 - camera treatments for dominant, subdued, dimmed, and hidden states;
-- a projector-readable full-body frame guide;
+- a projector-readable framing guide;
 - status/guidance/action overlays;
 - explicit playfield and foreground slots above the camera.
 
@@ -43,9 +43,9 @@ coordinates, advance game time, or understand Balloon Pop scoring.
 |---|---|---|---|
 | Camera not started | Hidden | Hidden | Large explicit 啟動相機 action |
 | Permission starting | Dominant | Prominent | Camera-start guidance |
-| Baselining | Dominant | Prominent | Full-body positioning instruction |
+| Baselining | Dominant | Prominent | Current full-body positioning instruction |
 | Ready/countdown | Dominant | Confirmed | Large READY treatment while Phaser counts down |
-| Playing | Subdued | Subtle | Transparent Phaser playfield above live camera |
+| Playing | Clear/lightly subdued | Subtle | Transparent Phaser playfield above visibly live camera |
 | Tracking lost | Dominant | Prominent | Game remains paused; 請回到畫面中 guidance |
 | Error | Hidden/released | Hidden | Readable retry action |
 | Result | Dimmed when healthy | Hidden | Result card above the retained live camera |
@@ -67,13 +67,50 @@ Layer order is:
 mirrored DOM video (`object-fit: contain`)
   → restrained DOM treatment/scrim
   → transparent Phaser canvas
-  → full-body guide and lifecycle UI
+  → framing guide and lifecycle UI
   → result foreground
 ```
 
 Only `.camera-presentation-video` receives `transform: scaleX(-1)`. No source
 frame, landmark, analyzer, action, or Phaser coordinate is changed. Anatomical
 `REACH_LEFT` / `REACH_RIGHT` semantics remain canonical.
+
+## Physical feedback refinement
+
+Windows and iPhone functional testing found no other blocking issue, but the
+initial gameplay treatment made the camera too dark for the desired Camera AR
+feeling. The live player should remain clearly recognizable during play rather
+than reading as a dim diagnostic background.
+
+The presentation therefore keeps the same lifecycle modes but tunes them as
+follows:
+
+- DOMINANT is close to the natural live-camera brightness;
+- gameplay SUBDUED remains slightly treated for balloon/HUD contrast, but is
+  substantially brighter and more saturated than the first implementation;
+- the gameplay scrim is reduced;
+- RESULT remains intentionally dim because the result card is the primary focus.
+
+This is presentation-only. Camera acquisition, Pose inference, mirroring
+semantics, Game Core, and collision behavior are unchanged.
+
+## Game-specific framing direction
+
+The current route still uses a full-body guide because the existing STANDARD
+Pose gameplay readiness requires full-body tracking. That is not intended as a
+universal rule for future games.
+
+Planned reusable framing requirements:
+
+- `FULL_BODY`: lower-body / whole-body games such as JUMP, SQUAT, running, lane
+  movement, or leg interaction;
+- `UPPER_BODY`: hand/reach/arm/voice-centered games where knees and ankles do
+  not contribute to the rules.
+
+Later Camera Presentation should derive its guide and setup copy from the game's
+framing requirement. Pose readiness should match that requirement rather than
+forcing every game to show the same full-body silhouette. Balloon Rally is a
+candidate for `UPPER_BODY` after spatial-hand interaction is validated.
 
 ## Landscape decisions
 
@@ -98,11 +135,10 @@ Game Core rules and tests are unchanged.
 
 ## Physical validation still required
 
-- Windows Chrome: real camera framing, permission/error/retry, baseline/READY,
-  tracking-loss recovery, replay reuse, Home/unmount release, and readability.
-- iPhone Safari landscape: front-camera aspect ratio, Dynamic Island/safe areas,
-  browser chrome changes, full-body framing distance, page lifecycle, and heat.
-- Projector: full-body guide visibility, camera/balloon contrast, HUD readability,
-  and result/recovery comprehension from the intended viewing distance.
-
-No physical result is claimed PASS by this engineering phase.
+- Brief Windows/iPhone retest of the brighter Camera AR treatment for player
+  visibility and balloon/HUD contrast.
+- Projector: framing-guide visibility, live-player visibility, camera/balloon
+  contrast, HUD readability, and result/recovery comprehension from the intended
+  viewing distance.
+- Game-specific FULL_BODY versus UPPER_BODY framing behavior belongs to the
+  upcoming spatial/framing work, not this presentation-only phase.

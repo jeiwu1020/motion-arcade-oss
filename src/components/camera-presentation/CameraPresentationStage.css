@@ -38,13 +38,13 @@
 .camera-presentation-stage[data-camera-treatment='DOMINANT']
   .camera-presentation-video {
   opacity: 1;
-  filter: brightness(0.82) saturate(0.82) contrast(1.04);
+  filter: brightness(0.96) saturate(0.96) contrast(1.02);
 }
 
 .camera-presentation-stage[data-camera-treatment='SUBDUED']
   .camera-presentation-video {
-  opacity: 0.92;
-  filter: brightness(0.48) saturate(0.58) contrast(1.08);
+  opacity: 0.96;
+  filter: brightness(0.78) saturate(0.9) contrast(1.03);
 }
 
 .camera-presentation-stage[data-camera-treatment='DIMMED']
@@ -56,7 +56,7 @@
 .camera-presentation-treatment {
   z-index: 1;
   pointer-events: none;
-  background: rgb(4 17 30 / 10%);
+  background: rgb(4 17 30 / 4%);
   transition: background-color 220ms ease;
 }
 
@@ -67,7 +67,7 @@
 
 .camera-presentation-stage[data-camera-treatment='SUBDUED']
   .camera-presentation-treatment {
-  background: rgb(5 21 36 / 28%);
+  background: rgb(5 21 36 / 10%);
 }
 
 .camera-presentation-stage[data-camera-treatment='DIMMED']

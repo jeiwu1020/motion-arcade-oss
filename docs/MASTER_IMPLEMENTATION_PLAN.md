@@ -1,6 +1,6 @@
 # Motion Arcade — Master Implementation Plan
 
-Updated: 2026-08-31
+Updated: 2026-09-11
 
 This is the canonical implementation roadmap for Motion Arcade. It defines what the product is trying to become, what must remain true across phases, and the order in which major capabilities and games should be matured. `CURRENT_PHASE.md` is the short live checkpoint; this file is the longer-term plan.
 
@@ -47,9 +47,30 @@ Rules:
 - camera acquisition still requires explicit user action;
 - setup/baselining should show a clear **mirrored** front-camera preview;
 - mirrored preview is display-only; canonical body semantics must not change;
-- framing guidance must make it obvious when head/feet/body are outside the usable area;
+- framing guidance must make the required body region obvious;
+- do not require head-to-foot framing when a game's actual input only requires upper-body/arm interaction;
+- Camera AR gameplay should keep the player clearly visible; visual treatment may improve game-object contrast but should not make the person feel like a dark diagnostic background;
 - games may use a Camera AR presentation where Phaser visuals are layered over the mirrored live preview;
 - camera presentation must never introduce recording or persistence by default.
+
+### 2.2.1 Game-specific framing requirements
+
+Framing is a gameplay requirement, not a platform-wide full-body rule.
+
+Initial planned requirements:
+
+- `FULL_BODY`: use when the game needs lower-body or whole-body information such as JUMP, SQUAT, running, lane movement, leg interaction, or reliable whole-body position;
+- `UPPER_BODY`: use when the game is driven by hands, arms, reach, upper-body lean, or voice and knees/ankles do not contribute to the rules.
+
+The selected game's framing requirement should eventually control:
+
+- which body region must be visible before gameplay is READY;
+- which Pose tracking readiness is required;
+- which framing guide Camera Presentation renders;
+- setup/recovery instruction text;
+- the minimum sensible player-to-camera distance.
+
+Do not add more framing categories until real games demonstrate a need. Balloon Rally is a strong candidate for `UPPER_BODY` after spatial-hand interaction is validated; Runner remains a clear `FULL_BODY` case.
 
 ### 2.3 Projector readability
 
@@ -201,8 +222,8 @@ Target experience:
 
 1. player enters the game;
 2. player explicitly starts the front camera;
-3. full-screen mirrored preview helps positioning and baseline readiness;
-4. the player remains visible during gameplay as part of the AR presentation;
+3. mirrored preview helps positioning and readiness using the body region the game actually requires;
+4. the player remains clearly visible during gameplay as part of the AR presentation;
 5. multiple balloons float around the player;
 6. the player's hand spatially contacts balloons rather than merely triggering a left/right event;
 7. each valid separated contact scores and pushes the balloon naturally;
@@ -253,35 +274,31 @@ Purpose:
 
 ### Phase 2A.2b — Camera Presentation Layer
 
-**Status: Engineering PASS; physical Windows/iPhone/projector validation pending.**
+**Status: Engineering PASS; Windows/iPhone functional physical checks PASS; brighter-AR retest and projector validation pending.**
 
 Goals:
 
-- fix the current real-game issue where the player cannot conveniently see the front-camera framing;
 - show a large/full-screen mirrored camera view during setup/baselining;
 - add clear framing/safe-body guide and READY feedback;
-- keep camera visible in gameplay through a deliberate Camera AR composition;
+- keep camera visible and clearly recognizable in gameplay through a deliberate Camera AR composition;
 - preserve large-projector readability;
 - define reusable camera-presentation behavior instead of a one-off Balloon Pop CSS hack.
 
-Suggested presentation:
+Presentation direction:
 
-- setup: camera is dominant, with framing guide and readiness overlay;
-- gameplay: mirrored camera remains as background, visually subdued enough for game objects/HUD to stay readable;
+- setup: camera is dominant and close to natural live-image brightness;
+- gameplay: mirrored camera remains a clearly visible background with only enough treatment to keep game objects/HUD readable;
 - tracking lost: freeze game and make recovery/framing guidance dominant;
 - results: camera may remain dimmed behind the result card.
-
-Acceptance requires physical Windows testing first, then iPhone Safari landscape/projector testing.
 
 Implemented boundary refinement:
 
 - shared DOM `CameraPresentationStage` + pure presentation-state resolver;
 - one runtime-bound video reused across setup, play, tracking recovery, and result;
 - CSS-only display mirroring and `object-fit: contain` framing;
-- transparent `1280 × 720` Phaser Camera AR presentation above the video while
-  the development/test presentation remains opaque;
-- camera dominance changes by lifecycle state without changing sensor ownership,
-  analyzer semantics, or Game Core time.
+- transparent `1280 × 720` Phaser Camera AR presentation above the video while the development/test presentation remains opaque;
+- camera dominance changes by lifecycle state without changing sensor ownership, analyzer semantics, or Game Core time;
+- gameplay camera brightness/saturation increased after Windows/iPhone physical feedback so the player remains visually present in the AR scene.
 
 ### Phase 2A.3 — Normalized Spatial Hand Interaction
 
@@ -297,10 +314,14 @@ Introduce a minimal game-facing spatial interaction contract for at least:
 
 Requirements:
 
-- mirror display must not alter canonical coordinates;
+- mirror display must not alter canonical/anatomical coordinates;
+- map canonical spatial points into the actual displayed `object-fit: contain` video rectangle, including letterbox/pillarbox offsets;
+- keep display mirroring separate from source-coordinate semantics while still making AR collision visually line up with the mirrored player;
 - no raw landmark arrays in Game Core;
 - stale/low-confidence spatial pointers become unavailable/neutral;
-- tests for coordinate semantics and fast-motion swept collision;
+- tests for coordinate semantics, presentation mapping, and fast-motion swept collision;
+- introduce the minimum shared game framing requirement needed for `FULL_BODY` versus `UPPER_BODY` readiness/guidance;
+- preserve existing STANDARD behavior unless the game explicitly opts into a different framing requirement;
 - do not expand to full Hands model unless Pose wrists are proven insufficient.
 
 ### Phase 2A.4 — Balloon Rally gameplay rewrite
@@ -349,6 +370,7 @@ Validate:
 - Windows Chrome real-person play;
 - iPhone Safari landscape;
 - front-camera mirror/anatomical correctness;
+- per-game framing requirement at the intended camera distance;
 - phone thermal behavior over repeated rounds;
 - projector readability;
 - camera cleanup and background recovery;
@@ -450,6 +472,7 @@ Minimum production gates:
 - production sensor path works through normalized contracts;
 - explicit permission lifecycle;
 - tracking loss / error / cleanup behavior verified;
+- the game's declared body-framing requirement is appropriate and physically validated;
 - iPhone Safari landscape physically tested;
 - projected large-screen readability physically checked;
 - no active-play document overflow;
