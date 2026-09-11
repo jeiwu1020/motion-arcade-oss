@@ -1,7 +1,7 @@
 # Phase 2A.3b — Camera / Spatial Display Mapping Diagnostic
 
-Status: engineering implementation; Windows and iPhone physical alignment
-validation remains required
+Status: Engineering PASS; Windows Chrome and iPhone Safari physical alignment
+PASS. Projector validation remains part of final game production testing.
 
 ## Scope
 
@@ -80,7 +80,14 @@ coordinate-free `UNAVAILABLE` values and render no marker.
 
 The current Balloon Pop FULL_BODY readiness rule is unchanged.
 
-## Manual validation before Phase 2A.4
+## Completed physical validation
+
+Windows Chrome and iPhone Safari validation confirmed that the `左手` / `右手`
+markers track the correct anatomical hands in the mirrored preview. This closes
+the display-alignment gate for Phase 2A.3c. Projector validation remains a
+final game-production concern.
+
+## Original validation procedure
 
 ### Windows desktop
 
@@ -102,4 +109,5 @@ The current Balloon Pop FULL_BODY readiness rule is unchanged.
 3. Confirm the marker remains readable at the expected viewing distance and
    that it never intercepts touch or changes normal game behavior.
 
-No physical alignment result is claimed by this engineering phase.
+The procedure remains useful when a future camera presentation change affects
+object-fit or mirrored display geometry.

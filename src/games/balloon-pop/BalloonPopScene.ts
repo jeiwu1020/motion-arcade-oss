@@ -1,29 +1,47 @@
 import Phaser from 'phaser'
 
+import type {
+  LogicalSpatialHand,
+  SpatialCollisionInputAdapter,
+} from '../../spatial/SpatialCollisionInputAdapter'
+import { SpatialCircleContactTracker } from '../../spatial/spatialCollision'
 import type { BalloonPopSession } from './BalloonPopSession'
 
 const WORLD_WIDTH = 1280
 const WORLD_HEIGHT = 720
 const TARGET_X = { LEFT: 330, RIGHT: 950 } as const
+const SPATIAL_PROBE_RADIUS = 112
+const SPATIAL_PROBE_MARGIN = 16
 
 export type BalloonPopScenePresentation = 'STANDARD' | 'CAMERA_AR'
 
 export class BalloonPopScene extends Phaser.Scene {
   readonly #session: BalloonPopSession
   readonly #presentation: BalloonPopScenePresentation
+  readonly #spatialCollisionInput: SpatialCollisionInputAdapter | null
+  readonly #spatialContactTracker = new SpatialCircleContactTracker()
   #balloon!: Phaser.GameObjects.Container
   #balloonBody!: Phaser.GameObjects.Ellipse
   #countdownText!: Phaser.GameObjects.Text
   #statusText!: Phaser.GameObjects.Text
   #lastTargetId: number | null = null
+  #spatialProbe: Phaser.GameObjects.Container | null = null
+  #spatialProbeBody: Phaser.GameObjects.Arc | null = null
+  #spatialProbeCount: Phaser.GameObjects.Text | null = null
+  #spatialProbeFeedback: Phaser.GameObjects.Text | null = null
+  #spatialProbeHits = 0
+  #spatialProbeRegionKey: string | null = null
+  #spatialProbeBaseScale = 1
 
   constructor(
     session: BalloonPopSession,
     presentation: BalloonPopScenePresentation = 'STANDARD',
+    spatialCollisionInput?: SpatialCollisionInputAdapter,
   ) {
     super('balloon-pop')
     this.#session = session
     this.#presentation = presentation
+    this.#spatialCollisionInput = spatialCollisionInput ?? null
   }
 
   create(): void {
@@ -83,10 +101,15 @@ export class BalloonPopScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+
+    if (this.#presentation === 'CAMERA_AR' && this.#spatialCollisionInput) {
+      this.#createSpatialProbe()
+    }
   }
 
   update(time: number): void {
     const state = this.#session.getState()
+    this.#updateSpatialProbe(state.phase === 'PLAYING')
 
     if (state.phase === 'COUNTDOWN') {
       this.#balloon.setVisible(false)
@@ -158,6 +181,141 @@ export class BalloonPopScene extends Phaser.Scene {
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
+    }
+  }
+
+  #createSpatialProbe(): void {
+    const body = this.add
+      .circle(0, 0, SPATIAL_PROBE_RADIUS, 0x7ce2c5, 0.26)
+      .setStrokeStyle(10, 0xffffff, 0.92)
+    const innerRing = this.add
+      .circle(0, 0, SPATIAL_PROBE_RADIUS * 0.62, 0x0b2638, 0)
+      .setStrokeStyle(4, 0x7ce2c5, 0.9)
+    const title = this.add
+      .text(0, -25, '空間碰撞測試', {
+        color: '#ffffff',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '27px',
+        fontStyle: 'bold',
+        stroke: '#10284b',
+        strokeThickness: 7,
+      })
+      .setOrigin(0.5)
+    const count = this.add
+      .text(0, 18, '0 HIT', {
+        color: '#ffffff',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '35px',
+        fontStyle: 'bold',
+        stroke: '#10284b',
+        strokeThickness: 8,
+      })
+      .setOrigin(0.5)
+    const feedback = this.add
+      .text(0, 142, '', {
+        color: '#ffffff',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '32px',
+        fontStyle: 'bold',
+        stroke: '#10284b',
+        strokeThickness: 8,
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+
+    this.#spatialProbe = this.add
+      .container(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, [
+        body,
+        innerRing,
+        title,
+        count,
+        feedback,
+      ])
+      .setVisible(false)
+    this.#spatialProbeBody = body
+    this.#spatialProbeCount = count
+    this.#spatialProbeFeedback = feedback
+  }
+
+  #updateSpatialProbe(isGameplayActive: boolean): void {
+    const spatialInput = this.#spatialCollisionInput
+    const probe = this.#spatialProbe
+    const body = this.#spatialProbeBody
+    if (!spatialInput || !probe || !body) return
+
+    const snapshot = spatialInput.getSnapshot()
+    const region = snapshot.cameraVisibleWorldRect
+    if (
+      !isGameplayActive ||
+      !region ||
+      region.width <= SPATIAL_PROBE_MARGIN * 2 ||
+      region.height <= SPATIAL_PROBE_MARGIN * 2
+    ) {
+      probe.setVisible(false)
+      this.#spatialContactTracker.reset()
+      this.#spatialProbeRegionKey = null
+      return
+    }
+
+    const maxRadius =
+      Math.min(region.width, region.height) / 2 - SPATIAL_PROBE_MARGIN
+    if (maxRadius <= 0) {
+      probe.setVisible(false)
+      this.#spatialContactTracker.reset()
+      this.#spatialProbeRegionKey = null
+      return
+    }
+
+    const radius = Math.min(SPATIAL_PROBE_RADIUS, maxRadius)
+    const x = region.x + region.width / 2
+    const y = region.y + region.height / 2
+    const regionKey = [region.x, region.y, region.width, region.height].join(':')
+    if (this.#spatialProbeRegionKey !== regionKey) {
+      this.#spatialContactTracker.reset()
+      this.#spatialProbeRegionKey = regionKey
+      this.#spatialProbeBaseScale = radius / SPATIAL_PROBE_RADIUS
+      probe.setScale(this.#spatialProbeBaseScale)
+    }
+    probe.setPosition(x, y).setVisible(true)
+
+    const target = { id: 'spatial-probe', x, y, radius }
+    this.#updateSpatialProbeHand('LEFT', snapshot.leftHand, target)
+    this.#updateSpatialProbeHand('RIGHT', snapshot.rightHand, target)
+  }
+
+  #updateSpatialProbeHand(
+    side: 'LEFT' | 'RIGHT',
+    hand: LogicalSpatialHand,
+    target: { readonly id: string; readonly x: number; readonly y: number; readonly radius: number },
+  ): void {
+    const didHit = this.#spatialContactTracker.update(
+      {
+        side,
+        sequence: hand.sequence,
+        current: hand.availability === 'AVAILABLE' ? hand.current : null,
+        segment: hand.availability === 'AVAILABLE' ? hand.segment : null,
+      },
+      target,
+    )
+    if (!didHit) return
+
+    this.#spatialProbeHits += 1
+    this.#spatialProbeCount?.setText(`${this.#spatialProbeHits} HIT`)
+    this.#spatialProbeFeedback
+      ?.setText(side === 'LEFT' ? '左手 HIT!' : '右手 HIT!')
+      .setAlpha(1)
+    this.#spatialProbeBody?.setFillStyle(side === 'LEFT' ? 0x65c7ff : 0xff8fa8, 0.52)
+    if (this.#spatialProbe) {
+      this.tweens.killTweensOf(this.#spatialProbe)
+      this.tweens.add({
+        targets: this.#spatialProbe,
+        scale: this.#spatialProbeBaseScale * 1.13,
+        duration: 90,
+        yoyo: true,
+        onComplete: () => {
+          this.#spatialProbeFeedback?.setAlpha(0)
+        },
+      })
     }
   }
 }

@@ -6,9 +6,9 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current implementation baseline before Phase 2A.3b spatial display-mapping work:
+Current implementation baseline before Phase 2A.3c spatial collision-prototype work:
 
-`b35eab03087f73a1cb9277c4cbdff3a7aa7fa06d` — normalized spatial hand foundation
+`54cb06ed14d23c3728f59098f0fb326fbc188d36` — spatial display mapping diagnostic
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -38,22 +38,23 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ## Current phase
 
-### Phase 2A.3b — Camera / Spatial Display Mapping Diagnostic
+### Phase 2A.3c — Spatial Collision Prototype
 
-Engineering status: implementation complete; Windows/iPhone display-alignment
-validation remains required before spatial gameplay work.
+Engineering status: implementation complete; Windows/iPhone collision
+validation remains required before Balloon Rally gameplay work.
 
-The existing `SpatialHandSnapshot` is now mapped only into the mirrored DOM
-`CameraPresentationStage` for an engineering diagnostic. A pure contain-fit
-helper includes letterbox/pillarbox offsets and applies horizontal display
-mirroring without changing canonical source positions or anatomical hand
-identity. The diagnostic uses the same production Pose runtime, real video
-dimensions, and observed stage bounds; it does not create another camera,
-Pose session, or MediaPipe detector.
+The existing canonical source points now compose through the mirrored DOM
+camera rectangle and Phaser's centered `1280 × 720` FIT rectangle. A
+session-local adapter creates logical wrist points and only continuous
+previous/current segments. A framework-independent swept-circle contact helper
+drives one temporary Camera AR Phaser target without changing Balloon Pop
+score, results, sensor ownership, Motion Actions, or current FULL_BODY
+readiness.
 
-Motion Actions, Balloon Pop rules, Phaser coordinates, game-world mapping,
-current FULL_BODY readiness, and collision remain unchanged. Details:
-[Phase 2A.3b Spatial Display Mapping](./PHASE_2A_3B_SPATIAL_DISPLAY_MAPPING.md).
+Phase 2A.3b is Engineering PASS + Windows Chrome physical PASS + iPhone Safari
+physical PASS: the mirrored anatomical wrist markers visually tracked the
+correct hands. Projector validation remains part of final game production
+testing. Details: [Phase 2A.3c Spatial Collision](./PHASE_2A_3C_SPATIAL_COLLISION.md).
 
 ### Prior Phase 2A.2b — Camera Presentation Layer physical-feedback tuning
 
@@ -137,7 +138,7 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 ## Scope still deferred
 
-- Phaser/playfield mapping, swept collision, and spatial gameplay until Phase 2A.4
+- multi-balloon spatial gameplay and Balloon Rally physics until Phase 2A.4
 - mature Balloon Rally physics until Phase 2A.4
 - formal art/audio polish until Phase 2A.5
 - gameplay calibration/profile selection

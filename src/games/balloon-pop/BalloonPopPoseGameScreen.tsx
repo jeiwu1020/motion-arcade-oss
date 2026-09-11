@@ -7,9 +7,13 @@ import {
 } from 'react'
 
 import { CameraPresentationStage } from '../../components/camera-presentation/CameraPresentationStage'
-import { resolveCameraPresentation } from '../../components/camera-presentation/cameraPresentationModel'
+import {
+  resolveCameraPresentation,
+} from '../../components/camera-presentation/cameraPresentationModel'
+import type { CameraPresentationSpatialLayout } from '../../components/camera-presentation/spatialDisplayMapping'
 import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
+import { SpatialCollisionInputAdapter } from '../../spatial/SpatialCollisionInputAdapter'
 import {
   PoseGameplayInputRuntime,
   type PoseGameplayInputSnapshot,
@@ -45,6 +49,11 @@ const INITIAL_SPATIAL_SNAPSHOT: SpatialHandSnapshot = Object.freeze({
   }),
 })
 
+const INITIAL_SPATIAL_LAYOUT: CameraPresentationSpatialLayout = Object.freeze({
+  sourceDimensions: Object.freeze({ width: 0, height: 0 }),
+  stageDimensions: Object.freeze({ width: 0, height: 0 }),
+})
+
 function representsSameSpatialAvailability(
   current: SpatialHandSnapshot,
   next: SpatialHandSnapshot,
@@ -61,7 +70,11 @@ export default function BalloonPopPoseGameScreen({
 }: BalloonPopPoseGameScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const runtimeRef = useRef<PoseGameplayInputRuntime | null>(null)
+  const spatialLayoutRef = useRef(INITIAL_SPATIAL_LAYOUT)
   const [provider] = useState(() => new PoseMotionInputProvider())
+  const [spatialCollisionInput] = useState(
+    () => new SpatialCollisionInputAdapter(),
+  )
   const [session] = useState(
     () =>
       new BalloonPopSession(provider, {
@@ -93,6 +106,10 @@ export default function BalloonPopPoseGameScreen({
           ? currentSnapshot
           : nextSnapshot,
       )
+      spatialCollisionInput.ingest(nextSnapshot, {
+        source: spatialLayoutRef.current.sourceDimensions,
+        stage: spatialLayoutRef.current.stageDimensions,
+      })
     }
     const unsubscribe = runtime.subscribe(() => {
       setPoseSnapshot(runtime.getSnapshot())
@@ -124,9 +141,10 @@ export default function BalloonPopPoseGameScreen({
       cancelAnimationFrame(animationFrame)
       unsubscribe()
       if (runtimeRef.current === runtime) runtimeRef.current = null
+      spatialCollisionInput.reset()
       void Promise.all([session.stop(), runtime.dispose()])
     }
-  }, [provider, session])
+  }, [provider, session, spatialCollisionInput])
 
   const startCamera = useCallback(async () => {
     try {
@@ -135,6 +153,18 @@ export default function BalloonPopPoseGameScreen({
       // The runtime publishes a readable, recoverable ERROR snapshot.
     }
   }, [])
+
+  const handleSpatialLayoutChange = useCallback(
+    (layout: CameraPresentationSpatialLayout) => {
+      spatialLayoutRef.current = layout
+      const source = runtimeRef.current?.getSpatialSnapshot() ?? INITIAL_SPATIAL_SNAPSHOT
+      spatialCollisionInput.ingest(source, {
+        source: layout.sourceDimensions,
+        stage: layout.stageDimensions,
+      })
+    },
+    [spatialCollisionInput],
+  )
 
   const secondsRemaining = Math.ceil(state.roundRemainingMs / 1_000)
   const presentation = resolveCameraPresentation(
@@ -171,6 +201,8 @@ export default function BalloonPopPoseGameScreen({
         videoRef={videoRef}
         onStartCamera={() => void startCamera()}
         spatialSnapshot={spatialSnapshot}
+        showSpatialDiagnostic
+        onSpatialLayoutChange={handleSpatialLayoutChange}
         foreground={state.phase === 'FINISHED' ? (
           <div className="balloon-pop-result" role="dialog" aria-modal="true">
             <div className="balloon-pop-result-card">
@@ -191,7 +223,11 @@ export default function BalloonPopPoseGameScreen({
           </div>
         ) : null}
       >
-        <BalloonPopCanvas session={session} presentation="CAMERA_AR" />
+        <BalloonPopCanvas
+          session={session}
+          presentation="CAMERA_AR"
+          spatialCollisionInput={spatialCollisionInput}
+        />
       </CameraPresentationStage>
     </main>
   )

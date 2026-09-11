@@ -3,7 +3,10 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
 import { CameraSpatialDiagnosticOverlay } from './CameraSpatialDiagnosticOverlay'
 import type { CameraPresentation } from './cameraPresentationModel'
-import type { CameraPresentationDimensions } from './spatialDisplayMapping'
+import type {
+  CameraPresentationDimensions,
+  CameraPresentationSpatialLayout,
+} from './spatialDisplayMapping'
 import './CameraPresentationStage.css'
 
 export interface CameraPresentationStageProps {
@@ -14,6 +17,10 @@ export interface CameraPresentationStageProps {
   readonly foreground?: ReactNode
   readonly className?: string
   readonly spatialSnapshot?: SpatialHandSnapshot
+  readonly showSpatialDiagnostic?: boolean
+  readonly onSpatialLayoutChange?: (
+    layout: CameraPresentationSpatialLayout,
+  ) => void
 }
 
 const EMPTY_DIMENSIONS: CameraPresentationDimensions = Object.freeze({
@@ -102,6 +109,8 @@ export function CameraPresentationStage({
   foreground,
   className,
   spatialSnapshot,
+  showSpatialDiagnostic = false,
+  onSpatialLayoutChange,
 }: CameraPresentationStageProps) {
   const stageRef = useRef<HTMLElement>(null)
   const { stageDimensions, sourceDimensions } = useCameraPresentationDimensions(
@@ -111,6 +120,11 @@ export function CameraPresentationStage({
   const classes = ['camera-presentation-stage', className]
     .filter(Boolean)
     .join(' ')
+
+  useEffect(() => {
+    if (!onSpatialLayoutChange) return
+    onSpatialLayoutChange({ sourceDimensions, stageDimensions })
+  }, [onSpatialLayoutChange, sourceDimensions, stageDimensions])
 
   return (
     <section
@@ -132,7 +146,7 @@ export function CameraPresentationStage({
 
       <div className="camera-presentation-playfield">{children}</div>
 
-      {spatialSnapshot ? (
+      {spatialSnapshot && showSpatialDiagnostic ? (
         <CameraSpatialDiagnosticOverlay
           snapshot={spatialSnapshot}
           sourceDimensions={sourceDimensions}

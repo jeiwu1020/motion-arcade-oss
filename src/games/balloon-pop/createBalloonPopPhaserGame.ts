@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 
+import type { SpatialCollisionInputAdapter } from '../../spatial/SpatialCollisionInputAdapter'
 import {
   BalloonPopScene,
   type BalloonPopScenePresentation,
@@ -10,6 +11,7 @@ export function createBalloonPopPhaserGame(
   parent: HTMLElement,
   session: BalloonPopSession,
   presentation: BalloonPopScenePresentation = 'STANDARD',
+  spatialCollisionInput?: SpatialCollisionInputAdapter,
 ): Phaser.Game {
   const cameraAr = presentation === 'CAMERA_AR'
   return new Phaser.Game({
@@ -23,6 +25,6 @@ export function createBalloonPopPhaserGame(
       width: 1280,
       height: 720,
     },
-    scene: [new BalloonPopScene(session, presentation)],
+    scene: [new BalloonPopScene(session, presentation, spatialCollisionInput)],
   })
 }

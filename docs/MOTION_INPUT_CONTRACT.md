@@ -218,7 +218,17 @@ display mirror only at that presentation boundary. The resulting point is
 stage-local CSS pixels for the engineering diagnostic; it does not mutate a
 `SpatialHandSnapshot` and is not a Phaser/game-world coordinate. Unavailable
 hands produce no display point. Phaser/playfield mapping and collision remain
-deferred.
+deferred from this public contract.
+
+Phase 2A.3c adds a separate, session-local presentation/game adapter:
+`SpatialCollisionInputAdapter`. It composes that display map with Phaser's
+centered `1280 × 720` `Scale.FIT` rectangle and produces logical hand points
+or `null`, never a clamped fallback. It may retain previous/current logical
+points for a swept collision segment only while availability, sequence,
+timestamp, and presentation geometry are continuous. This adapter, its
+collision state, and temporary Phaser probe are not fields of
+`SpatialHandSnapshot`, `MotionInputSnapshot`, or `PlayerMotionState`; Game
+Core still receives no Pose, DOM, camera, or body-coordinate data.
 
 ## 8. Snapshot and provider contract
 

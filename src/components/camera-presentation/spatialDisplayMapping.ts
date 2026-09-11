@@ -22,6 +22,12 @@ export interface CameraStageDisplayPoint {
   readonly y: number
 }
 
+/** Current DOM-presentation geometry, with no DOM element references. */
+export interface CameraPresentationSpatialLayout {
+  readonly sourceDimensions: CameraPresentationDimensions
+  readonly stageDimensions: CameraPresentationDimensions
+}
+
 function hasPositiveFiniteDimensions(
   dimensions: CameraPresentationDimensions,
 ): boolean {

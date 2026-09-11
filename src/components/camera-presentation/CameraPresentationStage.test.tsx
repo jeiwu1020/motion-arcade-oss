@@ -114,6 +114,7 @@ describe('CameraPresentationStage', () => {
         videoRef={createRef<HTMLVideoElement>()}
         onStartCamera={() => undefined}
         spatialSnapshot={SPATIAL_SNAPSHOT}
+        showSpatialDiagnostic
       >
         <div>GAME PLAYFIELD</div>
       </CameraPresentationStage>,
@@ -124,5 +125,23 @@ describe('CameraPresentationStage', () => {
     expect(markup.indexOf('camera-presentation-playfield')).toBeLessThan(
       markup.indexOf('camera-presentation-spatial-diagnostic'),
     )
+  })
+
+  it('keeps the engineering spatial diagnostic out of normal presentation unless explicitly enabled', () => {
+    const markup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'READY', error: null },
+          'PLAYING',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+        spatialSnapshot={SPATIAL_SNAPSHOT}
+      >
+        <div>GAME PLAYFIELD</div>
+      </CameraPresentationStage>,
+    )
+
+    expect(markup).not.toContain('data-spatial-diagnostic="engineering"')
   })
 })

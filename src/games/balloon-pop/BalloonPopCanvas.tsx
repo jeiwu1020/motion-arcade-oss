@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { mountPhaserGame } from '../../game/phaser/mountPhaserGame'
+import type { SpatialCollisionInputAdapter } from '../../spatial/SpatialCollisionInputAdapter'
 import type { BalloonPopScenePresentation } from './BalloonPopScene'
 import type { BalloonPopSession } from './BalloonPopSession'
 
 interface BalloonPopCanvasProps {
   readonly session: BalloonPopSession
   readonly presentation?: BalloonPopScenePresentation
+  readonly spatialCollisionInput?: SpatialCollisionInputAdapter
 }
 
 export function BalloonPopCanvas({
   session,
   presentation = 'STANDARD',
+  spatialCollisionInput,
 }: BalloonPopCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [loadError, setLoadError] = useState<string>()
@@ -24,7 +27,12 @@ export function BalloonPopCanvas({
     const factoryPromise = import('./createBalloonPopPhaserGame').then(
       ({ createBalloonPopPhaserGame }) =>
         (parent: HTMLElement) =>
-          createBalloonPopPhaserGame(parent, session, presentation),
+          createBalloonPopPhaserGame(
+            parent,
+            session,
+            presentation,
+            spatialCollisionInput,
+          ),
     )
     const mount = mountPhaserGame.lazy(host, factoryPromise)
     void mount.ready.catch((error: unknown) => {
@@ -37,13 +45,14 @@ export function BalloonPopCanvas({
       cancelled = true
       mount.unmount()
     }
-  }, [presentation, session])
+  }, [presentation, session, spatialCollisionInput])
 
   return (
     <div
       ref={hostRef}
       className="balloon-pop-canvas"
       aria-label="氣球拍拍樂遊戲區"
+      data-spatial-collision-probe={spatialCollisionInput ? 'enabled' : undefined}
     >
       {loadError ? <p className="balloon-pop-load-error">{loadError}</p> : null}
     </div>
