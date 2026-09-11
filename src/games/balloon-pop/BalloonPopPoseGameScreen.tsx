@@ -22,6 +22,7 @@ import {
   BALLOON_RALLY_POSE_INPUT_REQUEST,
   BalloonRallySession,
 } from './BalloonRallySession'
+import { resolveBalloonRallyTrackingInput } from './BalloonRallyTrackingPolicy'
 import './BalloonPopGameScreen.css'
 
 interface BalloonPopPoseGameScreenProps {
@@ -86,16 +87,18 @@ export default function BalloonPopPoseGameScreen({
     const frame = (time: number) => {
       void runtime.update(time)
       const runtimeSnapshot = runtime.getSnapshot()
+      const spatialSnapshot = runtime.getSpatialSnapshot()
       session.tick(
         time - previousTime,
-        {
-          setupReady: runtimeSnapshot.status === 'READY',
-          usefulTracking: runtimeSnapshot.status === 'READY',
+        resolveBalloonRallyTrackingInput({
+          phase: session.getState().phase,
+          runtimeReady: runtimeSnapshot.status === 'READY',
           hardFailure:
             runtimeSnapshot.status === 'ERROR' ||
             (session.getState().phase === 'PLAYING' &&
               runtimeSnapshot.status === 'CAMERA_NOT_STARTED'),
-        },
+          spatialSnapshot,
+        }),
       )
       refreshSpatialSnapshot()
       previousTime = time

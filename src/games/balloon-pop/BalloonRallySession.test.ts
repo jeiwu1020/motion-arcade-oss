@@ -4,6 +4,7 @@ import { SpatialCollisionInputAdapter } from '../../spatial/SpatialCollisionInpu
 import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
 import { BALLOON_RALLY_RULES } from './BalloonRallyCore'
 import { BalloonRallySession } from './BalloonRallySession'
+import { resolveBalloonRallyTrackingInput } from './BalloonRallyTrackingPolicy'
 
 const GEOMETRY = {
   source: { width: 1280, height: 720 },
@@ -47,26 +48,92 @@ describe('Balloon Rally spatial session', () => {
     await session.stop()
   })
 
-  it('allows an available right hand to score while the left hand is unavailable and torso tracking stays useful', async () => {
+  it.each([
+    ['left', { x: 0.5, y: 0.5 } as SourcePoint, null as SourcePoint],
+    ['right', null as SourcePoint, { x: 0.5, y: 0.5 } as SourcePoint],
+  ] as const)('keeps playing and scores with an available %s hand during runtime tracking loss', async (side, initialLeft, initialRight) => {
     const spatialInput = new SpatialCollisionInputAdapter()
     const session = new BalloonRallySession(spatialInput, { seed: 21 })
     await session.start()
     spatialInput.ingest(spatial(1, null, null), GEOMETRY)
-    session.tick(BALLOON_RALLY_RULES.countdownMs, {
-      setupReady: true,
-      usefulTracking: true,
+    session.tick(BALLOON_RALLY_RULES.countdownMs, resolveBalloonRallyTrackingInput({
+      phase: 'COUNTDOWN',
+      runtimeReady: true,
       hardFailure: false,
-    })
+      spatialSnapshot: spatial(1, null, null),
+    }))
     const balloon = session.getState().balloons[0]
     const point = {
       x: 1 - (balloon?.x ?? 640) / 1280,
       y: (balloon?.y ?? 360) / 720,
     }
-    spatialInput.ingest(spatial(2, null, point), GEOMETRY)
-    session.tick(0, { setupReady: true, usefulTracking: true, hardFailure: false })
+    const left = side === 'left' ? point : initialLeft
+    const right = side === 'right' ? point : initialRight
+    const trackingLostSpatial = spatial(2, left, right)
+    spatialInput.ingest(trackingLostSpatial, GEOMETRY)
+    session.tick(100, resolveBalloonRallyTrackingInput({
+      phase: 'PLAYING',
+      runtimeReady: false,
+      hardFailure: false,
+      spatialSnapshot: trackingLostSpatial,
+    }))
 
-    expect(session.getState()).toMatchObject({ hits: 1, score: 1 })
+    expect(session.getState()).toMatchObject({ hits: 1, score: 1, elapsedMs: 100 })
     expect(session.getPresentationSnapshot().trackingState).toBe('NORMAL')
+    await session.stop()
+  })
+
+  it('uses degraded then soft/hard recovery when runtime tracking is lost and both spatial hands are unavailable', async () => {
+    const spatialInput = new SpatialCollisionInputAdapter()
+    const session = new BalloonRallySession(spatialInput, { seed: 21 })
+    await session.start()
+    const unavailable = spatial(1, null, null)
+    spatialInput.ingest(unavailable, GEOMETRY)
+    session.tick(BALLOON_RALLY_RULES.countdownMs, resolveBalloonRallyTrackingInput({
+      phase: 'COUNTDOWN',
+      runtimeReady: true,
+      hardFailure: false,
+      spatialSnapshot: unavailable,
+    }))
+
+    session.tick(1_400, resolveBalloonRallyTrackingInput({
+      phase: 'PLAYING',
+      runtimeReady: false,
+      hardFailure: false,
+      spatialSnapshot: unavailable,
+    }))
+    expect(session.getPresentationSnapshot().trackingState).toBe('DEGRADED')
+    session.tick(200, resolveBalloonRallyTrackingInput({
+      phase: 'PLAYING',
+      runtimeReady: false,
+      hardFailure: false,
+      spatialSnapshot: unavailable,
+    }))
+    expect(session.getPresentationSnapshot().trackingState).toBe('SOFT_RECOVERY')
+    session.tick(1_500, resolveBalloonRallyTrackingInput({
+      phase: 'PLAYING',
+      runtimeReady: false,
+      hardFailure: false,
+      spatialSnapshot: unavailable,
+    }))
+    expect(session.getPresentationSnapshot().trackingState).toBe('HARD_PAUSE')
+    await session.stop()
+  })
+
+  it('does not allow a spatial hand to start countdown before strict runtime readiness', async () => {
+    const spatialInput = new SpatialCollisionInputAdapter()
+    const session = new BalloonRallySession(spatialInput, { seed: 21 })
+    await session.start()
+    const leftAvailable = spatial(1, { x: 0.5, y: 0.5 }, null)
+    spatialInput.ingest(leftAvailable, GEOMETRY)
+    session.tick(BALLOON_RALLY_RULES.countdownMs, resolveBalloonRallyTrackingInput({
+      phase: 'COUNTDOWN',
+      runtimeReady: false,
+      hardFailure: false,
+      spatialSnapshot: leftAvailable,
+    }))
+
+    expect(session.getState()).toMatchObject({ phase: 'COUNTDOWN', countdownRemainingMs: 3_000 })
     await session.stop()
   })
 
