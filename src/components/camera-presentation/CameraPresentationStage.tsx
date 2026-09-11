@@ -157,6 +157,7 @@ export function CameraPresentationStage({
       <div
         className="camera-presentation-framing"
         data-framing-guide={presentation.framingGuide}
+        data-framing-requirement={presentation.framingRequirement}
         aria-hidden="true"
       >
         <div className="camera-presentation-frame-boundary" />
@@ -168,10 +169,18 @@ export function CameraPresentationStage({
           <circle cx="120" cy="62" r="34" />
           <path d="M120 98 L120 286" />
           <path d="M52 158 L120 120 L188 158" />
-          <path d="M120 286 L66 442" />
-          <path d="M120 286 L174 442" />
+          {presentation.framingRequirement === 'FULL_BODY' ? (
+            <>
+              <path d="M120 286 L66 442" />
+              <path d="M120 286 L174 442" />
+            </>
+          ) : null}
         </svg>
-        <span>全身保持在框內</span>
+        <span>
+          {presentation.framingRequirement === 'UPPER_BODY'
+            ? '頭部、肩膀與雙手保持在框內'
+            : '全身保持在框內'}
+        </span>
       </div>
 
       {presentation.overlay !== 'NONE' ? (

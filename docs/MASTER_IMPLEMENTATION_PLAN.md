@@ -328,6 +328,9 @@ Requirements:
 
 Replace the temporary single-target loop with the first mature Camera AR game.
 
+Status: engineering implementation complete; physical Windows/iPhone and
+projector validation remain required.
+
 Initial rules:
 
 - 60-second round;

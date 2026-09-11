@@ -230,6 +230,12 @@ collision state, and temporary Phaser probe are not fields of
 `SpatialHandSnapshot`, `MotionInputSnapshot`, or `PlayerMotionState`; Game
 Core still receives no Pose, DOM, camera, or body-coordinate data.
 
+Phase 2A.4's `BalloonRallySession` is the first production consumer of this
+logical boundary. It translates a logical wrist contact into pure Core contact
+events; the public spatial/action snapshots remain unchanged. A registry
+control scheme may declare `requiresSpatialHands: true` when it consumes this
+normalized spatial boundary rather than a `MotionActionId`.
+
 ## 8. Snapshot and provider contract
 
 ```ts
@@ -295,6 +301,10 @@ The React control panel writes provider values. The Phaser test scene only reads
 ## 12. Replay and freshness
 
 The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame. Analyzer diagnostics distinguish `upperBodyReady` from `fullBodyReady`; these readiness fields stay outside the game-facing snapshot. Phase 2A.2a's gameplay runtime uses `quality === 'READY'`, `baselineReady`, and `fullBodyReady` to pause or resume the Balloon Pop clock, but neither analyzer diagnostics nor Pose landmarks cross into the Game Core or Phaser scene.
+
+The Balloon Rally runtime explicitly requests `UPPER_BODY`, so the same READY
+quality and baseline use `upperBodyReady` rather than requiring knees/ankles.
+FULL_BODY remains the default for existing games.
 
 The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D calibration remains caller-provided and in memory. Provider stop releases its calibration request; there is no persistence or upload. Replay serialization, calibration persistence, general capability negotiation, multi-person tracking continuity, production onboarding, and JUMP adaptation remain deferred. These additions must extend the provider boundary without exposing raw sensors or body-unit values to games.
 

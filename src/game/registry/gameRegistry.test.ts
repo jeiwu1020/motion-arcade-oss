@@ -17,7 +17,8 @@ describe('production game registry', () => {
       simultaneousPlayers: { min: 1, max: 1 },
       controlSchemes: [
         {
-          requiredActions: ['REACH_LEFT', 'REACH_RIGHT'],
+          requiredActions: [],
+          requiresSpatialHands: true,
           inputTypes: ['BODY'],
         },
       ],

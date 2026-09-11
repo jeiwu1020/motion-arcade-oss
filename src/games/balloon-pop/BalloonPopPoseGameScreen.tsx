@@ -11,18 +11,17 @@ import {
   resolveCameraPresentation,
 } from '../../components/camera-presentation/cameraPresentationModel'
 import type { CameraPresentationSpatialLayout } from '../../components/camera-presentation/spatialDisplayMapping'
-import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
 import { SpatialCollisionInputAdapter } from '../../spatial/SpatialCollisionInputAdapter'
 import {
   PoseGameplayInputRuntime,
   type PoseGameplayInputSnapshot,
 } from '../../motion/runtime/PoseGameplayInputRuntime'
-import { BalloonPopCanvas } from './BalloonPopCanvas'
+import { BalloonRallyCanvas } from './BalloonRallyCanvas'
 import {
-  BALLOON_POP_POSE_INPUT_REQUEST,
-  BalloonPopSession,
-} from './BalloonPopSession'
+  BALLOON_RALLY_POSE_INPUT_REQUEST,
+  BalloonRallySession,
+} from './BalloonRallySession'
 import './BalloonPopGameScreen.css'
 
 interface BalloonPopPoseGameScreenProps {
@@ -34,36 +33,10 @@ const INITIAL_POSE_SNAPSHOT: PoseGameplayInputSnapshot = Object.freeze({
   error: null,
 })
 
-const INITIAL_SPATIAL_SNAPSHOT: SpatialHandSnapshot = Object.freeze({
-  timestampMs: 0,
-  sequence: 0,
-  leftHand: Object.freeze({
-    availability: 'UNAVAILABLE' as const,
-    timestampMs: 0,
-    sequence: 0,
-  }),
-  rightHand: Object.freeze({
-    availability: 'UNAVAILABLE' as const,
-    timestampMs: 0,
-    sequence: 0,
-  }),
-})
-
 const INITIAL_SPATIAL_LAYOUT: CameraPresentationSpatialLayout = Object.freeze({
   sourceDimensions: Object.freeze({ width: 0, height: 0 }),
   stageDimensions: Object.freeze({ width: 0, height: 0 }),
 })
-
-function representsSameSpatialAvailability(
-  current: SpatialHandSnapshot,
-  next: SpatialHandSnapshot,
-): boolean {
-  return (
-    current.sequence === next.sequence &&
-    current.leftHand.availability === next.leftHand.availability &&
-    current.rightHand.availability === next.rightHand.availability
-  )
-}
 
 export default function BalloonPopPoseGameScreen({
   onExit,
@@ -77,14 +50,9 @@ export default function BalloonPopPoseGameScreen({
   )
   const [session] = useState(
     () =>
-      new BalloonPopSession(provider, {
-        managesProviderLifecycle: false,
-      }),
+      new BalloonRallySession(spatialCollisionInput),
   )
   const [poseSnapshot, setPoseSnapshot] = useState(INITIAL_POSE_SNAPSHOT)
-  const [spatialSnapshot, setSpatialSnapshot] = useState(
-    INITIAL_SPATIAL_SNAPSHOT,
-  )
   const state = useSyncExternalStore(
     session.subscribe,
     session.getState,
@@ -95,17 +63,12 @@ export default function BalloonPopPoseGameScreen({
     const runtime = new PoseGameplayInputRuntime({
       getVideo: () => videoRef.current,
       provider,
+      framingRequirement: 'UPPER_BODY',
     })
     runtimeRef.current = runtime
     setPoseSnapshot(runtime.getSnapshot())
-    setSpatialSnapshot(runtime.getSpatialSnapshot())
     const refreshSpatialSnapshot = () => {
       const nextSnapshot = runtime.getSpatialSnapshot()
-      setSpatialSnapshot((currentSnapshot) =>
-        representsSameSpatialAvailability(currentSnapshot, nextSnapshot)
-          ? currentSnapshot
-          : nextSnapshot,
-      )
       spatialCollisionInput.ingest(nextSnapshot, {
         source: spatialLayoutRef.current.sourceDimensions,
         stage: spatialLayoutRef.current.stageDimensions,
@@ -148,7 +111,7 @@ export default function BalloonPopPoseGameScreen({
 
   const startCamera = useCallback(async () => {
     try {
-      await runtimeRef.current?.start(BALLOON_POP_POSE_INPUT_REQUEST)
+      await runtimeRef.current?.start(BALLOON_RALLY_POSE_INPUT_REQUEST)
     } catch {
       // The runtime publishes a readable, recoverable ERROR snapshot.
     }
@@ -157,7 +120,8 @@ export default function BalloonPopPoseGameScreen({
   const handleSpatialLayoutChange = useCallback(
     (layout: CameraPresentationSpatialLayout) => {
       spatialLayoutRef.current = layout
-      const source = runtimeRef.current?.getSpatialSnapshot() ?? INITIAL_SPATIAL_SNAPSHOT
+      const source = runtimeRef.current?.getSpatialSnapshot()
+      if (!source) return
       spatialCollisionInput.ingest(source, {
         source: layout.sourceDimensions,
         stage: layout.stageDimensions,
@@ -170,6 +134,7 @@ export default function BalloonPopPoseGameScreen({
   const presentation = resolveCameraPresentation(
     poseSnapshot,
     state.phase === 'FINISHED' ? 'RESULT' : state.phase,
+    'UPPER_BODY',
   )
 
   return (
@@ -191,6 +156,7 @@ export default function BalloonPopPoseGameScreen({
             {presentation.statusLabel}
           </span>
           <span>分數 <strong>{state.score}</strong></span>
+          <span>命中 <strong>{state.hits}</strong></span>
           <span>時間 <strong>{secondsRemaining}</strong></span>
         </div>
       </header>
@@ -200,8 +166,6 @@ export default function BalloonPopPoseGameScreen({
         presentation={presentation}
         videoRef={videoRef}
         onStartCamera={() => void startCamera()}
-        spatialSnapshot={spatialSnapshot}
-        showSpatialDiagnostic
         onSpatialLayoutChange={handleSpatialLayoutChange}
         foreground={state.phase === 'FINISHED' ? (
           <div className="balloon-pop-result" role="dialog" aria-modal="true">
@@ -211,7 +175,7 @@ export default function BalloonPopPoseGameScreen({
               <strong className="balloon-pop-final-score">{state.score} 分</strong>
               <dl>
                 <div><dt>命中</dt><dd>{state.hits}</dd></div>
-                <div><dt>錯過</dt><dd>{state.misses}</dd></div>
+                <div><dt>氣球拍破</dt><dd>{state.pops}</dd></div>
               </dl>
               <div className="balloon-pop-result-actions">
                 <button type="button" onClick={() => session.replay()}>
@@ -223,10 +187,8 @@ export default function BalloonPopPoseGameScreen({
           </div>
         ) : null}
       >
-        <BalloonPopCanvas
+        <BalloonRallyCanvas
           session={session}
-          presentation="CAMERA_AR"
-          spatialCollisionInput={spatialCollisionInput}
         />
       </CameraPresentationStage>
     </main>

@@ -3,7 +3,7 @@ import type { GameRegistration } from '../../game/registry/types'
 export const balloonPopRegistration: GameRegistration = {
   id: 'balloon-pop',
   title: '氣球拍拍樂',
-  description: '看準左右氣球，用對應方向的伸手動作把氣球拍破！',
+  description: '在鏡頭畫面中用雙手拍動漂浮氣球，累積命中與拍破分數！',
   category: 'PARTY',
   tags: ['single-player', 'upper-body', 'reach', '60-seconds'],
   difficulty: {
@@ -14,9 +14,10 @@ export const balloonPopRegistration: GameRegistration = {
   simultaneousPlayers: { min: 1, max: 1 },
   controlSchemes: [
     {
-      id: 'two-side-reach',
-      label: '左右伸手',
-      requiredActions: ['REACH_LEFT', 'REACH_RIGHT'],
+      id: 'spatial-hand-rally',
+      label: '雙手拍氣球',
+      requiredActions: [],
+      requiresSpatialHands: true,
       inputTypes: ['BODY'],
       bodyAreas: ['UPPER_BODY'],
       posture: ['STANDING'],

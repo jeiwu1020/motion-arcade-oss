@@ -33,10 +33,13 @@ export type CameraPresentationOverlay =
   | 'GUIDANCE'
   | 'READY_BADGE'
 
+export type CameraFramingRequirement = 'FULL_BODY' | 'UPPER_BODY'
+
 export interface CameraPresentation {
   readonly mode: CameraPresentationMode
   readonly cameraTreatment: CameraTreatment
   readonly framingGuide: FramingGuideVisibility
+  readonly framingRequirement: CameraFramingRequirement
   readonly overlay: CameraPresentationOverlay
   readonly statusLabel: string
   readonly eyebrow: string | null
@@ -47,17 +50,23 @@ export interface CameraPresentation {
 }
 
 function presentation(
-  value: CameraPresentation,
+  value: Omit<CameraPresentation, 'framingRequirement'>,
+  framingRequirement: CameraFramingRequirement,
 ): CameraPresentation {
-  return Object.freeze(value)
+  return Object.freeze({ ...value, framingRequirement })
 }
 
 export function resolveCameraPresentation(
   snapshot: PoseGameplayInputSnapshot,
   gamePhase: CameraPresentationGamePhase,
+  framingRequirement: CameraFramingRequirement = 'FULL_BODY',
 ): CameraPresentation {
+  const createPresentation = (
+    value: Omit<CameraPresentation, 'framingRequirement'>,
+  ) => presentation(value, framingRequirement)
+  const upperBody = framingRequirement === 'UPPER_BODY'
   if (gamePhase === 'RESULT') {
-    return presentation({
+    return createPresentation({
       mode: 'RESULT',
       cameraTreatment:
         snapshot.status === 'CAMERA_NOT_STARTED' || snapshot.status === 'ERROR'
@@ -75,7 +84,7 @@ export function resolveCameraPresentation(
   }
 
   if (snapshot.status === 'READY' && gamePhase === 'PLAYING') {
-    return presentation({
+    return createPresentation({
       mode: 'PLAYING',
       cameraTreatment: 'SUBDUED',
       framingGuide: 'SUBTLE',
@@ -90,7 +99,7 @@ export function resolveCameraPresentation(
   }
 
   if (snapshot.status === 'CAMERA_NOT_STARTED') {
-    return presentation({
+    return createPresentation({
       mode: 'SETUP',
       cameraTreatment: 'HIDDEN',
       framingGuide: 'HIDDEN',
@@ -98,14 +107,16 @@ export function resolveCameraPresentation(
       statusLabel: '相機尚未啟動',
       eyebrow: 'FRONT CAMERA',
       headline: '準備好後啟動相機',
-      detail: '按下後站到鏡頭前，讓頭頂到腳尖都看得見。',
+      detail: upperBody
+        ? '按下後站到鏡頭前，讓頭部、肩膀與雙手都看得見。'
+        : '按下後站到鏡頭前，讓頭頂到腳尖都看得見。',
       actionLabel: '啟動相機',
       alert: false,
     })
   }
 
   if (snapshot.status === 'PERMISSION_STARTING') {
-    return presentation({
+    return createPresentation({
       mode: 'STARTING',
       cameraTreatment: 'DOMINANT',
       framingGuide: 'PROMINENT',
@@ -113,29 +124,33 @@ export function resolveCameraPresentation(
       statusLabel: '正在啟動相機',
       eyebrow: '準備鏡頭',
       headline: '正在開啟相機',
-      detail: '允許相機後，站到全身都在框內的位置。',
+      detail: upperBody
+        ? '允許相機後，讓頭部、肩膀與雙手保持在框內。'
+        : '允許相機後，站到全身都在框內的位置。',
       actionLabel: null,
       alert: false,
     })
   }
 
   if (snapshot.status === 'BASELINING') {
-    return presentation({
+    return createPresentation({
       mode: 'BASELINING',
       cameraTreatment: 'DOMINANT',
       framingGuide: 'PROMINENT',
       overlay: 'GUIDANCE',
       statusLabel: '正在確認站位',
       eyebrow: '站位確認',
-      headline: '全身保持在框內',
-      detail: '面向鏡頭，讓肩膀、髖部、膝蓋與腳踝都清楚可見。',
+      headline: upperBody ? '上半身保持在框內' : '全身保持在框內',
+      detail: upperBody
+        ? '讓頭部、肩膀與雙手清楚可見，左右留出揮手空間。'
+        : '面向鏡頭，讓肩膀、髖部、膝蓋與腳踝都清楚可見。',
       actionLabel: null,
       alert: false,
     })
   }
 
   if (snapshot.status === 'READY') {
-    return presentation({
+    return createPresentation({
       mode: 'READY',
       cameraTreatment: 'DOMINANT',
       framingGuide: 'CONFIRMED',
@@ -150,7 +165,7 @@ export function resolveCameraPresentation(
   }
 
   if (snapshot.status === 'TRACKING_LOST') {
-    return presentation({
+    return createPresentation({
       mode: 'TRACKING_LOST',
       cameraTreatment: 'DOMINANT',
       framingGuide: 'PROMINENT',
@@ -158,13 +173,15 @@ export function resolveCameraPresentation(
       statusLabel: '遊戲已暫停',
       eyebrow: '遊戲已暫停',
       headline: '請回到畫面中',
-      detail: '讓頭頂到腳尖重新回到框內，準備好後會自動繼續。',
+      detail: upperBody
+        ? '讓頭部、肩膀與雙手重新回到框內，準備好後會自動繼續。'
+        : '讓頭頂到腳尖重新回到框內，準備好後會自動繼續。',
       actionLabel: null,
       alert: false,
     })
   }
 
-  return presentation({
+  return createPresentation({
     mode: 'ERROR',
     cameraTreatment: 'HIDDEN',
     framingGuide: 'HIDDEN',

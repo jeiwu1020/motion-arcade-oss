@@ -40,6 +40,8 @@ export interface GameControlScheme {
   readonly id: string
   readonly label: string
   readonly requiredActions: readonly MotionActionId[]
+  /** Uses the normalized spatial-hand boundary rather than a Motion Action. */
+  readonly requiresSpatialHands?: boolean
   readonly optionalActions?: readonly MotionActionId[]
   readonly inputTypes: readonly MotionInputType[]
   readonly bodyAreas: readonly BodyArea[]

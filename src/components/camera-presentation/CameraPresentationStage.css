@@ -186,6 +186,22 @@
   background: var(--camera-ready-color);
 }
 
+.camera-presentation-framing[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-frame-boundary {
+  inset: 9% 13%;
+}
+
+.camera-presentation-framing[data-framing-requirement='UPPER_BODY']
+  .camera-presentation-body-guide {
+  top: 11%;
+  width: min(38%, 16rem);
+  height: 56%;
+}
+
+.camera-presentation-framing[data-framing-requirement='UPPER_BODY'] > span {
+  bottom: 12%;
+}
+
 .camera-presentation-framing[data-framing-guide='SUBTLE'] {
   opacity: 0.18;
 }

@@ -51,11 +51,11 @@ function validateScheme(
   path: string,
   errors: RegistryValidationError[],
 ): void {
-  if (scheme.requiredActions.length === 0) {
+  if (scheme.requiredActions.length === 0 && !scheme.requiresSpatialHands) {
     errors.push({
       code: 'EMPTY_REQUIRED_ACTIONS',
       path: `${path}.requiredActions`,
-      message: 'A control scheme must declare at least one required action.',
+      message: 'A control scheme must declare a Motion Action or normalized spatial hands.',
     })
   }
 

@@ -71,6 +71,8 @@ export interface PoseGameplayInputRuntimeOptions {
   readonly now?: () => number
   readonly documentTarget?: LifecycleDocument
   readonly windowTarget?: LifecycleWindow
+  /** Game-selected sensor readiness requirement; defaults preserve existing games. */
+  readonly framingRequirement?: 'FULL_BODY' | 'UPPER_BODY'
 }
 
 type Listener = () => void
@@ -357,7 +359,9 @@ export class PoseGameplayInputRuntime {
     return (
       diagnostics.quality === 'READY' &&
       diagnostics.baselineReady &&
-      diagnostics.fullBodyReady
+      (this.#options.framingRequirement === 'UPPER_BODY'
+        ? diagnostics.upperBodyReady
+        : diagnostics.fullBodyReady)
     )
   }
 

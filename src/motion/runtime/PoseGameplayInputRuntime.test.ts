@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { resolveAbilityProfile } from '../adaptive/profiles'
 import type { MotionInputRequest } from '../contracts/motion'
-import { createSyntheticPoseFrame } from '../pose/syntheticPoseFixtures'
+import {
+  createSyntheticPoseFrame,
+  withLandmarkConfidence,
+} from '../pose/syntheticPoseFixtures'
 import type { PoseInferenceBackend } from '../../sensors/pose/inference/PoseInferenceBackend'
 import type { PoseInferenceResult, PoseSensorFrame } from '../../sensors/pose/poseTypes'
 import {
@@ -37,7 +40,7 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-function createHarness() {
+function createHarness(framingRequirement?: 'FULL_BODY' | 'UPPER_BODY') {
   const now = { value: 0 }
   const video: PoseGameplayVideoSource = {
     readyState: 2,
@@ -74,6 +77,7 @@ function createHarness() {
     now: () => now.value,
     documentTarget,
     windowTarget,
+    ...(framingRequirement ? { framingRequirement } : {}),
   })
 
   const infer = async (frame: PoseSensorFrame) => {
@@ -119,6 +123,25 @@ const POSE_REQUEST: MotionInputRequest = {
   ],
   actions: ['REACH_LEFT', 'REACH_RIGHT'],
   sensors: { pose: true, hands: false, audio: false },
+}
+
+const UPPER_BODY_POSE_REQUEST: MotionInputRequest = {
+  players: [
+    {
+      playerId: 'player-1',
+      abilityProfile: resolveAbilityProfile(['UPPER_BODY']),
+    },
+  ],
+  actions: [],
+  sensors: { pose: true, hands: false, audio: false },
+}
+
+function upperBodyOnlyFrame(timestampMs: number): PoseSensorFrame {
+  let frame = createSyntheticPoseFrame('neutral', { timestampMs })
+  for (const landmarkIndex of [25, 26, 27, 28]) {
+    frame = withLandmarkConfidence(frame, landmarkIndex, 0)
+  }
+  return frame
 }
 
 describe('PoseGameplayInputRuntime', () => {
@@ -225,6 +248,27 @@ describe('PoseGameplayInputRuntime', () => {
 
     expect(harness.camera.start).toHaveBeenCalledOnce()
     expect(harness.backend.initialize).toHaveBeenCalledOnce()
+  })
+
+  it('keeps FULL_BODY readiness unchanged while an UPPER_BODY game can establish a legitimate torso baseline without knees or ankles', async () => {
+    const standard = createHarness()
+    await standard.runtime.start(POSE_REQUEST)
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      await standard.infer(upperBodyOnlyFrame(timestampMs))
+    }
+    expect(standard.runtime.getSnapshot().status).toBe('BASELINING')
+
+    const upperBody = createHarness('UPPER_BODY')
+    await upperBody.runtime.start(UPPER_BODY_POSE_REQUEST)
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      await upperBody.infer(upperBodyOnlyFrame(timestampMs))
+    }
+    expect(upperBody.runtime.getSnapshot().status).toBe('READY')
+    expect(upperBody.runtime.getProvider().getDiagnostics()).toMatchObject({
+      upperBodyReady: true,
+      fullBodyReady: false,
+      quality: 'READY',
+    })
   })
 
   it('derives spatial wrists from the same inference frame without changing the Motion Action snapshot', async () => {

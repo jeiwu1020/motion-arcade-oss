@@ -77,15 +77,16 @@ export class SpatialCircleContactTracker {
         ? previous.isContacting
         : false
     const isContacting =
+      sample.current !== null && isPointInsideCircle(sample.current, target)
+    const crossesTarget =
       sample.current !== null &&
-      (isPointInsideCircle(sample.current, target) ||
-        (sample.segment !== null &&
-          doesSegmentIntersectCircle(sample.segment, target)))
+      sample.segment !== null &&
+      doesSegmentIntersectCircle(sample.segment, target)
     this.#states.set(
       key,
       Object.freeze({ sequence: sample.sequence, isContacting }),
     )
-    return isContacting && !priorContact
+    return (isContacting || crossesTarget) && !priorContact
   }
 
   reset(): void {

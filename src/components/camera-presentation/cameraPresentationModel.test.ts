@@ -138,4 +138,26 @@ describe('camera presentation model', () => {
       alert: true,
     })
   })
+
+  it('uses upper-body-specific setup and recovery guidance without changing the default full-body presentation', () => {
+    const upperBodyBaseline = resolveCameraPresentation(
+      snapshot('BASELINING'),
+      'COUNTDOWN',
+      'UPPER_BODY',
+    )
+    const upperBodyLoss = resolveCameraPresentation(
+      snapshot('TRACKING_LOST'),
+      'PLAYING',
+      'UPPER_BODY',
+    )
+
+    expect(upperBodyBaseline).toMatchObject({
+      framingRequirement: 'UPPER_BODY',
+      headline: '上半身保持在框內',
+      detail: '讓頭部、肩膀與雙手清楚可見，左右留出揮手空間。',
+    })
+    expect(upperBodyLoss.detail).toContain('頭部、肩膀與雙手')
+    expect(resolveCameraPresentation(snapshot('BASELINING'), 'COUNTDOWN'))
+      .toMatchObject({ framingRequirement: 'FULL_BODY', headline: '全身保持在框內' })
+  })
 })

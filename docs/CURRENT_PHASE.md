@@ -6,9 +6,9 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current implementation baseline before Phase 2A.3c spatial collision-prototype work:
+Current implementation baseline before Phase 2A.4 Balloon Rally work:
 
-`54cb06ed14d23c3728f59098f0fb326fbc188d36` — spatial display mapping diagnostic
+`f5471aeba5342fe377b8fe1f5ce27c867cf66f6e` — spatial collision prototype
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -38,23 +38,22 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ## Current phase
 
-### Phase 2A.3c — Spatial Collision Prototype
+### Phase 2A.4 — Balloon Rally v1
 
-Engineering status: implementation complete; Windows/iPhone collision
-validation remains required before Balloon Rally gameplay work.
+Engineering status: implementation complete; Windows/iPhone physical gameplay
+validation remains required.
 
-The existing canonical source points now compose through the mirrored DOM
-camera rectangle and Phaser's centered `1280 × 720` FIT rectangle. A
-session-local adapter creates logical wrist points and only continuous
-previous/current segments. A framework-independent swept-circle contact helper
-drives one temporary Camera AR Phaser target without changing Balloon Pop
-score, results, sensor ownership, Motion Actions, or current FULL_BODY
-readiness.
+Production 氣球拍拍樂 now uses deterministic 3-second/60-second Balloon Rally
+rules: 2→3→4 persistent 3-HP balloons, separated spatial hand contacts,
+bounded arcade impulses, pop/replacement, and final-10-second PARTY RUSH.
+`BalloonRallySession` reuses the existing logical spatial adapter and swept
+contact tracker; Phaser renders the immutable Core state only.
 
+Balloon Rally explicitly opts into UPPER_BODY readiness: a stable torso/core
+baseline and READY quality remain required, while knees/ankles are not.
 Phase 2A.3b is Engineering PASS + Windows Chrome physical PASS + iPhone Safari
-physical PASS: the mirrored anatomical wrist markers visually tracked the
-correct hands. Projector validation remains part of final game production
-testing. Details: [Phase 2A.3c Spatial Collision](./PHASE_2A_3C_SPATIAL_COLLISION.md).
+physical PASS. Phase 2A.3c remains Engineering PASS only. Details:
+[Phase 2A.4 Balloon Rally](./PHASE_2A_4_BALLOON_RALLY.md).
 
 ### Prior Phase 2A.2b — Camera Presentation Layer physical-feedback tuning
 
@@ -88,9 +87,10 @@ Automated validation for the underlying 2A.2b implementation:
 - Production browser QA at desktop and `852 × 393`: PASS
 - `git diff --check`: PASS
 
-## Framing direction for upcoming games
+## Framing direction
 
-The current Balloon Pop route still uses STANDARD/full-body readiness because that is the existing production Pose path. This must not become a universal game requirement.
+Balloon Rally is the first production UPPER_BODY game. Existing FULL_BODY games
+remain on the default readiness path.
 
 Planned framing requirements:
 
@@ -98,20 +98,10 @@ Planned framing requirements:
 - `UPPER_BODY` — games centered on arms/hands/reach/voice where knees and ankles add no gameplay value;
 - add a broader flexible mode only if real games demonstrate a need; do not speculate early.
 
-The framing guide, Pose readiness requirement, and player setup copy should eventually derive from the selected game's framing requirement. Balloon Rally is a strong candidate for `UPPER_BODY` once the spatial-hand path is implemented and physically validated.
+The framing guide, Pose readiness requirement, and player setup copy derive
+from the selected game's framing requirement.
 
 ## Immediately following phases
-
-### Phase 2A.4 — Balloon Rally gameplay rewrite
-
-- Camera AR gameplay;
-- multiple persistent floating balloons;
-- spatial hand contact rather than LEFT/RIGHT-only target events;
-- every valid separated hit scores and gives the balloon an arcade impulse;
-- ordinary balloon takes multiple hits (initial target ~3) before popping;
-- pop gives bonus;
-- controlled difficulty escalation and final Party Rush;
-- stable arcade physics over physically exact simulation.
 
 ### Phase 2A.5 — game feel + device validation
 
@@ -133,13 +123,13 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 - Brief Windows/iPhone retest after the brighter Camera AR treatment to confirm player visibility and game-object/HUD contrast.
 - Projector: framing-guide visibility, live-player visibility, camera/game contrast, HUD readability, and result/recovery comprehension from the intended viewing distance.
-- Real-person held-arm/repeat-hit behavior remains relevant until Balloon Pop is replaced by spatial contact.
+- Balloon Rally Windows/iPhone: collision alignment, held/re-entry semantics,
+  tracking-loss recovery, resize/orientation, 60-second stability, replay, and
+  upper-body framing checks; projector validation remains required.
 - Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open; later batch them in real games.
 
 ## Scope still deferred
 
-- multi-balloon spatial gameplay and Balloon Rally physics until Phase 2A.4
-- mature Balloon Rally physics until Phase 2A.4
 - formal art/audio polish until Phase 2A.5
 - gameplay calibration/profile selection
 - multiplayer and multi-person Pose
