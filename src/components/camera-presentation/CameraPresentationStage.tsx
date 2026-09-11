@@ -166,20 +166,24 @@ export function CameraPresentationStage({
           viewBox="0 0 240 500"
           focusable="false"
         >
-          <circle cx="120" cy="62" r="34" />
-          <path d="M120 98 L120 286" />
-          <path d="M52 158 L120 120 L188 158" />
+          <circle className="camera-presentation-silhouette-head" cx="120" cy="58" r="34" />
+          <path
+            className="camera-presentation-silhouette-body"
+            d="M93 108 C78 113 60 122 36 144 C48 165 62 180 82 190 L84 302 C84 320 99 332 120 332 C141 332 156 320 156 302 L158 190 C178 180 192 165 204 144 C180 122 162 113 147 108 C140 119 132 126 120 126 C108 126 100 119 93 108 Z"
+          />
           {presentation.framingRequirement === 'FULL_BODY' ? (
             <>
-              <path d="M120 286 L66 442" />
-              <path d="M120 286 L174 442" />
+              <path
+                className="camera-presentation-silhouette-legs"
+                d="M87 292 C84 330 79 374 71 454 L106 454 L120 332 L134 454 L169 454 C161 374 156 330 153 292 Z"
+              />
             </>
           ) : null}
         </svg>
         <span>
           {presentation.framingRequirement === 'UPPER_BODY'
-            ? '頭部、肩膀與雙手保持在框內'
-            : '全身保持在框內'}
+            ? '請將上半身移到人形範圍內'
+            : '請將全身移到人形範圍內'}
         </span>
       </div>
 

@@ -144,4 +144,60 @@ describe('CameraPresentationStage', () => {
 
     expect(markup).not.toContain('data-spatial-diagnostic="engineering"')
   })
+
+  it('renders a broad upper-body alignment silhouette with presentation-only guidance copy', () => {
+    const markup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'BASELINING', error: null },
+          'COUNTDOWN',
+          'UPPER_BODY',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+      >
+        <div />
+      </CameraPresentationStage>,
+    )
+
+    expect(markup).toContain('data-framing-requirement="UPPER_BODY"')
+    expect(markup).toContain('camera-presentation-silhouette-head')
+    expect(markup).toContain('camera-presentation-silhouette-body')
+    expect(markup).toContain('請將上半身移到人形範圍內')
+    expect(markup).not.toContain('M120 98 L120 286')
+  })
+
+  it('renders the full-body silhouette variant and hides the guide during normal play', () => {
+    const fullMarkup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'BASELINING', error: null },
+          'COUNTDOWN',
+          'FULL_BODY',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+      >
+        <div />
+      </CameraPresentationStage>,
+    )
+    const playingMarkup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'READY', error: null },
+          'PLAYING',
+          'FULL_BODY',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+      >
+        <div />
+      </CameraPresentationStage>,
+    )
+
+    expect(fullMarkup).toContain('data-framing-requirement="FULL_BODY"')
+    expect(fullMarkup).toContain('camera-presentation-silhouette-legs')
+    expect(fullMarkup).toContain('請將全身移到人形範圍內')
+    expect(playingMarkup).toContain('data-framing-guide="SUBTLE"')
+  })
 })

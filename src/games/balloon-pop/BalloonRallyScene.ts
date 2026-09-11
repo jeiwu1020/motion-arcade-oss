@@ -45,6 +45,8 @@ export class BalloonRallyScene extends Phaser.Scene {
   #lastPartyPopulation = 0
   #lastCountdownNumber = 0
   #previousPresentationState: BalloonRallyPresentationState | null = null
+  #activeBgmStarted = false
+  #finishAudioSeen = false
   readonly #audio: BalloonRallyAudio | null
 
   constructor(session: BalloonRallySession, audio?: BalloonRallyAudio) {
@@ -112,6 +114,9 @@ export class BalloonRallyScene extends Phaser.Scene {
     const state = this.#session.getState()
     if (!state.partyRush) this.#partyRushSeen = false
     if (state.phase === 'COUNTDOWN') {
+      this.#audio?.stopBgm(true)
+      this.#activeBgmStarted = false
+      this.#finishAudioSeen = false
       this.#clearBalloons()
       this.#clearHandGlow()
       this.#giantCueSeen = false
@@ -135,12 +140,20 @@ export class BalloonRallyScene extends Phaser.Scene {
     this.#countdownText.setVisible(false)
     if (state.phase === 'FINISHED') {
       this.#showGameplayCues(state)
+      if (!this.#finishAudioSeen) {
+        this.#audio?.stopBgm(false)
+        this.#finishAudioSeen = true
+      }
       this.#clearBalloons()
       this.#clearHandGlow()
       this.#statusText.setText('時間到！').setVisible(true)
       return
     }
 
+    if (!this.#activeBgmStarted) {
+      this.#audio?.startBgm()
+      this.#activeBgmStarted = true
+    }
     this.#reconcileBalloons(state)
     this.#renderHandGlow(time)
     this.#showGameplayCues(state)
@@ -286,6 +299,7 @@ export class BalloonRallyScene extends Phaser.Scene {
   #showPartyRushCue(): void {
     this.#partyRushSeen = true
     this.#audio?.play('PARTY_RUSH_START')
+    this.#audio?.setPartyRush()
     this.#partyRushText.setAlpha(1).setScale(0.72).setVisible(true)
     this.#partyEdgePulse
       .setAlpha(1)

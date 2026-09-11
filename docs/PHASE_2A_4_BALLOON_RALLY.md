@@ -87,15 +87,24 @@ Combo only; results show score, hits, pops, and best Combo.
 
 ## Final game-feel pass
 
-The final pass adds a gesture-unlocked, fail-silent local Web Audio helper for
-normal hit/pop, Golden and Giant feedback, Combo milestones, mini-event start,
-Party Rush, countdown ticks, and round finish. Production HP dots are replaced
-with projector-readable vector damage: Standard HP 1 has a thick crack; Giant
-HP 3/2/1 uses progressively heavier cracks; one-hit targets stay clean.
-Party Rush remains capped at 420 logical px/s but escalates to 5/6/7 targets at
-50/55/58 seconds, uses a 2,000 ms Combo window, and shows a non-blocking final
-3/2/1 countdown while gameplay continues. `SCORE_FEVER` is the canonical
-mini-event spelling.
+The final pass adds a gesture-unlocked, fail-silent local MP3 audio helper for
+normal hit/pop, Golden sparkle, Giant feedback, Combo milestones, mini-event
+start, Party Rush, countdown ticks, and round finish. Short SFX use decoded
+`public/audio/balloon-rally/` buffers with bounded voices. One looping
+`bgm.mp3` instance starts only when active PLAYING begins at gain `0.22`, rises
+smoothly to `0.28` for Party Rush, and fades/stops at finish or exit. Production
+HP dots are replaced with projector-readable vector damage: Standard HP 1 has
+a thick crack; Giant HP 3/2/1 uses progressively heavier cracks; one-hit
+targets stay clean. Party Rush remains capped at 420 logical px/s but escalates
+to 5/6/7 targets at 50/55/58 seconds, uses a 2,000 ms Combo window, and shows
+a non-blocking final 3/2/1 countdown while gameplay continues.
+
+The shared Camera Presentation layer now shows a translucent rounded human
+alignment silhouette rather than a stick figure. UPPER_BODY shows a broad
+head/shoulder/torso region and FULL_BODY adds legs. The guide copy is
+`請將上半身移到人形範圍內` or `請將全身移到人形範圍內`; the graphic remains
+presentation-only and does not alter readiness or Pose logic. `SCORE_FEVER` is
+the canonical mini-event spelling.
 
 ## Privacy and physical validation
 

@@ -8,6 +8,12 @@ Primary target: iPhone Safari, landscape
 
 Phase 1A implements the normalized input, adaptive profile, game-registry, developer simulation, React/Phaser lifecycle, and responsive shell boundaries. Phase 1B adds the gated camera/Pose sensor path through `PoseSensorFrame`. Phase 1C adds pure Pose feature extraction, a session-local analyzer baseline, temporal MOVE/LEAN/REACH/SQUAT/JUMP analysis, and a provider for the existing normalized contract. Phase 1D.1 adds canonical normalized `PlayerCalibration` v1 collection. Phase 1D.2 adds bounded, per-session MOVE/LEAN/REACH/SQUAT adaptation while preserving exact STANDARD fallback and leaving JUMP unchanged. Phase 1D.3a adds LOW_MOTION/SLOW_RESPONSE composition. Phase 1D.3b adds SEATED/UPPER_BODY torso baselines and safely disables SQUAT/JUMP in those modes. Phase 2A.1 registers the first formal game and proves a pure deterministic Game Core → dedicated Phaser projection using the existing normalized test provider. Phase 2A.2a adds explicit-gesture production Pose acquisition, readiness-gated gameplay, tracking-loss pause/recovery, and fail-closed lifecycle cleanup for Balloon Pop. Phase 2A.2b adds a reusable DOM camera presentation, full-body framing states, and transparent Phaser Camera AR composition without changing acquisition or action semantics. Microphone, Hands, Voice, adaptive gameplay selection, and multi-person assignment remain deferred.
 
+Balloon Rally's supplied local MP3 SFX/BGM and its Web Audio/HTML audio
+playback helper remain game-local presentation concerns. The shared Camera
+Presentation layer owns only the reusable, presentation-only UPPER_BODY and
+FULL_BODY alignment silhouettes; neither audio nor the silhouette changes
+sensor contracts or readiness.
+
 ## 1. Product constraints
 
 - Motion Arcade is a therapist-operated browser platform for psychiatric occupational-therapy groups of roughly 12 participants, ages about 18–60+, with varied physical and cognitive capabilities.
@@ -400,7 +406,7 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 
 - calibration and adaptive profile selection within formal gameplay;
 - microphone and future sensor permission/UI flows;
-- Hand Landmarker, Gesture Recognizer, and Web Audio implementation;
+- Hand Landmarker, Gesture Recognizer, and shared/global Web Audio infrastructure;
 - final model licenses, assets, delegates, inference resolution/rate, and worker compatibility;
 - MediaPipe metrics acceptance, blocking policy, consent language, and production legal approval;
 - production onboarding beyond the current game, calibration persistence, and control-scheme-specific thresholds;
@@ -409,6 +415,6 @@ Emulation cannot replace real safe-area, permission, camera, microphone, project
 - replay file format and long-term regression corpus;
 - production authentication/protection beyond the build-time test-mode gate;
 - persistence, analytics, accounts, database, networking, PWA/offline mode, or AI services;
-- formal art, audio assets, and additional production game scenes.
+- broader formal art/audio systems and additional production game scenes.
 
 Phase 2A.2b stops at reusable camera presentation for single-player STANDARD Pose Balloon Pop. It does not authorize spatial wrist contracts/collision, Balloon Rally physics, duplicated motion detectors, calibration/adaptive gameplay selection, multi-person tracking, persistence, audio, formal art, or a speculative generic SensorManager.

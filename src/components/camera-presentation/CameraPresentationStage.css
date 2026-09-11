@@ -153,15 +153,31 @@
   position: absolute;
   top: 7%;
   left: 50%;
-  width: min(28%, 12rem);
+  width: min(34%, 15rem);
   height: 76%;
   overflow: visible;
-  fill: none;
+  fill: rgb(247 251 255 / 11%);
   stroke: var(--camera-guide-color);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 12;
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 0.4rem rgb(5 20 35 / 56%));
   transform: translateX(-50%);
+}
+
+.camera-presentation-silhouette-head,
+.camera-presentation-silhouette-body,
+.camera-presentation-silhouette-legs {
+  vector-effect: non-scaling-stroke;
+}
+
+.camera-presentation-silhouette-head {
+  fill: rgb(247 251 255 / 14%);
+}
+
+.camera-presentation-silhouette-body,
+.camera-presentation-silhouette-legs {
+  fill: rgb(247 251 255 / 10%);
 }
 
 .camera-presentation-framing > span {
@@ -193,9 +209,9 @@
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
   .camera-presentation-body-guide {
-  top: 11%;
-  width: min(38%, 16rem);
-  height: 56%;
+  top: 8%;
+  width: min(48%, 20rem);
+  height: 64%;
 }
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY'] > span {

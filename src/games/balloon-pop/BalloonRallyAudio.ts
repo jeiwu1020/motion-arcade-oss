@@ -11,27 +11,90 @@ export type BalloonRallySfxEvent =
   | 'COUNTDOWN_TICK'
   | 'ROUND_FINISH'
 
+export const BALLOON_RALLY_AUDIO_ASSETS = Object.freeze({
+  bgm: '/audio/balloon-rally/bgm.mp3',
+  hit: '/audio/balloon-rally/hit.mp3',
+  pop: '/audio/balloon-rally/pop.mp3',
+  goldenSparkle: '/audio/balloon-rally/golden-sparkle.mp3',
+  giantHit: '/audio/balloon-rally/giant-hit.mp3',
+  combo: '/audio/balloon-rally/combo.mp3',
+  eventStart: '/audio/balloon-rally/event-start.mp3',
+  partyRush: '/audio/balloon-rally/party-rush.mp3',
+  countdown: '/audio/balloon-rally/countdown.mp3',
+  finish: '/audio/balloon-rally/finish.mp3',
+})
+
+export const BALLOON_RALLY_AUDIO_CONFIG = Object.freeze({
+  maxSfxVoices: 24,
+  normalBgmGain: 0.22,
+  partyRushBgmGain: 0.28,
+  bgmFadeMs: 420,
+})
+
+const SFX_SOURCES: Readonly<Record<BalloonRallySfxEvent, readonly string[]>> = Object.freeze({
+  NORMAL_HIT: [BALLOON_RALLY_AUDIO_ASSETS.hit],
+  NORMAL_POP: [BALLOON_RALLY_AUDIO_ASSETS.pop],
+  GOLDEN_POP: [BALLOON_RALLY_AUDIO_ASSETS.pop, BALLOON_RALLY_AUDIO_ASSETS.goldenSparkle],
+  GIANT_HIT: [BALLOON_RALLY_AUDIO_ASSETS.giantHit],
+  GIANT_POP: [BALLOON_RALLY_AUDIO_ASSETS.pop, BALLOON_RALLY_AUDIO_ASSETS.giantHit],
+  COMBO_MILESTONE: [BALLOON_RALLY_AUDIO_ASSETS.combo],
+  COMBO_MILESTONE_STRONG: [BALLOON_RALLY_AUDIO_ASSETS.combo],
+  MINI_EVENT_START: [BALLOON_RALLY_AUDIO_ASSETS.eventStart],
+  PARTY_RUSH_START: [BALLOON_RALLY_AUDIO_ASSETS.partyRush],
+  COUNTDOWN_TICK: [BALLOON_RALLY_AUDIO_ASSETS.countdown],
+  ROUND_FINISH: [BALLOON_RALLY_AUDIO_ASSETS.finish],
+})
+
+const SFX_GAINS: Readonly<Record<BalloonRallySfxEvent, readonly number[]>> = Object.freeze({
+  NORMAL_HIT: [0.66],
+  NORMAL_POP: [0.82],
+  GOLDEN_POP: [0.8, 0.46],
+  GIANT_HIT: [0.66],
+  GIANT_POP: [0.8, 0.56],
+  COMBO_MILESTONE: [0.55],
+  COMBO_MILESTONE_STRONG: [0.6],
+  MINI_EVENT_START: [0.6],
+  PARTY_RUSH_START: [0.72],
+  COUNTDOWN_TICK: [0.6],
+  ROUND_FINISH: [0.66],
+})
+
+export function getBalloonRallyAudioSources(event: BalloonRallySfxEvent): readonly string[] {
+  return SFX_SOURCES[event]
+}
+
+interface BalloonRallyAudioEnvironment {
+  readonly audioContextFactory?: () => AudioContext
+  readonly createAudioElement?: () => HTMLAudioElement
+  readonly fetchAsset?: typeof fetch
+}
+
 type AudioContextConstructor = new () => AudioContext
 
-const MAX_ACTIVE_VOICES = 24
-
-/** Small, gesture-unlocked, game-local SFX helper. Failure is always fail-silent. */
+/** Local MP3 SFX/BGM playback. It is gesture-unlocked and always fail-silent. */
 export class BalloonRallyAudio {
   #context: AudioContext | null = null
   #unlocked = false
-  readonly #voices = new Set<OscillatorNode>()
+  #sfxBuffers = new Map<string, AudioBuffer>()
+  #sfxLoadPromise: Promise<void> | null = null
+  #voices = new Set<AudioBufferSourceNode>()
+  #bgm: HTMLAudioElement | null = null
+  #bgmFadeFrame: number | null = null
+  readonly #environment: BalloonRallyAudioEnvironment
+
+  constructor(environment: BalloonRallyAudioEnvironment = {}) {
+    this.#environment = environment
+  }
 
   async unlock(): Promise<void> {
     if (this.#unlocked && this.#context) return
     try {
-      const scope = globalThis as typeof globalThis & {
-        webkitAudioContext?: AudioContextConstructor
-      }
-      const Constructor = (scope.AudioContext as AudioContextConstructor | undefined) ?? scope.webkitAudioContext
-      if (!Constructor) return
-      this.#context ??= new Constructor()
-      if (this.#context.state === 'suspended') await this.#context.resume()
-      this.#unlocked = this.#context.state === 'running'
+      const context = this.#context ?? this.#createContext()
+      if (!context) return
+      this.#context = context
+      if (context.state === 'suspended') await context.resume()
+      this.#unlocked = context.state === 'running'
+      if (this.#unlocked) void this.#loadSfxBuffers()
     } catch {
       this.#unlocked = false
       this.#context = null
@@ -39,49 +102,60 @@ export class BalloonRallyAudio {
   }
 
   play(event: BalloonRallySfxEvent): void {
-    const context = this.#context
-    if (!this.#unlocked || !context || context.state !== 'running' || this.#voices.size >= MAX_ACTIVE_VOICES) return
+    if (!this.#unlocked || !this.#context) return
+    const sources = SFX_SOURCES[event]
+    const gains = SFX_GAINS[event]
+    sources.forEach((source, index) => this.#playBuffer(source, gains[index] ?? 0.6))
+  }
+
+  /** Start or restart the single streaming BGM element at the active-round boundary. */
+  startBgm(): void {
+    if (!this.#unlocked) return
     try {
-      switch (event) {
-        case 'NORMAL_HIT': this.#tone(190, 0.1, 'sine', 0.045); break
-        case 'NORMAL_POP': this.#tone(360, 0.18, 'triangle', 0.06); break
-        case 'GOLDEN_POP': this.#tone(760, 0.22, 'sine', 0.065, 1.35); break
-        case 'GIANT_HIT': this.#tone(110, 0.14, 'triangle', 0.07); break
-        case 'GIANT_POP':
-          this.#tone(105, 0.28, 'triangle', 0.08)
-          this.#tone(680, 0.26, 'sine', 0.06, 1.25, 0.02)
-          break
-        case 'COMBO_MILESTONE':
-          this.#tone(520, 0.14, 'sine', 0.055, 1.35)
-          this.#tone(780, 0.18, 'sine', 0.05, 1.35, 0.07)
-          break
-        case 'COMBO_MILESTONE_STRONG':
-          this.#tone(520, 0.16, 'triangle', 0.07, 1.4)
-          this.#tone(780, 0.2, 'triangle', 0.065, 1.4, 0.07)
-          this.#tone(1_040, 0.24, 'sine', 0.06, 1.4, 0.14)
-          break
-        case 'MINI_EVENT_START':
-          this.#tone(420, 0.16, 'triangle', 0.055, 1.2)
-          this.#tone(630, 0.2, 'triangle', 0.05, 1.2, 0.07)
-          break
-        case 'PARTY_RUSH_START':
-          this.#tone(260, 0.16, 'sawtooth', 0.045, 1.15)
-          this.#tone(520, 0.18, 'triangle', 0.055, 1.2, 0.07)
-          this.#tone(820, 0.24, 'sine', 0.06, 1.2, 0.14)
-          break
-        case 'COUNTDOWN_TICK': this.#tone(440, 0.09, 'sine', 0.045); break
-        case 'ROUND_FINISH':
-          this.#tone(520, 0.18, 'sine', 0.05)
-          this.#tone(780, 0.22, 'sine', 0.055, 1.25, 0.08)
-          this.#tone(1_040, 0.28, 'sine', 0.06, 1.25, 0.16)
-          break
-      }
+      const bgm = this.#getBgm()
+      this.#cancelBgmFade()
+      bgm.pause()
+      bgm.currentTime = 0
+      bgm.loop = true
+      bgm.volume = BALLOON_RALLY_AUDIO_CONFIG.normalBgmGain
+      void bgm.play().catch(() => undefined)
     } catch {
-      // Sound is optional; never let an audio API failure affect gameplay.
+      // BGM is optional and must never block the round.
     }
   }
 
+  setPartyRush(): void {
+    this.#fadeBgmTo(BALLOON_RALLY_AUDIO_CONFIG.partyRushBgmGain)
+  }
+
+  stopBgm(immediate = false): void {
+    const bgm = this.#bgm
+    if (!bgm) return
+    if (immediate) {
+      this.#cancelBgmFade()
+      bgm.pause()
+      bgm.currentTime = 0
+      bgm.volume = BALLOON_RALLY_AUDIO_CONFIG.normalBgmGain
+      return
+    }
+    this.#fadeBgmTo(0, () => {
+      bgm.pause()
+      bgm.currentTime = 0
+      bgm.volume = BALLOON_RALLY_AUDIO_CONFIG.normalBgmGain
+    })
+  }
+
+  getActiveVoiceCount(): number {
+    return this.#voices.size
+  }
+
+  getHasBgmInstance(): boolean {
+    return this.#bgm !== null
+  }
+
   async dispose(): Promise<void> {
+    this.stopBgm(true)
+    this.#bgm = null
     for (const voice of this.#voices) {
       try { voice.stop() } catch { /* already ended */ }
     }
@@ -89,35 +163,96 @@ export class BalloonRallyAudio {
     const context = this.#context
     this.#context = null
     this.#unlocked = false
+    this.#sfxBuffers.clear()
+    this.#sfxLoadPromise = null
     if (context) {
       try { await context.close() } catch { /* optional cleanup */ }
     }
   }
 
-  #tone(
-    frequency: number,
-    duration: number,
-    type: OscillatorType,
-    volume: number,
-    frequencyMultiplier = 1,
-    offsetSeconds = 0,
-  ): void {
+  #createContext(): AudioContext | null {
+    if (this.#environment.audioContextFactory) return this.#environment.audioContextFactory()
+    const scope = globalThis as typeof globalThis & { webkitAudioContext?: AudioContextConstructor }
+    const Constructor = (scope.AudioContext as AudioContextConstructor | undefined) ?? scope.webkitAudioContext
+    return Constructor ? new Constructor() : null
+  }
+
+  #getBgm(): HTMLAudioElement {
+    if (this.#bgm) return this.#bgm
+    const bgm = this.#environment.createAudioElement
+      ? this.#environment.createAudioElement()
+      : document.createElement('audio')
+    bgm.src = BALLOON_RALLY_AUDIO_ASSETS.bgm
+    bgm.preload = 'auto'
+    bgm.setAttribute('aria-hidden', 'true')
+    this.#bgm = bgm
+    return bgm
+  }
+
+  async #loadSfxBuffers(): Promise<void> {
+    if (this.#sfxLoadPromise) return this.#sfxLoadPromise
     const context = this.#context
-    if (!context || this.#voices.size >= MAX_ACTIVE_VOICES) return
-    const oscillator = context.createOscillator()
-    const gain = context.createGain()
-    const start = context.currentTime + offsetSeconds
-    const end = start + duration
-    oscillator.type = type
-    oscillator.frequency.setValueAtTime(frequency, start)
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(40, frequency * frequencyMultiplier), end)
-    gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(volume, start + Math.min(0.018, duration * 0.2))
-    gain.gain.exponentialRampToValueAtTime(0.0001, end)
-    oscillator.connect(gain).connect(context.destination)
-    this.#voices.add(oscillator)
-    oscillator.addEventListener('ended', () => this.#voices.delete(oscillator), { once: true })
-    oscillator.start(start)
-    oscillator.stop(end + 0.02)
+    const fetchAsset = this.#environment.fetchAsset ?? globalThis.fetch?.bind(globalThis)
+    if (!context || !fetchAsset) return
+    const urls = [...new Set(Object.values(SFX_SOURCES).flat())]
+    this.#sfxLoadPromise = Promise.all(urls.map(async (url) => {
+      try {
+        const response = await fetchAsset(url)
+        if (!response.ok) return
+        const buffer = await context.decodeAudioData(await response.arrayBuffer())
+        if (this.#context === context) this.#sfxBuffers.set(url, buffer)
+      } catch {
+        // Individual missing/corrupt assets remain fail-silent.
+      }
+    })).then(() => undefined)
+    await this.#sfxLoadPromise
+  }
+
+  #playBuffer(url: string, gainValue: number): void {
+    const context = this.#context
+    const buffer = this.#sfxBuffers.get(url)
+    if (!context || !buffer || this.#voices.size >= BALLOON_RALLY_AUDIO_CONFIG.maxSfxVoices) return
+    try {
+      const source = context.createBufferSource()
+      const gain = context.createGain()
+      source.buffer = buffer
+      gain.gain.value = gainValue
+      source.connect(gain).connect(context.destination)
+      this.#voices.add(source)
+      source.addEventListener('ended', () => this.#voices.delete(source), { once: true })
+      source.start()
+    } catch {
+      // A browser audio implementation can fail transiently after suspension.
+    }
+  }
+
+  #fadeBgmTo(target: number, onComplete?: () => void): void {
+    const bgm = this.#bgm
+    if (!bgm) return
+    this.#cancelBgmFade()
+    if (typeof requestAnimationFrame !== 'function') {
+      bgm.volume = target
+      onComplete?.()
+      return
+    }
+    const start = performance.now()
+    const initial = bgm.volume
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / BALLOON_RALLY_AUDIO_CONFIG.bgmFadeMs)
+      bgm.volume = initial + (target - initial) * progress
+      if (progress >= 1) {
+        this.#bgmFadeFrame = null
+        onComplete?.()
+        return
+      }
+      this.#bgmFadeFrame = requestAnimationFrame(step)
+    }
+    this.#bgmFadeFrame = requestAnimationFrame(step)
+  }
+
+  #cancelBgmFade(): void {
+    if (this.#bgmFadeFrame === null || typeof cancelAnimationFrame !== 'function') return
+    cancelAnimationFrame(this.#bgmFadeFrame)
+    this.#bgmFadeFrame = null
   }
 }
