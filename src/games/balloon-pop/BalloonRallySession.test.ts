@@ -223,4 +223,21 @@ describe('Balloon Rally spatial session', () => {
     expect(session.getState().hits).toBe(2)
     await session.stop()
   })
+
+  it('exposes only logical hand visuals for the production glow and preserves anatomical identity', async () => {
+    const spatialInput = new SpatialCollisionInputAdapter()
+    const session = new BalloonRallySession(spatialInput, { seed: 12 })
+    await session.start()
+    const source = spatial(1, { x: 0.2, y: 0.3 }, null)
+    spatialInput.ingest(source, GEOMETRY)
+    const visuals = session.getHandVisualSnapshot()
+
+    expect(visuals).toEqual([
+      { side: 'LEFT', availability: 'AVAILABLE', x: 1024, y: 216 },
+      { side: 'RIGHT', availability: 'UNAVAILABLE' },
+    ])
+    expect(JSON.stringify(visuals)).not.toContain('confidence')
+    expect(JSON.stringify(visuals)).not.toContain('landmark')
+    await session.stop()
+  })
 })

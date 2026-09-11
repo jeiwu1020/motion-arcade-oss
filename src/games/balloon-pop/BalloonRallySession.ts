@@ -10,6 +10,7 @@ import {
   type BalloonRallyContact,
   type BalloonRallyState,
 } from './BalloonRallyCore'
+import type { BalloonRallyHandVisualSnapshot } from './BalloonRallyPresentation'
 
 export const BALLOON_RALLY_VIRTUAL_HAND_RADIUS = 42
 export const BALLOON_RALLY_CONTACT_TOLERANCE = 10
@@ -106,6 +107,7 @@ export class BalloonRallySession {
   #trackingLossMs = 0
   #presentationSnapshot: BalloonRallySessionSnapshot
   #running = false
+  #suppressFirstContactAfterReset = false
 
   constructor(
     spatialInput: SpatialCollisionInputAdapter,
@@ -123,6 +125,22 @@ export class BalloonRallySession {
 
   readonly getPresentationSnapshot = (): BalloonRallySessionSnapshot =>
     this.#presentationSnapshot
+
+  /** Game-local logical hand positions for cosmetic presentation only. */
+  readonly getHandVisualSnapshot = (): readonly BalloonRallyHandVisualSnapshot[] => {
+    const spatial = this.#spatialInput.getSnapshot()
+    const available = this.#trackingState === 'NORMAL' || this.#trackingState === 'DEGRADED'
+    const visual = (side: 'LEFT' | 'RIGHT', hand: LogicalSpatialHand): BalloonRallyHandVisualSnapshot => {
+      if (available && hand.availability === 'AVAILABLE') {
+        return { side, availability: 'AVAILABLE', x: hand.current.x, y: hand.current.y }
+      }
+      return { side, availability: 'UNAVAILABLE' }
+    }
+    return Object.freeze([
+      visual('LEFT', spatial.leftHand),
+      visual('RIGHT', spatial.rightHand),
+    ])
+  }
 
   readonly subscribe = (listener: Listener): (() => void) => {
     this.#listeners.add(listener)
@@ -216,6 +234,7 @@ export class BalloonRallySession {
   #collectContacts(): readonly BalloonRallyContact[] {
     const snapshot = this.#spatialInput.getSnapshot()
     const contacts: BalloonRallyContact[] = []
+    const suppressContacts = this.#suppressFirstContactAfterReset
     for (const balloon of this.#state.balloons) {
       const target = {
         id: String(balloon.id),
@@ -237,7 +256,7 @@ export class BalloonRallySession {
           },
           target,
         )
-        if (didContact) {
+        if (didContact && !suppressContacts) {
           contacts.push({
             balloonId: balloon.id,
             side,
@@ -246,6 +265,7 @@ export class BalloonRallySession {
         }
       }
     }
+    this.#suppressFirstContactAfterReset = false
     return contacts
   }
 
@@ -257,6 +277,7 @@ export class BalloonRallySession {
   #breakSpatialContinuity(): void {
     this.#contacts.reset()
     this.#spatialInput.reset()
+    this.#suppressFirstContactAfterReset = true
   }
 
   #replaceState(nextState: BalloonRallyState): void {

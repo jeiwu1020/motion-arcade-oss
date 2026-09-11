@@ -1,6 +1,6 @@
-# Phase 2A.4 — Balloon Rally v2
+# Phase 2A.4 — Balloon Rally v3
 
-Status: engineering implementation complete; Windows/iPhone physical gameplay
+Status: v3 engineering implementation complete; Windows/iPhone physical gameplay
 validation remains required.
 
 ## Architecture
@@ -16,7 +16,7 @@ state, HP, scoring, Combo, Party Rush, bounded physics, and RNG state.
 active-game tracking orchestration. Phaser reconciles immutable Core state and
 has no score, collision, Pose, camera, DOM, or MediaPipe authority.
 
-## v2 rules
+## Preserved v2 foundation
 
 - 3-second countdown and 60-second active round.
 - WARM UP/RALLY/FEVER population: 2/3/4 standard balloons at 0/15/35 seconds.
@@ -28,6 +28,27 @@ has no score, collision, Pose, camera, DOM, or MediaPipe authority.
 - Ordinary balloons never expire and the result has no miss metric.
 - Combo window is 1,500 ms. Combo five or higher adds one score per accepted
   hit; `bestCombo` is shown in results.
+
+## v3 gameplay additions
+
+The standard 2-HP, 2/3/4 population, Combo, spatial contact, and Party Rush
+foundation remains unchanged. v3 adds the following game-local rules:
+
+- deterministic Golden Balloons: one normal concurrent, 1 HP, 3,500 ms lifetime,
+  `+1` hit plus `+4` pop bonus;
+- one Giant Balloon at 40 seconds: radius 112, 4 HP, `+4` pop bonus;
+- one seeded 6-second event between 27 and 33 seconds: GOLD_RUSH, BALLOON_RAIN,
+  or SCORE_FEEVER;
+- standard movement personalities FLOAT, DRIFT, and BOUNCE with bounded initial
+  motion;
+- Combo milestone cues at 5 and each later multiple of 5;
+- a Phaser-only cyan/amber Hand Glow Trail with 200 ms samples, 180 ms recovery
+  fade, an 8 px emission threshold, and a 12-point cap per hand.
+
+Party Rush removes all pre-Party special targets before maintaining its five
+1-HP targets. Event and special feedback is presentation-only except for the
+explicit deterministic Core scoring rules. The existing `42` virtual-hand
+radius and `10` logical-pixel tolerance remain unchanged.
 
 ## Tracking and interaction
 
@@ -57,9 +78,10 @@ wall rebound, and a small outer-band-only anti-corner acceleration keep the
 playfield active without centre magnetism.
 
 Production no longer shows diagnostic markers or the collision probe. Phaser
-adds hit squash/rings, Party outline/pop treatment, and a short PARTY RUSH cue
-with an edge pulse. The live HUD is score/time plus contextual Combo only;
-results show score, hits, pops, and best Combo.
+adds Golden/Giant/Bonus styles, hit squash/rings, Combo milestone and event
+cues, Party outline/pop treatment, the bounded Hand Glow Trail, and a short
+PARTY RUSH cue with an edge pulse. The live HUD is score/time plus contextual
+Combo only; results show score, hits, pops, and best Combo.
 
 ## Privacy and physical validation
 
@@ -67,8 +89,9 @@ No second camera/MediaPipe pipeline, persistence, raw landmark storage,
 recording, network upload, analytics, microphone, or account data was added.
 
 Required physical tests remain Windows Chrome and iPhone Safari landscape:
-contact tolerance, fast/held/re-entry behavior, one-hand continuity, brief/soft
-/hard tracking recovery, progression and Party Rush, resize/orientation,
-60-second stability, replay, and projector readability. Phase 2A.3b remains
-Windows/iPhone physical PASS for marker alignment; Phase 2A.3c remains
-engineering PASS only.
+Golden/Giant/event readability, Hand Glow Trail smoothness, contact tolerance,
+fast/held/re-entry behavior, one-hand continuity, brief/soft/hard tracking
+recovery, progression and Party Rush, resize/orientation, 60-second stability,
+replay, and projector readability. Phase 2A.3b remains Windows/iPhone physical
+PASS for marker alignment; Phase 2A.3c remains engineering PASS only. No
+physical PASS is claimed for v3.

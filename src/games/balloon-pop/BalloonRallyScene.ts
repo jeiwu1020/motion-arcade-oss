@@ -2,6 +2,12 @@ import Phaser from 'phaser'
 
 import type { BalloonRallyBalloon, BalloonRallyState } from './BalloonRallyCore'
 import type { BalloonRallySession } from './BalloonRallySession'
+import {
+  BALLOON_RALLY_HAND_GLOW_CONFIG,
+  getComboMilestoneCrossed,
+  updateBalloonRallyHandGlowTrail,
+  type BalloonRallyHandGlowTrailState,
+} from './BalloonRallyPresentation'
 
 const WORLD_WIDTH = 1280
 const WORLD_HEIGHT = 720
@@ -22,8 +28,17 @@ export class BalloonRallyScene extends Phaser.Scene {
   #countdownText!: Phaser.GameObjects.Text
   #statusText!: Phaser.GameObjects.Text
   #partyRushText!: Phaser.GameObjects.Text
+  #announcementText!: Phaser.GameObjects.Text
   #partyEdgePulse!: Phaser.GameObjects.Rectangle
+  #handGlow!: Phaser.GameObjects.Graphics
+  #handGlowState: BalloonRallyHandGlowTrailState = {
+    left: { anchor: null, points: [] },
+    right: { anchor: null, points: [] },
+  }
   #partyRushSeen = false
+  #lastCombo = 0
+  #lastMiniEventSequence = 0
+  #giantCueSeen = false
 
   constructor(session: BalloonRallySession) {
     super('balloon-rally')
@@ -31,6 +46,7 @@ export class BalloonRallyScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.#handGlow = this.add.graphics().setDepth(4)
     this.#partyEdgePulse = this.add
       .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xffd85c, 0)
       .setStrokeStyle(28, 0xffef8a, 0)
@@ -69,13 +85,28 @@ export class BalloonRallyScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(22)
       .setVisible(false)
+    this.#announcementText = this.add
+      .text(WORLD_WIDTH / 2, 160, '', {
+        color: '#fff4ab',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '68px',
+        fontStyle: 'bold',
+        stroke: '#40285e',
+        strokeThickness: 13,
+      })
+      .setOrigin(0.5)
+      .setDepth(23)
+      .setVisible(false)
   }
 
-  update(): void {
+  update(time = 0): void {
     const state = this.#session.getState()
     if (!state.partyRush) this.#partyRushSeen = false
     if (state.phase === 'COUNTDOWN') {
       this.#clearBalloons()
+      this.#clearHandGlow()
+      this.#lastCombo = 0
+      this.#giantCueSeen = false
       this.#countdownText
         .setText(String(Math.max(1, Math.ceil(state.countdownRemainingMs / 1_000))))
         .setVisible(true)
@@ -86,15 +117,110 @@ export class BalloonRallyScene extends Phaser.Scene {
     this.#countdownText.setVisible(false)
     if (state.phase === 'FINISHED') {
       this.#clearBalloons()
+      this.#clearHandGlow()
       this.#statusText.setText('時間到！').setVisible(true)
       return
     }
 
     this.#reconcileBalloons(state)
+    this.#renderHandGlow(time)
+    this.#showGameplayCues(state)
     this.#statusText
       .setText(state.partyRush ? 'PARTY RUSH！一拍爆氣球！' : '雙手拍氣球！')
       .setVisible(true)
     if (state.partyRush && !this.#partyRushSeen) this.#showPartyRushCue()
+  }
+
+  #showGameplayCues(state: BalloonRallyState): void {
+    if (state.miniEventSequence < this.#lastMiniEventSequence) this.#lastMiniEventSequence = 0
+    const milestone = getComboMilestoneCrossed(this.#lastCombo, state.combo)
+    if (milestone) this.#showAnnouncement(milestone.label, milestone.value >= 10 ? '#ffec70' : '#ffffff', milestone.value >= 10 ? 82 : 70)
+    this.#lastCombo = state.combo
+
+    if (state.miniEventSequence > this.#lastMiniEventSequence) {
+      const eventLabel = state.miniEventKind === 'GOLD_RUSH'
+        ? 'GOLD RUSH!'
+        : state.miniEventKind === 'BALLOON_RAIN'
+          ? 'BALLOON RAIN!'
+          : 'SCORE FEVER!'
+      const eventColor = state.miniEventKind === 'GOLD_RUSH'
+        ? 0xffd45c
+        : state.miniEventKind === 'BALLOON_RAIN'
+          ? 0x62e6d4
+          : 0xbd92ff
+      this.#showAnnouncement(eventLabel, '#ffe978', 76, eventColor)
+      this.#lastMiniEventSequence = state.miniEventSequence
+    }
+    if (state.giantSpawned && !this.#giantCueSeen) {
+      this.#showAnnouncement('GIANT BALLOON!', '#ffd75f', 76, 0xd9a8ff)
+      this.#giantCueSeen = true
+    }
+  }
+
+  #showAnnouncement(text: string, color: string, fontSize: number, pulseColor = 0xffec70): void {
+    this.tweens.killTweensOf(this.#announcementText)
+    this.#announcementText
+      .setText(text)
+      .setColor(color)
+      .setFontSize(fontSize)
+      .setAlpha(1)
+      .setScale(0.72)
+      .setVisible(true)
+    this.#partyEdgePulse
+      .setAlpha(0.72)
+      .setFillStyle(pulseColor, 0.08)
+      .setStrokeStyle(16, pulseColor, 0.72)
+    this.tweens.add({
+      targets: this.#partyEdgePulse,
+      alpha: 0,
+      duration: 520,
+      ease: 'Sine.Out',
+      onComplete: () => this.#partyEdgePulse.setFillStyle(0xffca5f, 0).setStrokeStyle(28, 0xffef8a, 0),
+    })
+    this.tweens.add({
+      targets: this.#announcementText,
+      scale: 1,
+      alpha: 0,
+      duration: 1_050,
+      ease: 'Back.Out',
+      onComplete: () => this.#announcementText.setVisible(false),
+    })
+  }
+
+  #renderHandGlow(time: number): void {
+    this.#handGlowState = updateBalloonRallyHandGlowTrail(
+      this.#handGlowState,
+      this.#session.getHandVisualSnapshot(),
+      time,
+    )
+    this.#handGlow.clear()
+    this.#drawHandGlowTrack(this.#handGlowState.left, 0x4de9ff, time)
+    this.#drawHandGlowTrack(this.#handGlowState.right, 0xffb347, time)
+  }
+
+  #drawHandGlowTrack(
+    track: BalloonRallyHandGlowTrailState['left'],
+    color: number,
+    time: number,
+  ): void {
+    for (const point of track.points) {
+      const age = Math.max(0, time - point.createdAtMs)
+      const alpha = Math.max(0, 1 - age / BALLOON_RALLY_HAND_GLOW_CONFIG.trailLifetimeMs)
+      this.#handGlow.fillStyle(color, alpha * 0.2)
+      this.#handGlow.fillCircle(point.x, point.y, 22)
+    }
+    if (!track.anchor) return
+    this.#handGlow.fillStyle(color, 0.16)
+    this.#handGlow.fillCircle(track.anchor.x, track.anchor.y, 48)
+    this.#handGlow.fillStyle(color, 0.38)
+    this.#handGlow.fillCircle(track.anchor.x, track.anchor.y, 32)
+    this.#handGlow.fillStyle(0xffffff, 0.92)
+    this.#handGlow.fillCircle(track.anchor.x, track.anchor.y, 15)
+  }
+
+  #clearHandGlow(): void {
+    this.#handGlowState = { left: { anchor: null, points: [] }, right: { anchor: null, points: [] } }
+    if (this.#handGlow) this.#handGlow.clear()
   }
 
   #showPartyRushCue(): void {
@@ -125,7 +251,7 @@ export class BalloonRallyScene extends Phaser.Scene {
     const expectedIds = new Set(state.balloons.map((balloon) => balloon.id))
     for (const [id, rendered] of this.#balloons) {
       if (!expectedIds.has(id)) {
-        this.#pop(rendered.container.x, rendered.container.y, rendered.kind === 'PARTY')
+        this.#pop(rendered.container.x, rendered.container.y, rendered.kind)
         rendered.container.destroy()
         this.#balloons.delete(id)
       }
@@ -139,7 +265,7 @@ export class BalloonRallyScene extends Phaser.Scene {
       rendered.container.setPosition(balloon.x, balloon.y).setVisible(true)
       rendered.hp.setText('●'.repeat(balloon.hp) + '○'.repeat(balloon.maxHp - balloon.hp))
       if (balloon.hp < rendered.lastHp) {
-        this.#impact(balloon.x, balloon.y, balloon.kind === 'PARTY')
+        this.#impact(balloon.x, balloon.y, balloon.kind)
         this.tweens.killTweensOf(rendered.container)
         rendered.container.setScale(1.18, 0.78)
         this.tweens.add({
@@ -157,17 +283,22 @@ export class BalloonRallyScene extends Phaser.Scene {
   #createBalloon(balloon: BalloonRallyBalloon): RenderedBalloon {
     const color = BALLOON_COLORS[(balloon.id - 1) % BALLOON_COLORS.length] ?? 0xff668f
     const party = balloon.kind === 'PARTY'
-    const string = this.add.line(0, balloon.radius + 18, 0, 0, 0, 64, party ? 0xfff0a1 : 0xffffff, 0.78).setLineWidth(4)
-    const knot = this.add.triangle(0, balloon.radius - 4, -13, 12, 13, 12, 0, -10, color)
+    const golden = balloon.kind === 'GOLDEN'
+    const giant = balloon.kind === 'GIANT'
+    const bonus = balloon.kind === 'BONUS'
+    const bodyColor = golden ? 0xffc928 : giant ? 0xb779ff : bonus ? 0x62e6d4 : color
+    const outline = golden ? 0xfff1a0 : giant ? 0xf0d6ff : bonus ? 0xb6fff3 : party ? 0xffec70 : 0xffffff
+    const string = this.add.line(0, balloon.radius + 18, 0, 0, 0, 64, outline, 0.78).setLineWidth(4)
+    const knot = this.add.triangle(0, balloon.radius - 4, -13, 12, 13, 12, 0, -10, bodyColor)
     const body = this.add
-      .ellipse(0, 0, balloon.radius * 1.56, balloon.radius * 1.95, color)
-      .setStrokeStyle(party ? 12 : 8, party ? 0xffec70 : 0xffffff, party ? 1 : 0.92)
-    const shine = this.add.ellipse(-balloon.radius * 0.32, -balloon.radius * 0.42, 22, 50, 0xffffff, party ? 0.86 : 0.62)
+      .ellipse(0, 0, balloon.radius * 1.56, balloon.radius * 1.95, bodyColor)
+      .setStrokeStyle(giant || golden || party ? 12 : 8, outline, giant || golden || party ? 1 : 0.92)
+    const shine = this.add.ellipse(-balloon.radius * 0.32, -balloon.radius * 0.42, giant ? 30 : 22, giant ? 64 : 50, 0xffffff, golden || giant || party ? 0.86 : 0.62)
     const hp = this.add
       .text(0, 8, '●'.repeat(balloon.hp), {
-        color: party ? '#fff4ab' : '#ffffff',
+        color: golden || giant || party ? '#fff4ab' : '#ffffff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: party ? '28px' : '24px',
+        fontSize: giant ? '34px' : party ? '28px' : '24px',
         fontStyle: 'bold',
         stroke: '#10284b',
         strokeThickness: 6,
@@ -180,25 +311,29 @@ export class BalloonRallyScene extends Phaser.Scene {
     return rendered
   }
 
-  #impact(x: number, y: number, party: boolean): void {
-    const ring = this.add.circle(x, y, 24, 0xffffff, 0).setStrokeStyle(party ? 12 : 9, party ? 0xffec70 : 0xffffff, 1)
+  #impact(x: number, y: number, kind: BalloonRallyBalloon['kind']): void {
+    const strong = kind === 'PARTY' || kind === 'GOLDEN' || kind === 'GIANT'
+    const ring = this.add.circle(x, y, kind === 'GIANT' ? 34 : 24, 0xffffff, 0).setStrokeStyle(strong ? 12 : 9, kind === 'GOLDEN' ? 0xffec70 : kind === 'GIANT' ? 0xd9a8ff : strong ? 0xffec70 : 0xffffff, 1)
     this.tweens.add({
       targets: ring,
-      scale: party ? 2.5 : 1.85,
+      scale: kind === 'GIANT' ? 2.8 : strong ? 2.5 : 1.85,
       alpha: 0,
-      duration: party ? 200 : 170,
+      duration: strong ? 220 : 170,
       onComplete: () => ring.destroy(),
     })
   }
 
-  #pop(x: number, y: number, party: boolean): void {
-    const ring = this.add.circle(x, y, party ? 38 : 32, 0xffffff, 0)
-      .setStrokeStyle(party ? 14 : 10, party ? 0xffd85c : 0xffef8a, 1)
+  #pop(x: number, y: number, kind: BalloonRallyBalloon['kind']): void {
+    const strong = kind === 'PARTY' || kind === 'GOLDEN' || kind === 'GIANT'
+    const radius = kind === 'GIANT' ? 55 : strong ? 38 : 32
+    const color = kind === 'GOLDEN' ? 0xffd85c : kind === 'GIANT' ? 0xd9a8ff : strong ? 0xffd85c : 0xffef8a
+    const ring = this.add.circle(x, y, radius, 0xffffff, 0)
+      .setStrokeStyle(kind === 'GIANT' ? 18 : strong ? 14 : 10, color, 1)
     this.tweens.add({
       targets: ring,
-      scale: party ? 3 : 2.3,
+      scale: kind === 'GIANT' ? 3.4 : strong ? 3 : 2.3,
       alpha: 0,
-      duration: party ? 300 : 250,
+      duration: kind === 'GIANT' ? 380 : strong ? 300 : 250,
       onComplete: () => ring.destroy(),
     })
   }

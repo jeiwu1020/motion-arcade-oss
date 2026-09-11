@@ -328,7 +328,7 @@ Requirements:
 
 Replace the temporary single-target loop with the first mature Camera AR game.
 
-Status: Balloon Rally v2 engineering implementation complete; physical
+Status: Balloon Rally v3 engineering implementation complete; physical
 Windows/iPhone and projector validation remain required.
 
 Initial rules:
@@ -345,15 +345,12 @@ Initial rules:
   and a visibly distinct cue;
 - no arbitrary 2.5-second disappearance for ordinary balloons.
 
-First version should prioritize stable interaction over many balloon types.
-
-After core play is validated, possible variants include:
-
-- golden/high-value balloon;
-- large multi-hit balloon;
-- small fast balloon;
-- bilateral/rainbow balloon;
-- avoid/hazard object only if it improves play rather than creating frustration.
+The v3 content expansion keeps the stable interaction foundation and adds only
+positive reward variety: seeded Golden and Giant targets, one short seeded
+mini-event (Golden Rush, Balloon Rain, or Score Fever), bounded FLOAT/DRIFT/
+BOUNCE movement personalities, Combo milestone presentation, and a cosmetic
+logical-hand glow trail. Hazards, penalties, audio architecture, and premium
+art remain deferred.
 
 ### Phase 2A.5 — Balloon Rally game feel + production validation
 
