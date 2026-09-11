@@ -160,4 +160,20 @@ describe('camera presentation model', () => {
     expect(resolveCameraPresentation(snapshot('BASELINING'), 'COUNTDOWN'))
       .toMatchObject({ framingRequirement: 'FULL_BODY', headline: '全身保持在框內' })
   })
+
+  it('keeps brief active degradation non-blocking, uses a small soft-recovery hint, and reserves dominant recovery for hard pause', () => {
+    const resolveActiveTracking = resolveCameraPresentation as unknown as (
+      value: PoseGameplayInputSnapshot,
+      phase: CameraPresentationGamePhase,
+      framing: 'UPPER_BODY',
+      tracking: 'DEGRADED' | 'SOFT_RECOVERY' | 'HARD_PAUSE',
+    ) => ReturnType<typeof resolveCameraPresentation>
+
+    expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'DEGRADED'))
+      .toMatchObject({ mode: 'PLAYING', overlay: 'NONE', framingGuide: 'SUBTLE' })
+    expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'SOFT_RECOVERY'))
+      .toMatchObject({ mode: 'PLAYING', overlay: 'RECOVERY_HINT', headline: null, detail: '雙手回到畫面即可繼續' })
+    expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'HARD_PAUSE'))
+      .toMatchObject({ mode: 'TRACKING_LOST', overlay: 'GUIDANCE', framingGuide: 'PROMINENT' })
+  })
 })

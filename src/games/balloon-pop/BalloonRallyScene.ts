@@ -11,6 +11,7 @@ interface RenderedBalloon {
   readonly container: Phaser.GameObjects.Container
   readonly body: Phaser.GameObjects.Ellipse
   readonly hp: Phaser.GameObjects.Text
+  readonly kind: BalloonRallyBalloon['kind']
   readonly lastHp: number
 }
 
@@ -21,6 +22,7 @@ export class BalloonRallyScene extends Phaser.Scene {
   #countdownText!: Phaser.GameObjects.Text
   #statusText!: Phaser.GameObjects.Text
   #partyRushText!: Phaser.GameObjects.Text
+  #partyEdgePulse!: Phaser.GameObjects.Rectangle
   #partyRushSeen = false
 
   constructor(session: BalloonRallySession) {
@@ -29,6 +31,10 @@ export class BalloonRallyScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.#partyEdgePulse = this.add
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xffd85c, 0)
+      .setStrokeStyle(28, 0xffef8a, 0)
+      .setDepth(20)
     this.#countdownText = this.add
       .text(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, '', {
         color: '#ffffff',
@@ -39,6 +45,7 @@ export class BalloonRallyScene extends Phaser.Scene {
         strokeThickness: 18,
       })
       .setOrigin(0.5)
+      .setDepth(21)
     this.#statusText = this.add
       .text(WORLD_WIDTH / 2, 660, '', {
         color: '#ffffff',
@@ -49,6 +56,7 @@ export class BalloonRallyScene extends Phaser.Scene {
         strokeThickness: 8,
       })
       .setOrigin(0.5)
+      .setDepth(21)
     this.#partyRushText = this.add
       .text(WORLD_WIDTH / 2, 170, 'PARTY RUSH!', {
         color: '#ffec70',
@@ -59,6 +67,7 @@ export class BalloonRallyScene extends Phaser.Scene {
         strokeThickness: 13,
       })
       .setOrigin(0.5)
+      .setDepth(22)
       .setVisible(false)
   }
 
@@ -83,38 +92,56 @@ export class BalloonRallyScene extends Phaser.Scene {
 
     this.#reconcileBalloons(state)
     this.#statusText
-      .setText(state.partyRush ? 'PARTY RUSH！加速拍氣球！' : '雙手拍氣球！')
+      .setText(state.partyRush ? 'PARTY RUSH！一拍爆氣球！' : '雙手拍氣球！')
       .setVisible(true)
-    if (state.partyRush && !this.#partyRushSeen) {
-      this.#partyRushSeen = true
-      this.#partyRushText.setAlpha(1).setScale(0.72).setVisible(true)
-      this.tweens.add({
-        targets: this.#partyRushText,
-        scale: 1,
-        alpha: 0,
-        duration: 1_350,
-        ease: 'Back.Out',
-        onComplete: () => this.#partyRushText.setVisible(false),
-      })
-    }
+    if (state.partyRush && !this.#partyRushSeen) this.#showPartyRushCue()
+  }
+
+  #showPartyRushCue(): void {
+    this.#partyRushSeen = true
+    this.#partyRushText.setAlpha(1).setScale(0.72).setVisible(true)
+    this.#partyEdgePulse
+      .setAlpha(1)
+      .setFillStyle(0xffca5f, 0.22)
+      .setStrokeStyle(28, 0xffef8a, 0.96)
+    this.tweens.add({
+      targets: this.#partyRushText,
+      scale: 1,
+      alpha: 0,
+      duration: 1_350,
+      ease: 'Back.Out',
+      onComplete: () => this.#partyRushText.setVisible(false),
+    })
+    this.tweens.add({
+      targets: this.#partyEdgePulse,
+      alpha: 0,
+      duration: 650,
+      ease: 'Sine.Out',
+      onComplete: () => this.#partyEdgePulse.setFillStyle(0xffca5f, 0).setStrokeStyle(28, 0xffef8a, 0),
+    })
   }
 
   #reconcileBalloons(state: BalloonRallyState): void {
     const expectedIds = new Set(state.balloons.map((balloon) => balloon.id))
     for (const [id, rendered] of this.#balloons) {
       if (!expectedIds.has(id)) {
-        this.#pop(rendered.container.x, rendered.container.y)
+        this.#pop(rendered.container.x, rendered.container.y, rendered.kind === 'PARTY')
         rendered.container.destroy()
         this.#balloons.delete(id)
       }
     }
     for (const balloon of state.balloons) {
-      const rendered = this.#balloons.get(balloon.id) ?? this.#createBalloon(balloon)
+      let rendered = this.#balloons.get(balloon.id)
+      if (!rendered || rendered.kind !== balloon.kind) {
+        if (rendered) rendered.container.destroy()
+        rendered = this.#createBalloon(balloon)
+      }
       rendered.container.setPosition(balloon.x, balloon.y).setVisible(true)
       rendered.hp.setText('●'.repeat(balloon.hp) + '○'.repeat(balloon.maxHp - balloon.hp))
       if (balloon.hp < rendered.lastHp) {
+        this.#impact(balloon.x, balloon.y, balloon.kind === 'PARTY')
         this.tweens.killTweensOf(rendered.container)
-        rendered.container.setScale(1.16, 0.82)
+        rendered.container.setScale(1.18, 0.78)
         this.tweens.add({
           targets: rendered.container,
           scaleX: 1,
@@ -129,36 +156,49 @@ export class BalloonRallyScene extends Phaser.Scene {
 
   #createBalloon(balloon: BalloonRallyBalloon): RenderedBalloon {
     const color = BALLOON_COLORS[(balloon.id - 1) % BALLOON_COLORS.length] ?? 0xff668f
-    const string = this.add.line(0, balloon.radius + 18, 0, 0, 0, 64, 0xffffff, 0.78).setLineWidth(4)
+    const party = balloon.kind === 'PARTY'
+    const string = this.add.line(0, balloon.radius + 18, 0, 0, 0, 64, party ? 0xfff0a1 : 0xffffff, 0.78).setLineWidth(4)
     const knot = this.add.triangle(0, balloon.radius - 4, -13, 12, 13, 12, 0, -10, color)
     const body = this.add
       .ellipse(0, 0, balloon.radius * 1.56, balloon.radius * 1.95, color)
-      .setStrokeStyle(8, 0xffffff, 0.92)
-    const shine = this.add.ellipse(-balloon.radius * 0.32, -balloon.radius * 0.42, 22, 50, 0xffffff, 0.62)
+      .setStrokeStyle(party ? 12 : 8, party ? 0xffec70 : 0xffffff, party ? 1 : 0.92)
+    const shine = this.add.ellipse(-balloon.radius * 0.32, -balloon.radius * 0.42, 22, 50, 0xffffff, party ? 0.86 : 0.62)
     const hp = this.add
-      .text(0, 8, '●●●', {
-        color: '#ffffff',
+      .text(0, 8, '●'.repeat(balloon.hp), {
+        color: party ? '#fff4ab' : '#ffffff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '24px',
+        fontSize: party ? '28px' : '24px',
         fontStyle: 'bold',
         stroke: '#10284b',
         strokeThickness: 6,
       })
       .setOrigin(0.5)
     const container = this.add.container(balloon.x, balloon.y, [string, knot, body, shine, hp])
-    const rendered = { container, body, hp, lastHp: balloon.hp }
+    const rendered = { container, body, hp, kind: balloon.kind, lastHp: balloon.hp }
     this.#balloons.set(balloon.id, rendered)
     this.tweens.add({ targets: container, scale: { from: 0.72, to: 1 }, duration: 170, ease: 'Back.Out' })
     return rendered
   }
 
-  #pop(x: number, y: number): void {
-    const ring = this.add.circle(x, y, 32, 0xffffff, 0).setStrokeStyle(10, 0xffef8a, 1)
+  #impact(x: number, y: number, party: boolean): void {
+    const ring = this.add.circle(x, y, 24, 0xffffff, 0).setStrokeStyle(party ? 12 : 9, party ? 0xffec70 : 0xffffff, 1)
     this.tweens.add({
       targets: ring,
-      scale: 2.3,
+      scale: party ? 2.5 : 1.85,
       alpha: 0,
-      duration: 250,
+      duration: party ? 200 : 170,
+      onComplete: () => ring.destroy(),
+    })
+  }
+
+  #pop(x: number, y: number, party: boolean): void {
+    const ring = this.add.circle(x, y, party ? 38 : 32, 0xffffff, 0)
+      .setStrokeStyle(party ? 14 : 10, party ? 0xffd85c : 0xffef8a, 1)
+    this.tweens.add({
+      targets: ring,
+      scale: party ? 3 : 2.3,
+      alpha: 0,
+      duration: party ? 300 : 250,
       onComplete: () => ring.destroy(),
     })
   }

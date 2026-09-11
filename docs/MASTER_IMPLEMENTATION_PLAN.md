@@ -328,19 +328,21 @@ Requirements:
 
 Replace the temporary single-target loop with the first mature Camera AR game.
 
-Status: engineering implementation complete; physical Windows/iPhone and
-projector validation remain required.
+Status: Balloon Rally v2 engineering implementation complete; physical
+Windows/iPhone and projector validation remain required.
 
 Initial rules:
 
 - 60-second round;
-- start with approximately 2 balloons, increase toward 3–4 as the round progresses;
+- WARM UP/RALLY/FEVER population of 2/3/4 standard balloons at 0/15/35 seconds;
 - balloons continuously float and rebound inside a controlled playable region;
 - valid hand contact: `+1` and applies an arcade impulse;
 - sustained overlap cannot farm score; separation/new contact is required;
-- ordinary balloon target: approximately 3 valid hits before pop;
+- standard balloon target: 2 valid hits before pop, with Combo rewarding
+  continuous activity;
 - pop grants an additional bonus;
-- final 10 seconds: Party Rush / clear climax;
+- final 10 seconds: PARTY RUSH with five 1-hit Party balloons, fast replacement,
+  and a visibly distinct cue;
 - no arbitrary 2.5-second disappearance for ordinary balloons.
 
 First version should prioritize stable interaction over many balloon types.

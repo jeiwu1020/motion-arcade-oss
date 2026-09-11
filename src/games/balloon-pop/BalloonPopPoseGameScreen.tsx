@@ -53,11 +53,12 @@ export default function BalloonPopPoseGameScreen({
       new BalloonRallySession(spatialCollisionInput),
   )
   const [poseSnapshot, setPoseSnapshot] = useState(INITIAL_POSE_SNAPSHOT)
-  const state = useSyncExternalStore(
+  const sessionSnapshot = useSyncExternalStore(
     session.subscribe,
-    session.getState,
-    session.getState,
+    session.getPresentationSnapshot,
+    session.getPresentationSnapshot,
   )
+  const state = sessionSnapshot.state
 
   useEffect(() => {
     const runtime = new PoseGameplayInputRuntime({
@@ -84,9 +85,17 @@ export default function BalloonPopPoseGameScreen({
 
     const frame = (time: number) => {
       void runtime.update(time)
+      const runtimeSnapshot = runtime.getSnapshot()
       session.tick(
         time - previousTime,
-        runtime.getSnapshot().status === 'READY',
+        {
+          setupReady: runtimeSnapshot.status === 'READY',
+          usefulTracking: runtimeSnapshot.status === 'READY',
+          hardFailure:
+            runtimeSnapshot.status === 'ERROR' ||
+            (session.getState().phase === 'PLAYING' &&
+              runtimeSnapshot.status === 'CAMERA_NOT_STARTED'),
+        },
       )
       refreshSpatialSnapshot()
       previousTime = time
@@ -135,6 +144,7 @@ export default function BalloonPopPoseGameScreen({
     poseSnapshot,
     state.phase === 'FINISHED' ? 'RESULT' : state.phase,
     'UPPER_BODY',
+    sessionSnapshot.trackingState,
   )
 
   return (
@@ -156,8 +166,12 @@ export default function BalloonPopPoseGameScreen({
             {presentation.statusLabel}
           </span>
           <span>分數 <strong>{state.score}</strong></span>
-          <span>命中 <strong>{state.hits}</strong></span>
           <span>時間 <strong>{secondsRemaining}</strong></span>
+          {state.combo >= 2 ? (
+            <span className="balloon-pop-combo">
+              <strong>{state.combo}</strong> COMBO
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -176,6 +190,7 @@ export default function BalloonPopPoseGameScreen({
               <dl>
                 <div><dt>命中</dt><dd>{state.hits}</dd></div>
                 <div><dt>氣球拍破</dt><dd>{state.pops}</dd></div>
+                <div><dt>最佳 Combo</dt><dd>{state.bestCombo}</dd></div>
               </dl>
               <div className="balloon-pop-result-actions">
                 <button type="button" onClick={() => session.replay()}>

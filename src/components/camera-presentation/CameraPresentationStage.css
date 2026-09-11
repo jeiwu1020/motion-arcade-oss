@@ -236,6 +236,11 @@
   align-items: start;
 }
 
+.camera-presentation-status[data-overlay='RECOVERY_HINT'] {
+  align-items: end;
+  padding-bottom: clamp(1rem, 4vh, 2.5rem);
+}
+
 .camera-presentation-status-card {
   width: min(38rem, 92%);
   border: 2px solid rgb(255 255 255 / 54%);
@@ -257,6 +262,22 @@
   border-color: rgb(114 225 191 / 84%);
   padding: 0.55rem 1.2rem;
   background: rgb(5 42 34 / 88%);
+}
+
+.camera-presentation-status[data-overlay='RECOVERY_HINT']
+  .camera-presentation-status-card {
+  width: auto;
+  max-width: min(27rem, 86%);
+  border-color: rgb(255 224 121 / 70%);
+  padding: 0.55rem 1rem;
+  background: rgb(5 25 42 / 84%);
+}
+
+.camera-presentation-status[data-overlay='RECOVERY_HINT']
+  .camera-presentation-status-card span {
+  margin: 0;
+  color: #fff2b4;
+  font-size: clamp(0.88rem, 1.5vw, 1.1rem);
 }
 
 .camera-presentation-status-card p,

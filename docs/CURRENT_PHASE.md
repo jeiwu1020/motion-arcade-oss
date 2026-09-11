@@ -6,9 +6,9 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 ## Current implementation baseline
 
-Current implementation baseline before Phase 2A.4 Balloon Rally work:
+Current implementation baseline before Balloon Rally v2 work:
 
-`f5471aeba5342fe377b8fe1f5ce27c867cf66f6e` — spatial collision prototype
+`19ae3a3b5e2bbe00fe358732bbc746ac7c74ce28` — Balloon Rally v1
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -38,22 +38,27 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ## Current phase
 
-### Phase 2A.4 — Balloon Rally v1
+### Phase 2A.4 — Balloon Rally v2
 
 Engineering status: implementation complete; Windows/iPhone physical gameplay
 validation remains required.
 
 Production 氣球拍拍樂 now uses deterministic 3-second/60-second Balloon Rally
-rules: 2→3→4 persistent 3-HP balloons, separated spatial hand contacts,
-bounded arcade impulses, pop/replacement, and final-10-second PARTY RUSH.
-`BalloonRallySession` reuses the existing logical spatial adapter and swept
-contact tracker; Phaser renders the immutable Core state only.
+v2 rules: 2→3→4 standard 2-HP balloons at 0/15/35 seconds, then a distinct
+five-target 1-HP PARTY RUSH at 50 seconds. Separated spatial hand contacts,
+bounded arcade impulses, immediate replacement, Combo, and result metrics all
+remain authoritative in `BalloonRallyCore`; Phaser renders immutable state only.
 
 Balloon Rally explicitly opts into UPPER_BODY readiness: a stable torso/core
-baseline and READY quality remain required, while knees/ankles are not.
+baseline and READY quality remain required, while knees/ankles are not. After
+the round begins, `BalloonRallySession` uses the v2 relaxed tracking policy:
+0–1,500 ms degradation continues play, 1,500–3,000 ms uses a small frozen
+soft recovery, and >=3,000 ms or sensor failure uses hard recovery. This policy
+is scoped to Balloon Rally; FULL_BODY games remain unchanged.
 Phase 2A.3b is Engineering PASS + Windows Chrome physical PASS + iPhone Safari
 physical PASS. Phase 2A.3c remains Engineering PASS only. Details:
-[Phase 2A.4 Balloon Rally](./PHASE_2A_4_BALLOON_RALLY.md).
+[Balloon Rally v2 design](./BALLOON_RALLY_V2_GAME_DESIGN.md) and
+[Phase 2A.4 Balloon Rally](./PHASE_2A_4_BALLOON_RALLY.md) contain details.
 
 ### Prior Phase 2A.2b — Camera Presentation Layer physical-feedback tuning
 
@@ -123,8 +128,9 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 
 - Brief Windows/iPhone retest after the brighter Camera AR treatment to confirm player visibility and game-object/HUD contrast.
 - Projector: framing-guide visibility, live-player visibility, camera/game contrast, HUD readability, and result/recovery comprehension from the intended viewing distance.
-- Balloon Rally Windows/iPhone: collision alignment, held/re-entry semantics,
-  tracking-loss recovery, resize/orientation, 60-second stability, replay, and
+- Balloon Rally v2 Windows/iPhone: virtual-hand contact tolerance, fast/held/
+  re-entry semantics, one-hand continuity, 1.5/3-second tracking recovery,
+  progression/PARTY RUSH, resize/orientation, 60-second stability, replay, and
   upper-body framing checks; projector validation remains required.
 - Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open; later batch them in real games.
 

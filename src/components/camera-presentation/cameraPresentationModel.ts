@@ -32,8 +32,14 @@ export type CameraPresentationOverlay =
   | 'BLOCKING'
   | 'GUIDANCE'
   | 'READY_BADGE'
+  | 'RECOVERY_HINT'
 
 export type CameraFramingRequirement = 'FULL_BODY' | 'UPPER_BODY'
+export type ActiveGameplayTrackingState =
+  | 'NORMAL'
+  | 'DEGRADED'
+  | 'SOFT_RECOVERY'
+  | 'HARD_PAUSE'
 
 export interface CameraPresentation {
   readonly mode: CameraPresentationMode
@@ -60,6 +66,7 @@ export function resolveCameraPresentation(
   snapshot: PoseGameplayInputSnapshot,
   gamePhase: CameraPresentationGamePhase,
   framingRequirement: CameraFramingRequirement = 'FULL_BODY',
+  activeTrackingState: ActiveGameplayTrackingState = 'NORMAL',
 ): CameraPresentation {
   const createPresentation = (
     value: Omit<CameraPresentation, 'framingRequirement'>,
@@ -81,6 +88,37 @@ export function resolveCameraPresentation(
       actionLabel: null,
       alert: false,
     })
+  }
+
+  if (gamePhase === 'PLAYING' && snapshot.status === 'TRACKING_LOST') {
+    if (activeTrackingState === 'DEGRADED') {
+      return createPresentation({
+        mode: 'PLAYING',
+        cameraTreatment: 'SUBDUED',
+        framingGuide: 'SUBTLE',
+        overlay: 'NONE',
+        statusLabel: '遊戲進行中',
+        eyebrow: null,
+        headline: null,
+        detail: null,
+        actionLabel: null,
+        alert: false,
+      })
+    }
+    if (activeTrackingState === 'SOFT_RECOVERY') {
+      return createPresentation({
+        mode: 'PLAYING',
+        cameraTreatment: 'SUBDUED',
+        framingGuide: 'SUBTLE',
+        overlay: 'RECOVERY_HINT',
+        statusLabel: '暫停等待追蹤',
+        eyebrow: null,
+        headline: null,
+        detail: '雙手回到畫面即可繼續',
+        actionLabel: null,
+        alert: false,
+      })
+    }
   }
 
   if (snapshot.status === 'READY' && gamePhase === 'PLAYING') {

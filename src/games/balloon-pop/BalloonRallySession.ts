@@ -11,7 +11,13 @@ import {
   type BalloonRallyState,
 } from './BalloonRallyCore'
 
-export const BALLOON_RALLY_COLLISION_PADDING = 24
+export const BALLOON_RALLY_VIRTUAL_HAND_RADIUS = 42
+export const BALLOON_RALLY_CONTACT_TOLERANCE = 10
+export const BALLOON_RALLY_TRACKING_POLICY = Object.freeze({
+  degradedGraceMs: 1_500,
+  hardPauseMs: 3_000,
+})
+
 export const BALLOON_RALLY_POSE_INPUT_REQUEST: MotionInputRequest = Object.freeze({
   players: Object.freeze([
     Object.freeze({
@@ -22,6 +28,26 @@ export const BALLOON_RALLY_POSE_INPUT_REQUEST: MotionInputRequest = Object.freez
   actions: Object.freeze([]),
   sensors: Object.freeze({ pose: true, hands: false, audio: false }),
 })
+
+export type BalloonRallyTrackingState =
+  | 'NORMAL'
+  | 'DEGRADED'
+  | 'SOFT_RECOVERY'
+  | 'HARD_PAUSE'
+
+export interface BalloonRallyTrackingInput {
+  /** Strict UPPER_BODY readiness used only before the round is active. */
+  readonly setupReady: boolean
+  /** Useful torso/core tracking; individual wrists remain independently optional. */
+  readonly usefulTracking: boolean
+  /** A camera, Pose backend, or lifecycle failure rather than ordinary quality loss. */
+  readonly hardFailure: boolean
+}
+
+export interface BalloonRallySessionSnapshot {
+  readonly state: BalloonRallyState
+  readonly trackingState: BalloonRallyTrackingState
+}
 
 type Listener = () => void
 
@@ -41,10 +67,7 @@ function fallbackImpulse(
     const dy = segment.to.y - segment.from.y
     const distance = Math.hypot(dx, dy)
     if (distance >= 8) {
-      const magnitude = Math.min(
-        BALLOON_RALLY_RULES.maximumImpulse,
-        95 + distance * 1.25,
-      )
+      const magnitude = Math.min(BALLOON_RALLY_RULES.maximumImpulse, 95 + distance * 1.25)
       return Object.freeze({ x: (dx / distance) * magnitude, y: (dy / distance) * magnitude })
     }
   }
@@ -58,16 +81,30 @@ function fallbackImpulse(
   return Object.freeze({ x: 0, y: -130 })
 }
 
+function normalizeTrackingInput(
+  input: boolean | BalloonRallyTrackingInput,
+): BalloonRallyTrackingInput {
+  if (typeof input !== 'boolean') return input
+  return {
+    setupReady: input,
+    usefulTracking: input,
+    hardFailure: false,
+  }
+}
+
 /**
  * Session boundary joining normalized logical wrist samples with pure Balloon
- * Rally rules. It owns transient contact state only; Phaser only renders the
- * immutable resulting Core state.
+ * Rally rules. It owns transient contact and active-game tracking policy only;
+ * Phaser only renders the immutable resulting Core state.
  */
 export class BalloonRallySession {
   readonly #spatialInput: SpatialCollisionInputAdapter
   readonly #contacts = new SpatialCircleContactTracker()
   readonly #listeners = new Set<Listener>()
   #state: BalloonRallyState
+  #trackingState: BalloonRallyTrackingState = 'NORMAL'
+  #trackingLossMs = 0
+  #presentationSnapshot: BalloonRallySessionSnapshot
   #running = false
 
   constructor(
@@ -76,9 +113,16 @@ export class BalloonRallySession {
   ) {
     this.#spatialInput = spatialInput
     this.#state = createBalloonRallyState(options)
+    this.#presentationSnapshot = Object.freeze({
+      state: this.#state,
+      trackingState: this.#trackingState,
+    })
   }
 
   readonly getState = (): BalloonRallyState => this.#state
+
+  readonly getPresentationSnapshot = (): BalloonRallySessionSnapshot =>
+    this.#presentationSnapshot
 
   readonly subscribe = (listener: Listener): (() => void) => {
     this.#listeners.add(listener)
@@ -92,32 +136,81 @@ export class BalloonRallySession {
   async stop(): Promise<void> {
     if (!this.#running) return
     this.#running = false
-    this.#contacts.reset()
-    this.#spatialInput.reset()
+    this.#trackingLossMs = 0
+    this.#setTrackingState('NORMAL')
+    this.#breakSpatialContinuity()
   }
 
-  tick(deltaMs: number, gameplayReady: boolean): void {
+  tick(deltaMs: number, input: boolean | BalloonRallyTrackingInput): void {
     if (!this.#running) return
+    const tracking = normalizeTrackingInput(input)
+    const safeDeltaMs = Math.max(0, Number.isFinite(deltaMs) ? deltaMs : 0)
     const spatial = this.#spatialInput.getSnapshot()
-    if (!gameplayReady || !spatial.cameraVisibleWorldRect) {
-      this.#breakSpatialContinuity()
+
+    if (this.#state.phase === 'COUNTDOWN') {
+      if (!tracking.setupReady || tracking.hardFailure || !spatial.cameraVisibleWorldRect) {
+        this.#breakSpatialContinuity()
+        return
+      }
+      this.#trackingLossMs = 0
+      this.#setTrackingState('NORMAL')
+      this.#advance(safeDeltaMs)
       return
     }
 
-    const contacts = this.#collectContacts()
-    this.#replaceState(
-      advanceBalloonRally(this.#state, {
-        deltaMs,
-        interactionRegion: spatial.cameraVisibleWorldRect,
-        contacts,
-      }),
+    if (this.#state.phase === 'FINISHED') return
+    if (tracking.hardFailure || !spatial.cameraVisibleWorldRect) {
+      this.#trackingLossMs = BALLOON_RALLY_TRACKING_POLICY.hardPauseMs
+      this.#enterRecovery('HARD_PAUSE')
+      return
+    }
+    if (tracking.usefulTracking) {
+      this.#trackingLossMs = 0
+      this.#setTrackingState('NORMAL')
+      this.#advance(safeDeltaMs)
+      return
+    }
+
+    const priorLossMs = this.#trackingLossMs
+    const nextLossMs = priorLossMs + safeDeltaMs
+    this.#trackingLossMs = nextLossMs
+    if (priorLossMs < BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs) {
+      const continuingMs = Math.min(
+        safeDeltaMs,
+        BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs - priorLossMs,
+      )
+      if (continuingMs > 0) this.#advance(continuingMs)
+    }
+    if (nextLossMs < BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs) {
+      this.#setTrackingState('DEGRADED')
+      return
+    }
+    this.#enterRecovery(
+      nextLossMs >= BALLOON_RALLY_TRACKING_POLICY.hardPauseMs
+        ? 'HARD_PAUSE'
+        : 'SOFT_RECOVERY',
     )
   }
 
   replay(): void {
     this.#state = replayBalloonRally(this.#state)
+    this.#trackingLossMs = 0
+    this.#trackingState = 'NORMAL'
+    this.#refreshPresentationSnapshot()
     this.#breakSpatialContinuity()
     this.#notify()
+  }
+
+  #advance(deltaMs: number): void {
+    const spatial = this.#spatialInput.getSnapshot()
+    if (!spatial.cameraVisibleWorldRect) return
+    this.#replaceState(
+      advanceBalloonRally(this.#state, {
+        deltaMs,
+        interactionRegion: spatial.cameraVisibleWorldRect,
+        contacts: this.#collectContacts(),
+      }),
+    )
   }
 
   #collectContacts(): readonly BalloonRallyContact[] {
@@ -128,7 +221,10 @@ export class BalloonRallySession {
         id: String(balloon.id),
         x: balloon.x,
         y: balloon.y,
-        radius: balloon.radius + BALLOON_RALLY_COLLISION_PADDING,
+        radius:
+          balloon.radius +
+          BALLOON_RALLY_VIRTUAL_HAND_RADIUS +
+          BALLOON_RALLY_CONTACT_TOLERANCE,
       }
       for (const side of ['LEFT', 'RIGHT'] as const) {
         const hand = side === 'LEFT' ? snapshot.leftHand : snapshot.rightHand
@@ -153,6 +249,11 @@ export class BalloonRallySession {
     return contacts
   }
 
+  #enterRecovery(nextState: 'SOFT_RECOVERY' | 'HARD_PAUSE'): void {
+    if (this.#trackingState !== nextState) this.#breakSpatialContinuity()
+    this.#setTrackingState(nextState)
+  }
+
   #breakSpatialContinuity(): void {
     this.#contacts.reset()
     this.#spatialInput.reset()
@@ -161,7 +262,22 @@ export class BalloonRallySession {
   #replaceState(nextState: BalloonRallyState): void {
     if (nextState === this.#state) return
     this.#state = nextState
+    this.#refreshPresentationSnapshot()
     this.#notify()
+  }
+
+  #setTrackingState(nextState: BalloonRallyTrackingState): void {
+    if (nextState === this.#trackingState) return
+    this.#trackingState = nextState
+    this.#refreshPresentationSnapshot()
+    this.#notify()
+  }
+
+  #refreshPresentationSnapshot(): void {
+    this.#presentationSnapshot = Object.freeze({
+      state: this.#state,
+      trackingState: this.#trackingState,
+    })
   }
 
   #notify(): void {

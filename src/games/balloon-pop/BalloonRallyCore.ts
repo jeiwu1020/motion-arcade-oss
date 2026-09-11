@@ -3,23 +3,39 @@ import type { LogicalPlayfieldRect } from '../../spatial/spatialPlayfieldMapping
 export const BALLOON_RALLY_RULES = Object.freeze({
   countdownMs: 3_000,
   roundMs: 60_000,
+  rallyStartMs: 15_000,
+  feverStartMs: 35_000,
   partyRushStartMs: 50_000,
-  ordinaryMaxHp: 3,
+  ordinaryMaxHp: 2,
+  partyMaxHp: 1,
   visualRadius: 68,
   spawnSeparation: 18,
   initialMinimumSpeed: 70,
   initialMaximumSpeed: 120,
+  partyInitialMinimumSpeed: 95,
+  partyInitialMaximumSpeed: 155,
   ordinaryMaximumSpeed: 360,
   partyRushMaximumSpeed: 420,
-  partyRushSpeedBoost: 1.22,
+  partyRushSpeedBoost: 1.28,
   maximumImpulse: 260,
+  standardPopBonus: 2,
+  partyPopBonus: 1,
+  comboWindowMs: 1_500,
+  comboBonusStartsAt: 5,
+  comboHitBonus: 1,
+  antiCornerBandPx: 88,
+  antiCornerAcceleration: 72,
+  partyAntiCornerAcceleration: 90,
 })
 
 export type BalloonRallyPhase = 'COUNTDOWN' | 'PLAYING' | 'FINISHED'
 export type BalloonHandSide = 'LEFT' | 'RIGHT'
+export type BalloonRallyProgression = 'WARM_UP' | 'RALLY' | 'FEVER' | 'PARTY_RUSH'
+export type BalloonRallyBalloonKind = 'STANDARD' | 'PARTY'
 
 export interface BalloonRallyBalloon {
   readonly id: number
+  readonly kind: BalloonRallyBalloonKind
   readonly x: number
   readonly y: number
   readonly vx: number
@@ -46,9 +62,13 @@ export interface BalloonRallyState {
   readonly countdownRemainingMs: number
   readonly roundRemainingMs: number
   readonly elapsedMs: number
+  readonly progression: BalloonRallyProgression
   readonly score: number
   readonly hits: number
   readonly pops: number
+  readonly combo: number
+  readonly bestCombo: number
+  readonly comboRemainingMs: number
   readonly partyRush: boolean
   readonly balloons: readonly BalloonRallyBalloon[]
   readonly nextBalloonId: number
@@ -82,10 +102,24 @@ function nextRandom(randomState: number): readonly [number, number] {
   return [nextState / 4_294_967_296, nextState]
 }
 
-function desiredPopulation(elapsedMs: number): number {
-  if (elapsedMs >= 40_000) return 4
-  if (elapsedMs >= 20_000) return 3
-  return 2
+function progressionAt(elapsedMs: number): BalloonRallyProgression {
+  if (elapsedMs >= BALLOON_RALLY_RULES.partyRushStartMs) return 'PARTY_RUSH'
+  if (elapsedMs >= BALLOON_RALLY_RULES.feverStartMs) return 'FEVER'
+  if (elapsedMs >= BALLOON_RALLY_RULES.rallyStartMs) return 'RALLY'
+  return 'WARM_UP'
+}
+
+function desiredPopulation(progression: BalloonRallyProgression): number {
+  switch (progression) {
+    case 'PARTY_RUSH':
+      return 5
+    case 'FEVER':
+      return 4
+    case 'RALLY':
+      return 3
+    case 'WARM_UP':
+      return 2
+  }
 }
 
 function hasUsableRegion(region: LogicalPlayfieldRect | null): region is LogicalPlayfieldRect {
@@ -111,6 +145,12 @@ function speedLimit(vx: number, vy: number, maximumSpeed: number): readonly [num
   return [vx * multiplier, vy * multiplier]
 }
 
+function maximumSpeedFor(balloon: BalloonRallyBalloon): number {
+  return balloon.kind === 'PARTY'
+    ? BALLOON_RALLY_RULES.partyRushMaximumSpeed
+    : BALLOON_RALLY_RULES.ordinaryMaximumSpeed
+}
+
 function interior(region: LogicalPlayfieldRect, radius: number): Readonly<{
   left: number
   right: number
@@ -125,10 +165,7 @@ function interior(region: LogicalPlayfieldRect, radius: number): Readonly<{
   }
 }
 
-function placeInside(
-  balloon: BalloonRallyBalloon,
-  region: LogicalPlayfieldRect,
-): BalloonRallyBalloon {
+function placeInside(balloon: BalloonRallyBalloon, region: LogicalPlayfieldRect): BalloonRallyBalloon {
   const bounds = interior(region, balloon.radius)
   return {
     ...balloon,
@@ -162,20 +199,39 @@ function reflect(
   return [clamp(nextPosition, minimum, maximum), nextVelocity]
 }
 
+function steerFromOuterBand(
+  position: number,
+  minimum: number,
+  maximum: number,
+  deltaSeconds: number,
+  acceleration: number,
+): number {
+  const span = Math.max(0, maximum - minimum)
+  const band = Math.min(BALLOON_RALLY_RULES.antiCornerBandPx, span * 0.25)
+  if (band === 0) return 0
+  if (position < minimum + band) return acceleration * deltaSeconds
+  if (position > maximum - band) return -acceleration * deltaSeconds
+  return 0
+}
+
 function integrateBalloon(
   balloon: BalloonRallyBalloon,
   region: LogicalPlayfieldRect,
   deltaMs: number,
-  partyRush: boolean,
 ): BalloonRallyBalloon {
   const recovered = placeInside(balloon, region)
-  const maxSpeed = partyRush
-    ? BALLOON_RALLY_RULES.partyRushMaximumSpeed
-    : BALLOON_RALLY_RULES.ordinaryMaximumSpeed
-  const [vx, vy] = speedLimit(recovered.vx, recovered.vy, maxSpeed)
   const bounds = interior(region, recovered.radius)
-  const [x, bouncedVx] = reflect(recovered.x, vx, bounds.left, bounds.right, deltaMs / 1_000)
-  const [y, bouncedVy] = reflect(recovered.y, vy, bounds.top, bounds.bottom, deltaMs / 1_000)
+  const deltaSeconds = deltaMs / 1_000
+  const steering = recovered.kind === 'PARTY'
+    ? BALLOON_RALLY_RULES.partyAntiCornerAcceleration
+    : BALLOON_RALLY_RULES.antiCornerAcceleration
+  const [vx, vy] = speedLimit(
+    recovered.vx + steerFromOuterBand(recovered.x, bounds.left, bounds.right, deltaSeconds, steering),
+    recovered.vy + steerFromOuterBand(recovered.y, bounds.top, bounds.bottom, deltaSeconds, steering),
+    maximumSpeedFor(recovered),
+  )
+  const [x, bouncedVx] = reflect(recovered.x, vx, bounds.left, bounds.right, deltaSeconds)
+  const [y, bouncedVy] = reflect(recovered.y, vy, bounds.top, bounds.bottom, deltaSeconds)
   return { ...recovered, x, y, vx: bouncedVx, vy: bouncedVy }
 }
 
@@ -195,6 +251,16 @@ function spawnBalloon(
   region: LogicalPlayfieldRect,
 ): Readonly<{ balloon: BalloonRallyBalloon; randomState: number }> {
   const bounds = interior(region, BALLOON_RALLY_RULES.visualRadius)
+  const kind: BalloonRallyBalloonKind = state.partyRush ? 'PARTY' : 'STANDARD'
+  const minimumSpeed = kind === 'PARTY'
+    ? BALLOON_RALLY_RULES.partyInitialMinimumSpeed
+    : BALLOON_RALLY_RULES.initialMinimumSpeed
+  const maximumSpeed = kind === 'PARTY'
+    ? BALLOON_RALLY_RULES.partyInitialMaximumSpeed
+    : BALLOON_RALLY_RULES.initialMaximumSpeed
+  const maxHp = kind === 'PARTY'
+    ? BALLOON_RALLY_RULES.partyMaxHp
+    : BALLOON_RALLY_RULES.ordinaryMaxHp
   let randomState = state.randomState
   let candidate: BalloonRallyBalloon | null = null
 
@@ -204,41 +270,41 @@ function spawnBalloon(
     const [angleUnit, afterAngle] = nextRandom(afterY)
     const [speedUnit, afterSpeed] = nextRandom(afterAngle)
     randomState = afterSpeed
-    const speed =
-      BALLOON_RALLY_RULES.initialMinimumSpeed +
-      (BALLOON_RALLY_RULES.initialMaximumSpeed - BALLOON_RALLY_RULES.initialMinimumSpeed) * speedUnit
+    const speed = minimumSpeed + (maximumSpeed - minimumSpeed) * speedUnit
     candidate = {
       id: state.nextBalloonId,
+      kind,
       x: bounds.left + (bounds.right - bounds.left) * xUnit,
       y: bounds.top + (bounds.bottom - bounds.top) * yUnit,
       vx: Math.cos(angleUnit * Math.PI * 2) * speed,
       vy: Math.sin(angleUnit * Math.PI * 2) * speed,
       radius: BALLOON_RALLY_RULES.visualRadius,
-      hp: BALLOON_RALLY_RULES.ordinaryMaxHp,
-      maxHp: BALLOON_RALLY_RULES.ordinaryMaxHp,
+      hp: maxHp,
+      maxHp,
     }
     if (!candidateOverlaps(candidate, existing)) break
   }
 
-  return { balloon: candidate ?? {
-    id: state.nextBalloonId,
-    x: (bounds.left + bounds.right) / 2,
-    y: (bounds.top + bounds.bottom) / 2,
-    vx: BALLOON_RALLY_RULES.initialMinimumSpeed,
-    vy: 0,
-    radius: BALLOON_RALLY_RULES.visualRadius,
-    hp: BALLOON_RALLY_RULES.ordinaryMaxHp,
-    maxHp: BALLOON_RALLY_RULES.ordinaryMaxHp,
-  }, randomState }
+  return {
+    balloon: candidate ?? {
+      id: state.nextBalloonId,
+      kind,
+      x: (bounds.left + bounds.right) / 2,
+      y: (bounds.top + bounds.bottom) / 2,
+      vx: minimumSpeed,
+      vy: 0,
+      radius: BALLOON_RALLY_RULES.visualRadius,
+      hp: maxHp,
+      maxHp,
+    },
+    randomState,
+  }
 }
 
-function populate(
-  state: BalloonRallyState,
-  region: LogicalPlayfieldRect,
-): BalloonRallyState {
+function populate(state: BalloonRallyState, region: LogicalPlayfieldRect): BalloonRallyState {
   let nextState = state
   let balloons = [...state.balloons]
-  while (balloons.length < desiredPopulation(state.elapsedMs)) {
+  while (balloons.length < desiredPopulation(state.progression)) {
     const spawned = spawnBalloon(nextState, balloons, region)
     balloons = [...balloons, spawned.balloon]
     nextState = {
@@ -251,13 +317,36 @@ function populate(
   return nextState
 }
 
+function updateComboForElapsedTime(state: BalloonRallyState, deltaMs: number): BalloonRallyState {
+  if (state.comboRemainingMs <= 0) return state
+  const comboRemainingMs = Math.max(0, state.comboRemainingMs - deltaMs)
+  return comboRemainingMs === 0
+    ? { ...state, combo: 0, comboRemainingMs: 0 }
+    : { ...state, comboRemainingMs }
+}
+
+function scoreHit(state: BalloonRallyState): BalloonRallyState {
+  const combo = state.comboRemainingMs > 0 ? state.combo + 1 : 1
+  const comboBonus = combo >= BALLOON_RALLY_RULES.comboBonusStartsAt
+    ? BALLOON_RALLY_RULES.comboHitBonus
+    : 0
+  return {
+    ...state,
+    score: state.score + 1 + comboBonus,
+    hits: state.hits + 1,
+    combo,
+    bestCombo: Math.max(state.bestCombo, combo),
+    comboRemainingMs: BALLOON_RALLY_RULES.comboWindowMs,
+  }
+}
+
 function applyContact(
-  state: BalloonRallyState,
+  inputState: BalloonRallyState,
   contact: BalloonRallyContact,
   region: LogicalPlayfieldRect,
 ): BalloonRallyState {
-  const target = state.balloons.find((balloon) => balloon.id === contact.balloonId)
-  if (!target) return state
+  const target = inputState.balloons.find((balloon) => balloon.id === contact.balloonId)
+  if (!target) return inputState
 
   const [impulseX, impulseY] = speedLimit(
     Number.isFinite(contact.impulse.x) ? contact.impulse.x : 0,
@@ -267,45 +356,51 @@ function applyContact(
   const [vx, vy] = speedLimit(
     target.vx + impulseX,
     target.vy + impulseY,
-    state.partyRush
-      ? BALLOON_RALLY_RULES.partyRushMaximumSpeed
-      : BALLOON_RALLY_RULES.ordinaryMaximumSpeed,
+    maximumSpeedFor(target),
   )
+  const state = scoreHit(inputState)
   const remainingHp = target.hp - 1
-  const score = state.score + 1
   if (remainingHp > 0) {
     return {
       ...state,
-      score,
-      hits: state.hits + 1,
       balloons: state.balloons.map((balloon) =>
         balloon.id === target.id ? { ...balloon, hp: remainingHp, vx, vy } : balloon,
       ),
     }
   }
 
-  const removed = state.balloons.filter((balloon) => balloon.id !== target.id)
+  const popBonus = target.kind === 'PARTY'
+    ? BALLOON_RALLY_RULES.partyPopBonus
+    : BALLOON_RALLY_RULES.standardPopBonus
   const stateAfterPop: BalloonRallyState = {
     ...state,
-    score: score + 2,
-    hits: state.hits + 1,
+    score: state.score + popBonus,
     pops: state.pops + 1,
-    balloons: removed,
+    balloons: state.balloons.filter((balloon) => balloon.id !== target.id),
   }
   return populate(stateAfterPop, region)
 }
 
-function boostForPartyRush(state: BalloonRallyState): BalloonRallyState {
+function enterPartyRush(state: BalloonRallyState): BalloonRallyState {
+  if (state.partyRush) return state
   return {
     ...state,
     partyRush: true,
+    progression: 'PARTY_RUSH',
     balloons: state.balloons.map((balloon) => {
       const [vx, vy] = speedLimit(
         balloon.vx * BALLOON_RALLY_RULES.partyRushSpeedBoost,
         balloon.vy * BALLOON_RALLY_RULES.partyRushSpeedBoost,
         BALLOON_RALLY_RULES.partyRushMaximumSpeed,
       )
-      return { ...balloon, vx, vy }
+      return {
+        ...balloon,
+        kind: 'PARTY' as const,
+        hp: BALLOON_RALLY_RULES.partyMaxHp,
+        maxHp: BALLOON_RALLY_RULES.partyMaxHp,
+        vx,
+        vy,
+      }
     }),
   }
 }
@@ -319,9 +414,13 @@ export function createBalloonRallyState(
     countdownRemainingMs: BALLOON_RALLY_RULES.countdownMs,
     roundRemainingMs: BALLOON_RALLY_RULES.roundMs,
     elapsedMs: 0,
+    progression: 'WARM_UP',
     score: 0,
     hits: 0,
     pops: 0,
+    combo: 0,
+    bestCombo: 0,
+    comboRemainingMs: 0,
     partyRush: false,
     balloons: [],
     nextBalloonId: 1,
@@ -330,7 +429,7 @@ export function createBalloonRallyState(
   })
 }
 
-/** Pure deterministic rules for the Camera AR Balloon Rally round. */
+/** Pure deterministic rules for the Camera AR Balloon Rally v2 round. */
 export function advanceBalloonRally(
   inputState: BalloonRallyState,
   frame: BalloonRallyFrame,
@@ -347,17 +446,9 @@ export function advanceBalloonRally(
 
   if (state.phase === 'COUNTDOWN') {
     if (deltaMs < state.countdownRemainingMs) {
-      return freezeState({
-        ...state,
-        countdownRemainingMs: state.countdownRemainingMs - deltaMs,
-      })
+      return freezeState({ ...state, countdownRemainingMs: state.countdownRemainingMs - deltaMs })
     }
-    state = {
-      ...state,
-      phase: 'PLAYING',
-      countdownRemainingMs: 0,
-    }
-    state = populate(state, region)
+    state = populate({ ...state, phase: 'PLAYING', countdownRemainingMs: 0 }, region)
     return advanceBalloonRally(state, {
       ...frame,
       deltaMs: deltaMs - inputState.countdownRemainingMs,
@@ -365,27 +456,23 @@ export function advanceBalloonRally(
   }
 
   const activeDeltaMs = Math.min(deltaMs, state.roundRemainingMs)
-  const nextElapsedMs = state.elapsedMs + activeDeltaMs
-  state = {
+  const elapsedMs = state.elapsedMs + activeDeltaMs
+  state = updateComboForElapsedTime({
     ...state,
-    elapsedMs: nextElapsedMs,
+    elapsedMs,
     roundRemainingMs: state.roundRemainingMs - activeDeltaMs,
+    progression: progressionAt(elapsedMs),
+  }, activeDeltaMs)
+  if (!state.partyRush && state.progression === 'PARTY_RUSH') {
+    state = enterPartyRush(state)
   }
   state = populate(state, region)
-  if (!state.partyRush && state.elapsedMs >= BALLOON_RALLY_RULES.partyRushStartMs) {
-    state = boostForPartyRush(state)
-  }
 
-  for (const contact of frame.contacts) {
-    state = applyContact(state, contact, region)
-  }
+  for (const contact of frame.contacts) state = applyContact(state, contact, region)
   state = {
     ...state,
-    balloons: state.balloons.map((balloon) =>
-      integrateBalloon(balloon, region, activeDeltaMs, state.partyRush),
-    ),
+    balloons: state.balloons.map((balloon) => integrateBalloon(balloon, region, activeDeltaMs)),
   }
-
   if (state.roundRemainingMs <= 0) {
     state = { ...state, phase: 'FINISHED', roundRemainingMs: 0 }
   }

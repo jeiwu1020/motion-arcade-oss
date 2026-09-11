@@ -23,8 +23,16 @@ function begin(seed = 7) {
   })
 }
 
-describe('Balloon Rally core', () => {
-  it('is seeded, starts with a three-second countdown, and deterministically spawns two balloons', () => {
+function hit(state: ReturnType<typeof begin>, balloonId: number) {
+  return advanceBalloonRally(state, {
+    deltaMs: 0,
+    interactionRegion: REGION,
+    contacts: [{ balloonId, side: 'LEFT', impulse: { x: 100, y: 0 } }],
+  })
+}
+
+describe('Balloon Rally v2 core', () => {
+  it('is seeded, starts with a three-second countdown, and deterministically spawns two Warm Up balloons', () => {
     const first = begin(7)
     const second = begin(7)
 
@@ -38,65 +46,86 @@ describe('Balloon Rally core', () => {
       hits: 0,
       pops: 0,
       partyRush: false,
+      combo: 0,
+      bestCombo: 0,
+      comboRemainingMs: 0,
+      progression: 'WARM_UP',
     })
     expect(first.balloons).toHaveLength(2)
+    expect(first.balloons.every((balloon) =>
+      balloon.hp === 2 && balloon.maxHp === 2 && balloon.kind === 'STANDARD',
+    )).toBe(true)
   })
 
-  it('progresses population at twenty and forty seconds and starts Party Rush for the final ten seconds', () => {
+  it('uses the 15 / 35 / 50 second population progression and converts cleanly to five Party balloons', () => {
     let state = begin()
-    state = advanceBalloonRally(state, {
-      deltaMs: 20_000,
-      interactionRegion: REGION,
-      contacts: [],
-    })
+    state = advanceBalloonRally(state, { deltaMs: 15_000, interactionRegion: REGION, contacts: [] })
+    expect(state).toMatchObject({ progression: 'RALLY', partyRush: false })
     expect(state.balloons).toHaveLength(3)
 
-    state = advanceBalloonRally(state, {
-      deltaMs: 20_000,
-      interactionRegion: REGION,
-      contacts: [],
-    })
+    state = advanceBalloonRally(state, { deltaMs: 20_000, interactionRegion: REGION, contacts: [] })
+    expect(state).toMatchObject({ progression: 'FEVER', partyRush: false })
     expect(state.balloons).toHaveLength(4)
 
-    state = advanceBalloonRally(state, {
-      deltaMs: 10_000,
-      interactionRegion: REGION,
-      contacts: [],
-    })
-    expect(state.partyRush).toBe(true)
-    expect(state.roundRemainingMs).toBe(10_000)
+    state = advanceBalloonRally(state, { deltaMs: 15_000, interactionRegion: REGION, contacts: [] })
+    expect(state).toMatchObject({ progression: 'PARTY_RUSH', partyRush: true, roundRemainingMs: 10_000 })
+    expect(state.balloons).toHaveLength(5)
+    expect(state.balloons.every((balloon) =>
+      balloon.hp === 1 && balloon.maxHp === 1 && balloon.kind === 'PARTY',
+    )).toBe(true)
   })
 
-  it('scores a valid contact, removes HP, pops on the third hit, and immediately replaces the balloon', () => {
+  it('requires two separated valid contacts to pop a standard balloon for four base points and immediately replaces it', () => {
     let state = begin()
     const balloonId = state.balloons[0]?.id
     expect(balloonId).toBeDefined()
 
-    for (let sequence = 1; sequence <= 3; sequence += 1) {
-      state = advanceBalloonRally(state, {
-        deltaMs: 0,
-        interactionRegion: REGION,
-        contacts: [{ balloonId: balloonId ?? -1, side: 'LEFT', impulse: { x: 100, y: 0 } }],
-      })
-    }
+    state = hit(state, balloonId ?? -1)
+    expect(state).toMatchObject({ score: 1, hits: 1, pops: 0, combo: 1 })
+    expect(state.balloons.find((balloon) => balloon.id === balloonId)).toMatchObject({ hp: 1 })
 
-    expect(state).toMatchObject({ score: 5, hits: 3, pops: 1 })
+    state = hit(state, balloonId ?? -1)
+    expect(state).toMatchObject({ score: 4, hits: 2, pops: 1, combo: 2 })
     expect(state.balloons).toHaveLength(2)
     expect(state.balloons.some((balloon) => balloon.id === balloonId)).toBe(false)
   })
 
-  it('never expires ordinary balloons and freezes active play without a valid interaction region', () => {
-    const playing = begin()
-    const frozen = advanceBalloonRally(playing, {
-      deltaMs: 30_000,
-      interactionRegion: null,
+  it('tracks Combo in a 1.5-second active window, awards the fifth-hit bonus, and freezes Combo while no frame advances', () => {
+    let state = begin()
+    for (let index = 0; index < 5; index += 1) {
+      state = hit(state, state.balloons[0]?.id ?? -1)
+    }
+
+    expect(state).toMatchObject({ combo: 5, bestCombo: 5, score: 10 })
+    const frozen = advanceBalloonRally(state, { deltaMs: 3_000, interactionRegion: null, contacts: [] })
+    expect(frozen).toEqual(state)
+
+    const expired = advanceBalloonRally(state, {
+      deltaMs: BALLOON_RALLY_RULES.comboWindowMs + 1,
+      interactionRegion: REGION,
       contacts: [],
     })
-
-    expect(frozen).toEqual(playing)
+    expect(expired).toMatchObject({ combo: 0, bestCombo: 5, comboRemainingMs: 0 })
   })
 
-  it('keeps balloons inside a reduced interaction region, rebounds, and bounds speed', () => {
+  it('makes each Party balloon one-hit, worth two base points, and immediately maintains five targets', () => {
+    let state = begin()
+    state = advanceBalloonRally(state, {
+      deltaMs: BALLOON_RALLY_RULES.partyRushStartMs,
+      interactionRegion: REGION,
+      contacts: [],
+    })
+    const balloonId = state.balloons[0]?.id ?? -1
+    state = hit(state, balloonId)
+
+    expect(state).toMatchObject({ score: 2, hits: 1, pops: 1, partyRush: true })
+    expect(state.balloons).toHaveLength(5)
+    expect(state.balloons.every((balloon) =>
+      balloon.hp === 1 && balloon.maxHp === 1 && balloon.kind === 'PARTY',
+    )).toBe(true)
+  })
+
+  it('never expires balloons, safely recovers them into resized bounds, applies bounded anti-corner steering, and caps speed', () => {
     const smallRegion = { x: 200, y: 150, width: 500, height: 300 }
     const advanced = advanceBalloonRally(begin(), {
       deltaMs: 10_000,
@@ -109,38 +138,6 @@ describe('Balloon Rally core', () => {
       expect(balloon.x + balloon.radius).toBeLessThanOrEqual(smallRegion.x + smallRegion.width)
       expect(balloon.y - balloon.radius).toBeGreaterThanOrEqual(smallRegion.y)
       expect(balloon.y + balloon.radius).toBeLessThanOrEqual(smallRegion.y + smallRegion.height)
-      expect(Math.hypot(balloon.vx, balloon.vy)).toBeLessThanOrEqual(
-        BALLOON_RALLY_RULES.partyRushMaximumSpeed,
-      )
-    }
-  })
-
-  it('reverses a balloon at the interaction boundary and keeps Party Rush speed bounded', () => {
-    const playing = begin()
-    const first = playing.balloons[0]
-    expect(first).toBeDefined()
-    const edgeState = {
-      ...playing,
-      balloons: [{
-        ...(first ?? { id: 1, x: 68, y: 360, vx: -100, vy: 0, radius: 68, hp: 3, maxHp: 3 }),
-        x: (first?.radius ?? 68) + 1,
-        vx: -100,
-      }],
-    }
-    const bounced = advanceBalloonRally(edgeState, {
-      deltaMs: 100,
-      interactionRegion: REGION,
-      contacts: [],
-    })
-    expect(bounced.balloons[0]?.vx).toBeGreaterThan(0)
-
-    const party = advanceBalloonRally(playing, {
-      deltaMs: BALLOON_RALLY_RULES.partyRushStartMs,
-      interactionRegion: REGION,
-      contacts: [],
-    })
-    expect(party.partyRush).toBe(true)
-    for (const balloon of party.balloons) {
       expect(Math.hypot(balloon.vx, balloon.vy)).toBeLessThanOrEqual(
         BALLOON_RALLY_RULES.partyRushMaximumSpeed,
       )

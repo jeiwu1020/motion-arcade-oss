@@ -182,7 +182,11 @@ Implemented guarantees:
 - stale Pose actions neutralize during snapshot polling without requiring another inference frame;
 - the Pose analyzer publishes only existing action IDs through the existing provider contract.
 - production Balloon Pop pauses core time unless STANDARD full-body Pose readiness is READY.
-- Balloon Rally explicitly requests UPPER_BODY readiness; its session consumes normalized logical hand samples while Phaser receives only immutable Rally state.
+- Balloon Rally explicitly requests UPPER_BODY readiness; setup remains strict,
+  then its session applies a game-scoped NORMAL/DEGRADED/SOFT_RECOVERY/HARD_PAUSE
+  policy to normalized logical hand samples while Phaser receives only immutable
+  Rally state. This relaxed active-game policy does not redefine FULL_BODY
+  readiness for other games.
 - production Camera AR uses one display-only mirrored DOM video and a transparent
   `1280 × 720` FIT Phaser projection; no camera frame enters Phaser.
 - Phase 2A.3a spatial hands are camera-source-normalized (`x` left-to-right,

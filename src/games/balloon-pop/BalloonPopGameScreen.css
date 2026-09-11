@@ -92,6 +92,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.balloon-pop-hud .balloon-pop-combo {
+  color: #fff2a5;
+  background: #653b72;
+  box-shadow: 0 0 0.9rem rgb(255 216 92 / 28%);
+}
+
+.balloon-pop-hud .balloon-pop-combo strong {
+  margin-right: 0.22rem;
+  margin-left: 0;
+  color: #fff8ce;
+}
+
 .balloon-pop-stage {
   position: relative;
   min-width: 0;
@@ -215,7 +227,7 @@
 .balloon-pop-result-card dl {
   margin: 1rem 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.6rem;
 }
 

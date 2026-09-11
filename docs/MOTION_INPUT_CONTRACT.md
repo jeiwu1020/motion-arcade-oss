@@ -236,6 +236,15 @@ events; the public spatial/action snapshots remain unchanged. A registry
 control scheme may declare `requiresSpatialHands: true` when it consumes this
 normalized spatial boundary rather than a `MotionActionId`.
 
+Balloon Rally v2 keeps strict UPPER_BODY setup, then applies a session-local
+active-game tracking policy after play starts. Useful tracking loss up to 1,500
+ms is DEGRADED and continues Core time; 1,500–3,000 ms is SOFT_RECOVERY and
+freezes time/physics without a blocking framing overlay; >=3,000 ms or a
+sensor/runtime failure is HARD_PAUSE. This is controller policy, not a change
+to `SpatialHandSnapshot`, `MotionInputSnapshot`, analyzer readiness, or any
+FULL_BODY game's readiness rule. A wrist remains independently AVAILABLE or
+UNAVAILABLE throughout; no fake coordinate is emitted for a missing hand.
+
 ## 8. Snapshot and provider contract
 
 ```ts
