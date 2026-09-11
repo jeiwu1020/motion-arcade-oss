@@ -1,6 +1,6 @@
 # Motion Input Contract
 
-Status: Phase 2A.2a production Pose gameplay boundary
+Status: Phase 2A.3a action + normalized spatial-hand gameplay boundary
 
 Contract version: `1.0-phase-1a`
 
@@ -191,6 +191,26 @@ camera/detector coordinates
 
 Games must never inspect the preview mirroring setting or compensate for it. Unit tests cover mirrored/non-mirrored points, horizontal deltas, world direction, and invariant anatomical labels.
 
+### Spatial hand boundary
+
+Phase 2A.3a adds a separate immutable `SpatialHandSnapshot` at
+`src/motion/contracts/spatial.ts`, exposed by the production
+`PoseGameplayInputRuntime.getSpatialSnapshot()`. It is intentionally separate
+from `MotionInputSnapshot`: existing games continue consuming actions only, and
+spatial positions do not repurpose the reserved `HAND_POSITION_*` action IDs.
+
+`leftHand` and `rightHand` retain the participant's anatomical sides. An
+`AVAILABLE` hand contains source-image-normalized `x` and `y` (`0..1`),
+confidence, timestamp, and sample sequence. An `UNAVAILABLE` hand contains no
+fallback coordinate. Missing, low-confidence, non-finite, out-of-source, stale,
+or reset-lifecycle wrist samples are unavailable.
+
+Spatial `x = 0..1` runs from source-image left to right and `y = 0..1` from
+source-image top to bottom. These are not logical playfield coordinates. The
+mirrored DOM preview does not alter them or swap anatomy. Mapping through
+`object-fit: contain`, letterbox/pillarbox offsets, display mirror alignment,
+and Phaser/playfield coordinates is deferred to Phase 2A.3b.
+
 ## 8. Snapshot and provider contract
 
 ```ts
@@ -258,3 +278,10 @@ The React control panel writes provider values. The Phaser test scene only reads
 The immutable snapshot, timestamp, sequence, and explicit phases preserve a future deterministic replay path. Phase 1C's Pose provider neutralizes actions after `250 ms` without a valid Pose and requires a fresh temporary baseline after `1,200 ms` of loss. The freshness check occurs while querying/updating the provider and does not depend on receiving another MediaPipe frame. Analyzer diagnostics distinguish `upperBodyReady` from `fullBodyReady`; these readiness fields stay outside the game-facing snapshot. Phase 2A.2a's gameplay runtime uses `quality === 'READY'`, `baselineReady`, and `fullBodyReady` to pause or resume the Balloon Pop clock, but neither analyzer diagnostics nor Pose landmarks cross into the Game Core or Phaser scene.
 
 The temporary Phase 1C analyzer baseline is in-memory provider state, is reset on provider start/stop, and is not `PlayerCalibration`. Phase 1D calibration remains caller-provided and in memory. Provider stop releases its calibration request; there is no persistence or upload. Replay serialization, calibration persistence, general capability negotiation, multi-person tracking continuity, production onboarding, and JUMP adaptation remain deferred. These additions must extend the provider boundary without exposing raw sensors or body-unit values to games.
+
+The Phase 2A.3a spatial tracker is likewise in-memory only. It consumes the
+same inference frame as the action provider, shares the existing `250 ms` Pose
+freshness interval, and resets to coordinate-free unavailability on stop,
+suspend, dispose, or sensor error. Its wrist availability does not require
+full-body readiness, knees, or ankles; the current Balloon Pop game readiness
+rule remains unchanged.

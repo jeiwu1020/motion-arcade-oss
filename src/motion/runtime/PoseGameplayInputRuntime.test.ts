@@ -226,4 +226,46 @@ describe('PoseGameplayInputRuntime', () => {
     expect(harness.camera.start).toHaveBeenCalledOnce()
     expect(harness.backend.initialize).toHaveBeenCalledOnce()
   })
+
+  it('derives spatial wrists from the same inference frame without changing the Motion Action snapshot', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+
+    await harness.infer(
+      createSyntheticPoseFrame('reach-left', { timestampMs: 100 }),
+    )
+
+    const spatial = harness.runtime.getSpatialSnapshot()
+    expect(spatial).toMatchObject({
+      leftHand: {
+        availability: 'AVAILABLE',
+        x: 0.81,
+        y: 0.32,
+        timestampMs: 100,
+        sequence: 1,
+      },
+      rightHand: {
+        availability: 'AVAILABLE',
+        x: 0.39,
+        y: 0.57,
+        timestampMs: 100,
+        sequence: 1,
+      },
+    })
+    expect(harness.runtime.getProvider().getSnapshot()).not.toHaveProperty('spatialHands')
+    expect(harness.camera.start).toHaveBeenCalledOnce()
+    expect(harness.backend.initialize).toHaveBeenCalledOnce()
+    expect(harness.backend.infer).toHaveBeenCalledOnce()
+
+    harness.now.value = 351
+    expect(harness.runtime.getSpatialSnapshot().leftHand).toMatchObject({
+      availability: 'UNAVAILABLE',
+    })
+
+    await harness.runtime.stop()
+    expect(harness.runtime.getSpatialSnapshot()).toMatchObject({
+      leftHand: { availability: 'UNAVAILABLE' },
+      rightHand: { availability: 'UNAVAILABLE' },
+    })
+  })
 })

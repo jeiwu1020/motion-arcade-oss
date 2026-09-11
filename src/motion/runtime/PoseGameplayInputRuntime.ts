@@ -1,6 +1,8 @@
 import type { MotionInputRequest } from '../contracts/motion'
+import type { SpatialHandSnapshot } from '../contracts/spatial'
 import { PoseMotionInputProvider } from '../pose/PoseMotionInputProvider'
 import type { PoseMotionAnalyzerSnapshot } from '../pose/poseMotionTypes'
+import { PoseSpatialHandTracker } from '../spatial/PoseSpatialHandTracker'
 import {
   CameraController,
   CameraControllerError,
@@ -120,7 +122,9 @@ function readableError(
  */
 export class PoseGameplayInputRuntime {
   readonly #options: PoseGameplayInputRuntimeOptions
+  readonly #now: () => number
   readonly #provider: PoseMotionInputProvider
+  readonly #spatialHands = new PoseSpatialHandTracker()
   readonly #listeners = new Set<Listener>()
   #session: PoseSensorSession | null = null
   #snapshot = INITIAL_SNAPSHOT
@@ -131,11 +135,10 @@ export class PoseGameplayInputRuntime {
 
   constructor(options: PoseGameplayInputRuntimeOptions) {
     this.#options = options
+    this.#now = options.now ?? (() => performance.now())
     this.#provider =
       options.provider ??
-      new PoseMotionInputProvider(
-        options.now ? { now: options.now } : {},
-      )
+      new PoseMotionInputProvider({ now: this.#now })
   }
 
   readonly getSnapshot = (): PoseGameplayInputSnapshot => this.#snapshot
@@ -147,6 +150,15 @@ export class PoseGameplayInputRuntime {
 
   getProvider(): PoseMotionInputProvider {
     return this.#provider
+  }
+
+  /**
+   * Canonical, source-image-normalized anatomical wrist positions from the
+   * same Pose frames as the action provider. This never exposes raw frames or
+   * participates in Phaser/playfield mapping.
+   */
+  getSpatialSnapshot(): SpatialHandSnapshot {
+    return this.#spatialHands.getSnapshot(this.#now())
   }
 
   start(request: MotionInputRequest): Promise<void> {
@@ -174,6 +186,7 @@ export class PoseGameplayInputRuntime {
     this.#operationGeneration += 1
     this.#startPromise = null
     this.#hasBeenReady = false
+    this.#spatialHands.reset(this.#now())
     await Promise.all([
       this.#session?.stop(),
       this.#provider.stop(),
@@ -187,6 +200,7 @@ export class PoseGameplayInputRuntime {
     this.#operationGeneration += 1
     this.#startPromise = null
     this.#hasBeenReady = false
+    this.#spatialHands.reset(this.#now())
     const session = this.#session
     this.#session = null
     await Promise.all([session?.dispose(), this.#provider.stop()])
@@ -291,6 +305,7 @@ export class PoseGameplayInputRuntime {
   }
 
   #handleInferenceResult(result: PoseInferenceResult): void {
+    this.#spatialHands.ingest(result.frame)
     this.#provider.ingest(result.frame)
     this.#refreshReadiness()
   }
@@ -306,11 +321,13 @@ export class PoseGameplayInputRuntime {
     }
     if (state === 'STOPPED' || state === 'SUSPENDED') {
       this.#hasBeenReady = false
+      this.#spatialHands.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot('CAMERA_NOT_STARTED', null)
       return
     }
     if (state === 'ERROR') {
+      this.#spatialHands.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot(
         'ERROR',

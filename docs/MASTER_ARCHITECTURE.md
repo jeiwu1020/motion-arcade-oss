@@ -127,7 +127,7 @@ Game control scheme sensor requirements
 
 A future multi-sensor `SensorManager` will own control-scheme selection. Until then, `PoseGameplayInputRuntime` owns the real acquisition resources for one active Pose game. Pose, Hands, Gesture Recognizer, and Audio must never run permanently for all games.
 
-Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`. Phase 1D.2 resolves validated v1 calibration into a session-specific `PoseMotionConfig` before analyzer construction. Phase 1D.3a composes bounded LOW_MOTION range scaling and timestamp-based SLOW_RESPONSE candidate timing into that same effective config. Phase 1D.3b resolves full-body versus upper-body baseline requirements in the same config and reports both readiness levels without changing the game-facing snapshot. Phase 2A.2a composes these existing layers in `PoseGameplayInputRuntime` and gates game time from coarse analyzer readiness without exposing thresholds, frames, or landmarks to the Game Core or Phaser.
+Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`. Phase 1D.2 resolves validated v1 calibration into a session-specific `PoseMotionConfig` before analyzer construction. Phase 1D.3a composes bounded LOW_MOTION range scaling and timestamp-based SLOW_RESPONSE candidate timing into that same effective config. Phase 1D.3b resolves full-body versus upper-body baseline requirements in the same config and reports both readiness levels without changing the game-facing snapshot. Phase 2A.2a composes these existing layers in `PoseGameplayInputRuntime` and gates game time from coarse analyzer readiness without exposing thresholds, frames, or landmarks to the Game Core or Phaser. Phase 2A.3a adds a parallel `PoseSpatialHandTracker` there: it consumes the same Pose frame and publishes only immutable anatomical wrist availability/source coordinates, never raw landmarks or a second sensor pipeline.
 
 Phase 2A.2b adds no sensor ownership. `CameraPresentationStage` receives the same
 runtime-bound video ref and layers CSS treatment, framing guidance, transparent
@@ -184,6 +184,9 @@ Implemented guarantees:
 - production Balloon Pop pauses core time unless STANDARD full-body Pose readiness is READY.
 - production Camera AR uses one display-only mirrored DOM video and a transparent
   `1280 × 720` FIT Phaser projection; no camera frame enters Phaser.
+- Phase 2A.3a spatial hands are camera-source-normalized (`x` left-to-right,
+  `y` top-to-bottom) and anatomical; DOM mirroring, contain-rectangle mapping,
+  and Phaser coordinates are intentionally deferred.
 
 ### Coordinate freeze
 
