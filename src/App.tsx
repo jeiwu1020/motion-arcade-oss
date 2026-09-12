@@ -24,6 +24,12 @@ const BalloonPopGameScreen = lazy(
       ? import('./games/balloon-pop/BalloonPopGameScreen')
       : import('./games/balloon-pop/BalloonPopPoseGameScreen'),
 )
+const ReactionArenaGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/reaction-arena/ReactionArenaGameScreen')
+      : import('./games/reaction-arena/ReactionArenaPoseGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -69,11 +75,20 @@ function App() {
     )
   }
 
+  if (screen === 'REACTION_ARENA') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <ReactionArenaGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
       onOpenPoseLab={() => navigate('POSE_SENSOR_LAB')}
       onOpenBalloonPop={() => navigate('BALLOON_POP')}
+      onOpenReactionArena={() => navigate('REACTION_ARENA')}
     />
   )
 }
@@ -82,10 +97,12 @@ function HomeScreen({
   onOpenLab,
   onOpenPoseLab,
   onOpenBalloonPop,
+  onOpenReactionArena,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
   readonly onOpenBalloonPop: () => void
+  readonly onOpenReactionArena: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -128,7 +145,13 @@ function HomeScreen({
               className="home-game-entry"
               type="button"
               key={game.id}
-              onClick={game.id === 'balloon-pop' ? onOpenBalloonPop : undefined}
+              onClick={
+                game.id === 'balloon-pop'
+                  ? onOpenBalloonPop
+                  : game.id === 'reaction-arena'
+                    ? onOpenReactionArena
+                    : undefined
+              }
             >
               <span className="home-game-entry-category">小遊戲 · 1 人 · 60 秒</span>
               <strong>{game.title}</strong>

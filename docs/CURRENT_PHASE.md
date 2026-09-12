@@ -1,6 +1,6 @@
 # Motion Arcade — Current Phase
 
-Updated: 2026-09-11
+Updated: 2026-09-12
 
 This file is the short live checkpoint. Long-term product and implementation order are canonicalized in [Master Implementation Plan](./MASTER_IMPLEMENTATION_PLAN.md).
 
@@ -8,7 +8,7 @@ This file is the short live checkpoint. Long-term product and implementation ord
 
 Current implementation baseline for the final Balloon Rally UX / variety pass:
 
-`b70e72b32ed1e162328fe31981bf481eeb2aa9d7` — Balloon Rally v3 game-feel baseline
+`da0609927bcf6adac469f1445ce3fdea9035ea67` — Reaction Arena v1 implementation baseline
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -38,7 +38,16 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ## Current phase
 
-### Phase 2A.4 — Balloon Rally v3 / final game-feel pass
+### Phase 2B — Reaction Arena v1 / 光速反應王
+
+Engineering status: normalized-action production vertical slice implemented;
+Windows/iPhone physical validation remains required. Reaction Arena uses
+FULL_BODY setup, the existing Motion Action contract, and a deterministic
+60-second cue/grade/Combo core. It does not change Balloon Rally or shared Pose
+runtime behavior. The known Windows Chrome 「正在啟動相機」 observation remains
+record-only and is deferred to a shared lifecycle investigation.
+
+Balloon Rally remains the validated Phase 2A production reference:
 
 Engineering status: v3 gameplay/presentation implementation complete; final
 MP3-audio and Camera Presentation guide pass is engineering complete.

@@ -1,6 +1,6 @@
 # Motion Arcade — Master Implementation Plan
 
-Updated: 2026-09-11
+Updated: 2026-09-12
 
 This is the canonical implementation roadmap for Motion Arcade. It defines what the product is trying to become, what must remain true across phases, and the order in which major capabilities and games should be matured. `CURRENT_PHASE.md` is the short live checkpoint; this file is the longer-term plan.
 
@@ -379,22 +379,26 @@ Validate:
 - false/repeat hand contacts;
 - STANDARD first, then adaptive profile batch testing.
 
-### Phase 2B — Second production game: Reaction Challenge
+### Phase 2B — Second production game: Reaction Arena / 光速反應王
 
 Use the old 光速反應王 concept through normalized actions.
 
-Candidate actions:
+Implemented v1 action set:
 
-- MOVE/LEAN left/right;
-- REACH left/right;
+- MOVE_LEFT / MOVE_RIGHT mapped to LEFT / RIGHT cues;
+- REACH_LEFT / REACH_RIGHT;
 - SQUAT;
-- JUMP where appropriate.
+- JUMP intentionally reserved for a future pass.
 
 Goals:
 
 - prove that the shared Motion Action contract can power a substantially different game without new detector logic;
 - include configurable timing/difficulty rather than legacy ultra-fast fixed windows;
 - large projected prompts and immediate success feedback.
+
+The v1 core is deterministic, uses FULL_BODY setup, and keeps the known
+Windows Chrome camera-start observation record-only until a shared lifecycle
+investigation is scheduled.
 
 ### Phase 2C — Third production game: Runner / Avatar Action game
 

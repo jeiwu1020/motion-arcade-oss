@@ -27,4 +27,19 @@ describe('production game registry', () => {
       id: 'balloon-pop',
     })
   })
+
+  it('registers Reaction Arena as the second normalized-action PARTY game', async () => {
+    const reaction = gameRegistry.find(({ id }) => id === 'reaction-arena')
+    expect(reaction).toMatchObject({
+      id: 'reaction-arena',
+      title: '光速反應王',
+      category: 'PARTY',
+      controlSchemes: [{
+        requiredActions: ['MOVE_LEFT', 'MOVE_RIGHT', 'REACH_LEFT', 'REACH_RIGHT', 'SQUAT'],
+        inputTypes: ['BODY'],
+        bodyAreas: ['FULL_BODY'],
+      }],
+    })
+    await expect(reaction?.load()).resolves.toMatchObject({ id: 'reaction-arena' })
+  })
 })

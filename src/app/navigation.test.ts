@@ -12,6 +12,10 @@ describe('application hash routing', () => {
     ).toBe('BALLOON_POP')
   })
 
+  it('opens Reaction Arena in production without developer gates', () => {
+    expect(screenFromHash('#game/reaction-arena', { testInputEnabled: false, realSensorLabEnabled: false })).toBe('REACTION_ARENA')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,
