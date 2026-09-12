@@ -19,6 +19,8 @@ export interface PoseMotionConfig {
   readonly resetBaselineAfterLossMs: number
   readonly baselineDurationMs: number
   readonly baselineMinimumSamples: number
+  /** Maximum timestamp gap that preserves an in-progress FULL_BODY baseline. */
+  readonly fullBodyBaselineGapGraceMs: number
   readonly baselineStabilityBodyUnits: number
   readonly smoothingAlpha: number
   readonly detectorDebounceFrames: number
@@ -81,6 +83,7 @@ export const POSE_MOTION_CONFIG: PoseMotionConfig = Object.freeze({
   resetBaselineAfterLossMs: 1_200,
   baselineDurationMs: 800,
   baselineMinimumSamples: 8,
+  fullBodyBaselineGapGraceMs: 350,
   baselineStabilityBodyUnits: 0.18,
   smoothingAlpha: 0.55,
   detectorDebounceFrames: 2,

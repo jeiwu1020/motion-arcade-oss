@@ -82,6 +82,10 @@ const INITIAL_SNAPSHOT: PoseGameplayInputSnapshot = Object.freeze({
   error: null,
 })
 
+export const POSE_GAMEPLAY_RUNTIME_CONFIG = Object.freeze({
+  readyLossGraceMs: 1_000,
+})
+
 function readableError(
   error: unknown,
   fallbackCode: string,
@@ -131,6 +135,7 @@ export class PoseGameplayInputRuntime {
   #session: PoseSensorSession | null = null
   #snapshot = INITIAL_SNAPSHOT
   #hasBeenReady = false
+  #lastFullyReadyAtMs: number | undefined
   #disposed = false
   #operationGeneration = 0
   #startPromise: Promise<void> | null = null
@@ -188,6 +193,7 @@ export class PoseGameplayInputRuntime {
     this.#operationGeneration += 1
     this.#startPromise = null
     this.#hasBeenReady = false
+    this.#lastFullyReadyAtMs = undefined
     this.#spatialHands.reset(this.#now())
     await Promise.all([
       this.#session?.stop(),
@@ -202,6 +208,7 @@ export class PoseGameplayInputRuntime {
     this.#operationGeneration += 1
     this.#startPromise = null
     this.#hasBeenReady = false
+    this.#lastFullyReadyAtMs = undefined
     this.#spatialHands.reset(this.#now())
     const session = this.#session
     this.#session = null
@@ -237,6 +244,7 @@ export class PoseGameplayInputRuntime {
     request: MotionInputRequest,
   ): Promise<void> {
     this.#hasBeenReady = false
+    this.#lastFullyReadyAtMs = undefined
     this.#setSnapshot('PERMISSION_STARTING', null)
 
     try {
@@ -323,12 +331,15 @@ export class PoseGameplayInputRuntime {
     }
     if (state === 'STOPPED' || state === 'SUSPENDED') {
       this.#hasBeenReady = false
+      this.#lastFullyReadyAtMs = undefined
       this.#spatialHands.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot('CAMERA_NOT_STARTED', null)
       return
     }
     if (state === 'ERROR') {
+      this.#hasBeenReady = false
+      this.#lastFullyReadyAtMs = undefined
       this.#spatialHands.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot(
@@ -344,8 +355,19 @@ export class PoseGameplayInputRuntime {
   #refreshReadiness(): void {
     if (this.#session?.getState() !== 'RUNNING') return
     const diagnostics = this.#provider.getDiagnostics()
+    const nowMs = this.#now()
     if (this.#isStandardReady(diagnostics)) {
       this.#hasBeenReady = true
+      this.#lastFullyReadyAtMs = nowMs
+      this.#setSnapshot('READY', null)
+      return
+    }
+    const withinReadyLossGrace =
+      this.#hasBeenReady &&
+      this.#lastFullyReadyAtMs !== undefined &&
+      Math.max(0, nowMs - this.#lastFullyReadyAtMs) <=
+        POSE_GAMEPLAY_RUNTIME_CONFIG.readyLossGraceMs
+    if (withinReadyLossGrace) {
       this.#setSnapshot('READY', null)
       return
     }

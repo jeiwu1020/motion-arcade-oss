@@ -11,6 +11,22 @@ Rally. Temporary local MP3 copies in `public/audio/reaction-arena/` provide
 success, special-event, Speed Zone, countdown, finish/cheer, and BGM feedback;
 audio unlock is best effort and never gates camera startup.
 
+## FULL_BODY readiness stability
+
+Reaction Arena continues to require the existing strict FULL_BODY landmark
+validity and `minimumLandmarkConfidence = 0.55`. To tolerate ordinary lower-body
+landmark flicker without inventing landmarks, an in-progress FULL_BODY baseline
+preserves its valid-sample accumulator across a core-valid gap of up to **350 ms**;
+the invalid frames contribute no samples. A longer gap resets acquisition.
+
+After genuine READY, the shared gameplay runtime retains READY for up to **1000
+ms** of diagnostic readiness fluctuation while the sensor session is still
+running. If readiness does not recover within that window, status becomes
+`TRACKING_LOST` and setup/game progression pauses through the existing path.
+Fatal lifecycle states remain immediate. This is readiness gating only: stale or
+low-quality analyzer actions remain neutral and no fake coordinates or actions
+are produced. Physical validation remains required.
+
 Validation and real-device testing remain open. In particular, do not claim
 Reaction Arena physical PASS. Record the known Windows Chrome camera-start
 observation 「正在啟動相機」 without changing shared camera/runtime behavior in

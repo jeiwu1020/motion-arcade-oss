@@ -47,6 +47,14 @@ FULL_BODY setup, the existing Motion Action contract, and a deterministic
 runtime behavior. The known Windows Chrome 「正在啟動相機」 observation remains
 record-only and is deferred to a shared lifecycle investigation.
 
+FULL_BODY readiness now has bounded temporal stability: a valid baseline keeps
+its real-sample progress through up to 350 ms of transient lower-body validity
+loss, and the running runtime keeps READY through up to 1000 ms of diagnostic
+fluctuation. These windows do not lower landmark confidence, alter action
+thresholds, or preserve stale actions; sustained loss still follows the normal
+TRACKING_LOST path. Physical validation of the stability improvement remains
+open.
+
 Balloon Rally remains the validated Phase 2A production reference:
 
 Engineering status: v3 gameplay/presentation implementation complete; final

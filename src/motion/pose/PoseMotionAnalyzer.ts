@@ -44,6 +44,7 @@ interface NeutralBaseline {
 
 interface BaselineAccumulator {
   startedAtMs: number
+  lastValidTimestampMs: number
   lastHipX: number
   lastHipY: number
   samples: number
@@ -192,9 +193,19 @@ export class PoseMotionAnalyzer {
           ? features.coreValid
           : features.fullBodyValid
       if (!baselineFrameValid) {
-        this.#baselineAccumulator = undefined
-        this.#baselineProgress = 0
-        this.#quality = 'LIMITED'
+        const accumulator = this.#baselineAccumulator
+        const gapMs = accumulator
+          ? Math.max(0, frame.timestampMs - accumulator.lastValidTimestampMs)
+          : Number.POSITIVE_INFINITY
+        const preserveFullBodyBaseline =
+          this.#config.bodyTrackingMode === 'FULL_BODY' &&
+          accumulator !== undefined &&
+          gapMs <= this.#config.fullBodyBaselineGapGraceMs
+        if (!preserveFullBodyBaseline) {
+          this.#baselineAccumulator = undefined
+          this.#baselineProgress = 0
+        }
+        this.#quality = preserveFullBodyBaseline ? 'BASELINING' : 'LIMITED'
         this.#neutralizeActions(frame.timestampMs)
         this.#snapshotSequence += 1
         this.#analyzerDurationMs = Math.max(0, now() - startedAt)
@@ -301,6 +312,7 @@ export class PoseMotionAnalyzer {
     if (!accumulator || !stable) {
       this.#baselineAccumulator = {
         startedAtMs: features.timestampMs,
+        lastValidTimestampMs: features.timestampMs,
         lastHipX: features.hipMidpoint.x,
         lastHipY: features.hipMidpoint.y,
         samples: 1,
@@ -325,6 +337,7 @@ export class PoseMotionAnalyzer {
     accumulator.rightAnkleY += features.rightAnkle.y
     accumulator.bodyScale += features.bodyScale
     accumulator.aspectRatio += features.aspectRatio
+    accumulator.lastValidTimestampMs = features.timestampMs
     const elapsedMs = features.timestampMs - accumulator.startedAtMs
     this.#baselineProgress = clamp01(
       Math.min(

@@ -250,6 +250,38 @@ describe('PoseGameplayInputRuntime', () => {
     expect(harness.backend.initialize).toHaveBeenCalledOnce()
   })
 
+  it('keeps READY through a brief diagnostic loss and loses readiness after the grace window', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+    await establishStandardBaseline(harness)
+    expect(harness.runtime.getSnapshot().status).toBe('READY')
+
+    harness.now.value = 1_500
+    await harness.runtime.update(1_500)
+    expect(harness.runtime.getSnapshot().status).toBe('READY')
+
+    harness.now.value = 1_901
+    await harness.runtime.update(1_901)
+    expect(harness.runtime.getSnapshot().status).toBe('TRACKING_LOST')
+
+    await harness.infer(createSyntheticPoseFrame('neutral', { timestampMs: 1_902 }))
+    expect(harness.runtime.getSnapshot().status).toBe('READY')
+  })
+
+  it('does not apply readiness grace to fatal runtime errors', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+    await establishStandardBaseline(harness)
+    expect(harness.runtime.getSnapshot().status).toBe('READY')
+
+    harness.queuedResults.push(new Error('fatal inference failed'))
+    harness.now.value = 1_600
+    harness.video.currentTime += 0.1
+    await harness.runtime.update(1_600)
+
+    expect(harness.runtime.getSnapshot().status).toBe('ERROR')
+  })
+
   it('keeps FULL_BODY readiness unchanged while an UPPER_BODY game can establish a legitimate torso baseline without knees or ankles', async () => {
     const standard = createHarness()
     await standard.runtime.start(POSE_REQUEST)

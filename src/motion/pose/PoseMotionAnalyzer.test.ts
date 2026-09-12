@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { MotionActionId } from '../contracts/motion'
 import { PoseMotionAnalyzer } from './PoseMotionAnalyzer'
+import { POSE_MOTION_CONFIG } from './poseMotionConfig'
 import {
   createSyntheticPoseFrame,
   withLandmarkConfidence,
@@ -26,6 +27,15 @@ function numericAction(
 }
 
 describe('PoseMotionAnalyzer baseline and quality', () => {
+  it('keeps readiness safety constants unchanged', () => {
+    expect(POSE_MOTION_CONFIG.minimumLandmarkConfidence).toBe(0.55)
+    expect(POSE_MOTION_CONFIG.staleAfterMs).toBe(250)
+    expect(POSE_MOTION_CONFIG.resetBaselineAfterLossMs).toBe(1_200)
+    expect(POSE_MOTION_CONFIG.baselineDurationMs).toBe(800)
+    expect(POSE_MOTION_CONFIG.baselineMinimumSamples).toBe(8)
+    expect(POSE_MOTION_CONFIG.fullBodyBaselineGapGraceMs).toBe(350)
+  })
+
   it('keeps every action neutral while the temporary baseline is collecting', () => {
     const analyzer = new PoseMotionAnalyzer()
     analyzer.ingest(createSyntheticPoseFrame('move-left', { timestampMs: 0 }))
@@ -58,6 +68,44 @@ describe('PoseMotionAnalyzer baseline and quality', () => {
 
     expect(analyzer.getSnapshot(900).baselineReady).toBe(false)
     expect(analyzer.getSnapshot(900).quality).toBe('LIMITED')
+  })
+
+  it('preserves full-body baseline progress across a brief lower-body dropout', () => {
+    const analyzer = new PoseMotionAnalyzer()
+    analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 0 }))
+    analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 100 }))
+    analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 200 }))
+    const invalid = withLandmarkConfidence(
+      createSyntheticPoseFrame('neutral', { timestampMs: 300 }),
+      27,
+      0.1,
+    )
+    analyzer.ingest(invalid)
+
+    const duringGap = analyzer.getSnapshot(300)
+    expect(duringGap.baselineProgress).toBeGreaterThan(0)
+    expect(duringGap.baselineReady).toBe(false)
+
+    for (let timestampMs = 400; timestampMs <= 900; timestampMs += 100) {
+      analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs }))
+    }
+    expect(analyzer.getSnapshot(900).baselineReady).toBe(true)
+  })
+
+  it('resets full-body baseline acquisition after a dropout beyond the grace window', () => {
+    const analyzer = new PoseMotionAnalyzer()
+    analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 0 }))
+    analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 100 }))
+    analyzer.ingest(
+      withLandmarkConfidence(
+        createSyntheticPoseFrame('neutral', { timestampMs: 500 }),
+        27,
+        0.1,
+      ),
+    )
+
+    expect(analyzer.getSnapshot(500).baselineProgress).toBe(0)
+    expect(analyzer.getSnapshot(500).baselineReady).toBe(false)
   })
 
   it('clears the baseline and transient state on reset', () => {
