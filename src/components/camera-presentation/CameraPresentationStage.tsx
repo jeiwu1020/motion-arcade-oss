@@ -181,13 +181,59 @@ export function CameraPresentationStage({
         >
           {presentation.framingRequirement === 'UPPER_BODY' ? (
             <>
-              <circle className="camera-presentation-silhouette-head" cx="250" cy="110" r="52" />
+              <circle
+                className="camera-presentation-silhouette-head"
+                data-silhouette-part="head"
+                cx="250"
+                cy="110"
+                r="52"
+              />
+              <path
+                className="camera-presentation-silhouette-neck"
+                data-silhouette-part="upper-neck"
+                d="M228 145 C234 151 240 155 250 155 C260 155 266 151 272 145 L278 178 L222 178 Z"
+              />
               <path
                 className="camera-presentation-silhouette-body camera-presentation-silhouette-upper"
-                d="M184 184 C167 189 148 204 132 226 L103 190 L82 158 C74 145 78 130 91 123 C104 116 119 121 127 134 L153 176 C177 162 198 156 220 154 C228 150 236 146 250 146 C264 146 272 150 280 154 C302 156 323 162 347 176 L373 134 C381 121 396 116 409 123 C422 130 426 145 418 158 L397 190 L368 226 C352 204 333 189 316 184 L330 238 L338 414 C315 430 286 438 250 438 C214 438 185 430 162 414 L170 238 Z"
+                data-silhouette-part="upper-torso"
+                d="M184 178 C201 169 222 164 250 164 C278 164 299 169 316 178 C333 185 347 194 359 205 C346 220 329 230 309 237 L317 397 C299 409 277 416 250 416 C223 416 201 409 183 397 L191 237 C171 230 154 220 141 205 C153 194 167 185 184 178 Z"
               />
-              <circle className="camera-presentation-silhouette-hand" cx="82" cy="145" r="26" />
-              <circle className="camera-presentation-silhouette-hand" cx="418" cy="145" r="26" />
+              <path
+                className="camera-presentation-silhouette-arm camera-presentation-silhouette-left-arm"
+                data-silhouette-part="upper-left-arm"
+                d="M190 177 C174 178 158 185 143 198 L127 213 L101 225 C94 229 92 237 97 244 C102 251 112 253 119 248 L132 238 C143 229 153 220 160 214 C169 208 179 207 187 208 L190 177 Z"
+              />
+              <path
+                className="camera-presentation-silhouette-arm camera-presentation-silhouette-left-forearm"
+                data-silhouette-part="lower-left-arm"
+                d="M127 227 C131 233 130 240 124 246 C118 252 108 253 101 247 L97 243 L57 158 C53 149 57 140 65 137 C73 134 82 138 86 146 L127 227 Z"
+              />
+              <path
+                className="camera-presentation-silhouette-arm camera-presentation-silhouette-right-arm"
+                data-silhouette-part="upper-right-arm"
+                d="M310 177 C326 178 342 185 357 198 L373 213 L399 225 C406 229 408 237 403 244 C398 251 388 253 381 248 L368 238 C357 229 347 220 340 214 C331 208 321 207 313 208 L310 177 Z"
+              />
+              <path
+                className="camera-presentation-silhouette-arm camera-presentation-silhouette-right-forearm"
+                data-silhouette-part="lower-right-arm"
+                d="M373 227 C369 233 370 240 376 246 C382 252 392 253 399 247 L403 243 L443 158 C447 149 443 140 435 137 C427 134 418 138 414 146 L373 227 Z"
+              />
+              <ellipse
+                className="camera-presentation-silhouette-hand camera-presentation-silhouette-left-hand"
+                data-silhouette-part="left-hand"
+                cx="65"
+                cy="150"
+                rx="24"
+                ry="29"
+              />
+              <ellipse
+                className="camera-presentation-silhouette-hand camera-presentation-silhouette-right-hand"
+                data-silhouette-part="right-hand"
+                cx="435"
+                cy="150"
+                rx="24"
+                ry="29"
+              />
             </>
           ) : (
             <>

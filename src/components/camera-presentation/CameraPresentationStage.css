@@ -180,6 +180,8 @@
 .camera-presentation-silhouette-body,
 .camera-presentation-silhouette-legs,
 .camera-presentation-silhouette-upper,
+.camera-presentation-silhouette-neck,
+.camera-presentation-silhouette-arm,
 .camera-presentation-silhouette-hand {
   fill: var(--camera-guide-fill);
 }
@@ -216,9 +218,9 @@
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
   .camera-presentation-body-guide {
-  top: 2%;
+  top: 0;
   width: 72%;
-  height: 94%;
+  height: 98%;
 }
 
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY'] > span {
@@ -416,7 +418,7 @@
   .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
     .camera-presentation-body-guide {
     top: 0;
-    height: 94%;
+    height: 98%;
   }
 
   .camera-presentation-framing > span {

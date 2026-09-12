@@ -168,8 +168,11 @@ describe('CameraPresentationStage', () => {
     expect(markup).toContain('camera-presentation-silhouette-body')
     expect(markup).toContain('camera-presentation-silhouette-hand')
     expect(markup).toContain('請將上半身移到人形範圍內')
-    expect(markup).toContain('cx="250" cy="110" r="52"')
-    expect(markup).toContain('cx="82" cy="145" r="26"')
+    expect(markup).toContain('data-silhouette-part="upper-left-arm"')
+    expect(markup).toContain('data-silhouette-part="upper-right-arm"')
+    expect(markup).toContain('data-silhouette-part="left-hand"')
+    expect(markup).toContain('data-silhouette-part="right-hand"')
+    expect(markup).toContain('data-silhouette-part="upper-torso"')
 
     const confirmedMarkup = renderToStaticMarkup(
       <CameraPresentationStage

@@ -40,6 +40,20 @@ const INITIAL_SPATIAL_LAYOUT: CameraPresentationSpatialLayout = Object.freeze({
   stageDimensions: Object.freeze({ width: 0, height: 0 }),
 })
 
+/** Starts Pose immediately while keeping the explicit gesture-bound audio unlock best-effort. */
+// oxlint-disable-next-line react/only-export-components
+export async function startBalloonRallyCamera(
+  audio: Pick<BalloonRallyAudio, 'unlock'>,
+  runtime: Pick<PoseGameplayInputRuntime, 'start'> | null,
+): Promise<void> {
+  try {
+    void audio.unlock().catch(() => undefined)
+  } catch {
+    // Audio is optional; a synchronous unlock failure must not block the camera.
+  }
+  await runtime?.start(BALLOON_RALLY_POSE_INPUT_REQUEST)
+}
+
 export default function BalloonPopPoseGameScreen({
   onExit,
 }: BalloonPopPoseGameScreenProps) {
@@ -126,9 +140,8 @@ export default function BalloonPopPoseGameScreen({
 
   const startCamera = useCallback(async () => {
     try {
-      // The explicit camera button is also the safe mobile-Safari audio unlock gesture.
-      await audio.unlock()
-      await runtimeRef.current?.start(BALLOON_RALLY_POSE_INPUT_REQUEST)
+      // Invoke unlock in the same gesture, but never make camera startup wait for it.
+      await startBalloonRallyCamera(audio, runtimeRef.current)
     } catch {
       // The runtime publishes a readable, recoverable ERROR snapshot.
     }
