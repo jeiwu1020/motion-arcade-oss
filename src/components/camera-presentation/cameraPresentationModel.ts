@@ -90,7 +90,13 @@ export function resolveCameraPresentation(
     })
   }
 
-  if (gamePhase === 'PLAYING' && snapshot.status === 'TRACKING_LOST') {
+  // Balloon Rally's game-local tracking state is authoritative once play has
+  // started, but actual runtime failures must still take priority below.
+  if (
+    gamePhase === 'PLAYING' &&
+    snapshot.status !== 'ERROR' &&
+    snapshot.status !== 'CAMERA_NOT_STARTED'
+  ) {
     if (activeTrackingState === 'DEGRADED') {
       return createPresentation({
         mode: 'PLAYING',
@@ -115,6 +121,22 @@ export function resolveCameraPresentation(
         eyebrow: null,
         headline: null,
         detail: '雙手回到畫面即可繼續拍擊',
+        actionLabel: null,
+        alert: false,
+      })
+    }
+    if (activeTrackingState === 'HARD_PAUSE') {
+      return createPresentation({
+        mode: 'TRACKING_LOST',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'PROMINENT',
+        overlay: 'GUIDANCE',
+        statusLabel: '遊戲已暫停',
+        eyebrow: '遊戲已暫停',
+        headline: '請回到畫面中',
+        detail: upperBody
+          ? '讓頭部、肩膀與雙手重新回到框內，準備好後會自動繼續。'
+          : '讓頭頂到腳尖重新回到框內，準備好後會自動繼續。',
         actionLabel: null,
         alert: false,
       })

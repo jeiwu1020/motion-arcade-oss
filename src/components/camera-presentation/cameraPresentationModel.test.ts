@@ -176,4 +176,47 @@ describe('camera presentation model', () => {
     expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'HARD_PAUSE'))
       .toMatchObject({ mode: 'TRACKING_LOST', overlay: 'GUIDANCE', framingGuide: 'PROMINENT' })
   })
+
+  it('applies Balloon Rally recovery state even while runtime status is still READY', () => {
+    const resolveActiveTracking = resolveCameraPresentation as unknown as (
+      value: PoseGameplayInputSnapshot,
+      phase: CameraPresentationGamePhase,
+      framing: 'UPPER_BODY',
+      tracking: 'DEGRADED' | 'SOFT_RECOVERY' | 'HARD_PAUSE',
+    ) => ReturnType<typeof resolveCameraPresentation>
+
+    expect(resolveActiveTracking(snapshot('READY'), 'PLAYING', 'UPPER_BODY', 'DEGRADED'))
+      .toMatchObject({ mode: 'PLAYING', framingGuide: 'SUBTLE', overlay: 'NONE' })
+    expect(resolveActiveTracking(snapshot('READY'), 'PLAYING', 'UPPER_BODY', 'SOFT_RECOVERY'))
+      .toMatchObject({
+        mode: 'PLAYING',
+        framingGuide: 'SUBTLE',
+        overlay: 'RECOVERY_HINT',
+        statusLabel: '遊戲進行中',
+        detail: '雙手回到畫面即可繼續拍擊',
+      })
+    expect(resolveActiveTracking(snapshot('READY'), 'PLAYING', 'UPPER_BODY', 'HARD_PAUSE'))
+      .toMatchObject({
+        mode: 'TRACKING_LOST',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'PROMINENT',
+        overlay: 'GUIDANCE',
+        statusLabel: '遊戲已暫停',
+        headline: '請回到畫面中',
+      })
+  })
+
+  it('keeps runtime errors and camera-not-started setup ahead of game-local recovery state', () => {
+    const resolveActiveTracking = resolveCameraPresentation as unknown as (
+      value: PoseGameplayInputSnapshot,
+      phase: CameraPresentationGamePhase,
+      framing: 'UPPER_BODY',
+      tracking: 'DEGRADED' | 'SOFT_RECOVERY' | 'HARD_PAUSE',
+    ) => ReturnType<typeof resolveCameraPresentation>
+
+    expect(resolveActiveTracking(snapshot('ERROR'), 'PLAYING', 'UPPER_BODY', 'HARD_PAUSE'))
+      .toMatchObject({ mode: 'ERROR', overlay: 'BLOCKING', headline: '無法使用姿勢辨識' })
+    expect(resolveActiveTracking(snapshot('CAMERA_NOT_STARTED'), 'PLAYING', 'UPPER_BODY', 'HARD_PAUSE'))
+      .toMatchObject({ mode: 'SETUP', overlay: 'BLOCKING', headline: '準備好後啟動相機' })
+  })
 })
