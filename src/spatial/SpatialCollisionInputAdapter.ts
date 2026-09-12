@@ -177,21 +177,4 @@ export class SpatialCollisionInputAdapter {
     this.#lastGeometryKey = null
   }
 
-  /**
-   * Break hand continuity while retaining the latest valid presentation
-   * geometry so a game-scoped soft recovery can keep its world moving safely.
-   */
-  resetContinuity(): void {
-    const outputSequence = ++this.#outputSequence
-    this.#snapshot = snapshot(
-      outputSequence,
-      this.#snapshot.cameraVisibleWorldRect,
-      unavailable(outputSequence),
-      unavailable(outputSequence),
-    )
-    this.#lastSourceSequence = null
-    this.#lastSourceTimestamp = null
-    this.#lastSourceKey = null
-    this.#lastGeometryKey = null
-  }
 }

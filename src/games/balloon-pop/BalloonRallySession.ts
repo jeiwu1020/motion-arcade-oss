@@ -198,7 +198,12 @@ export class BalloonRallySession {
       safeDeltaMs,
       Math.max(0, BALLOON_RALLY_TRACKING_POLICY.hardPauseMs - priorLossMs),
     )
-    if (continuingMs > 0) this.#advance(continuingMs)
+    if (continuingMs > 0) {
+      this.#advance(
+        continuingMs,
+        nextLossMs < BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs,
+      )
+    }
     if (nextLossMs < BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs) {
       this.#setTrackingState('DEGRADED')
       return
@@ -219,14 +224,14 @@ export class BalloonRallySession {
     this.#notify()
   }
 
-  #advance(deltaMs: number): void {
+  #advance(deltaMs: number, allowContacts = true): void {
     const spatial = this.#spatialInput.getSnapshot()
     if (!spatial.cameraVisibleWorldRect) return
     this.#replaceState(
       advanceBalloonRally(this.#state, {
         deltaMs,
         interactionRegion: spatial.cameraVisibleWorldRect,
-        contacts: this.#collectContacts(),
+        contacts: allowContacts ? this.#collectContacts() : [],
       }),
     )
   }
@@ -276,7 +281,6 @@ export class BalloonRallySession {
 
   #breakSpatialContinuity(): void {
     this.#contacts.reset()
-    this.#spatialInput.resetContinuity()
     this.#suppressFirstContactAfterReset = true
   }
 
