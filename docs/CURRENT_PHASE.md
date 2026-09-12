@@ -62,8 +62,8 @@ only.
 Balloon Rally explicitly opts into UPPER_BODY readiness: a stable torso/core
 baseline and READY quality remain required, while knees/ankles are not. After
 the round begins, `BalloonRallySession` uses the v2 relaxed tracking policy:
-0–1,500 ms degradation continues play, 1,500–3,000 ms uses a small frozen
-soft recovery, and >=3,000 ms or sensor failure uses hard recovery. This policy
+ 0–3,000 ms degradation continues play, 3,000–6,000 ms uses a small continuing
+ soft recovery, and >=6,000 ms or sensor failure uses hard recovery. This policy
 is scoped to Balloon Rally; FULL_BODY games remain unchanged.
 Phase 2A.3b is Engineering PASS + Windows Chrome physical PASS + iPhone Safari
 physical PASS. Phase 2A.3c remains Engineering PASS only. Details:
@@ -140,7 +140,7 @@ Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATI
 - Projector: framing-guide visibility, live-player visibility, camera/game contrast, HUD readability, and result/recovery comprehension from the intended viewing distance.
 - Balloon Rally v3 Windows/iPhone: Golden/Giant/mini-event readability, hand
   glow/trail performance, virtual-hand contact tolerance, fast/held/
-  re-entry semantics, one-hand continuity, 1.5/3-second tracking recovery,
+  re-entry semantics, one-hand continuity, 3/6-second tracking recovery,
   progression/PARTY RUSH, resize/orientation, 60-second stability, replay, and
   upper-body framing checks; projector validation remains required.
 - Previously deferred Phase 1D.3a/1D.3b physical profile checks remain open; later batch them in real games.

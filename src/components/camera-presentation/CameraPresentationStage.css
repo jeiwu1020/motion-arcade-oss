@@ -1,5 +1,6 @@
 .camera-presentation-stage {
-  --camera-guide-color: rgb(247 251 255 / 88%);
+  --camera-guide-color: rgb(188 248 255 / 88%);
+  --camera-guide-fill: rgb(67 211 233 / 15%);
   --camera-ready-color: #72e1bf;
   position: relative;
   isolation: isolate;
@@ -156,7 +157,7 @@
   width: min(34%, 15rem);
   height: 76%;
   overflow: visible;
-  fill: rgb(247 251 255 / 11%);
+  fill: var(--camera-guide-fill);
   stroke: var(--camera-guide-color);
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -173,14 +174,14 @@
 }
 
 .camera-presentation-silhouette-head {
-  fill: rgb(247 251 255 / 14%);
+  fill: var(--camera-guide-fill);
 }
 
 .camera-presentation-silhouette-body,
 .camera-presentation-silhouette-legs,
 .camera-presentation-silhouette-upper,
 .camera-presentation-silhouette-hand {
-  fill: rgb(247 251 255 / 10%);
+  fill: var(--camera-guide-fill);
 }
 
 .camera-presentation-framing > span {
@@ -198,6 +199,7 @@
 
 .camera-presentation-framing[data-framing-guide='CONFIRMED'] {
   --camera-guide-color: rgb(114 225 191 / 92%);
+  --camera-guide-fill: rgb(114 225 191 / 19%);
 }
 
 .camera-presentation-framing[data-framing-guide='CONFIRMED'] > span {
@@ -215,7 +217,7 @@
 .camera-presentation-framing[data-framing-requirement='UPPER_BODY']
   .camera-presentation-body-guide {
   top: 2%;
-  width: 62%;
+  width: 72%;
   height: 94%;
 }
 

@@ -27,24 +27,28 @@ function spatial(sequence: number, left: SourcePoint, right: SourcePoint): Spati
 }
 
 describe('Balloon Rally spatial session', () => {
-  it('continues through the first 1.5 seconds of active tracking degradation, then freezes safely', async () => {
+  it('continues through the first 3 seconds, keeps advancing during soft recovery, then freezes at 6 seconds', async () => {
     const spatialInput = new SpatialCollisionInputAdapter()
     const session = new BalloonRallySession(spatialInput, { seed: 2 })
     await session.start()
     spatialInput.ingest(spatial(1, null, null), GEOMETRY)
     session.tick(BALLOON_RALLY_RULES.countdownMs, true)
 
-    session.tick(1_400, false)
-    expect(session.getState().elapsedMs).toBe(1_400)
+    session.tick(2_900, false)
+    expect(session.getState().elapsedMs).toBe(2_900)
     expect(session.getPresentationSnapshot().trackingState).toBe('DEGRADED')
 
     session.tick(200, false)
-    expect(session.getState().elapsedMs).toBe(1_500)
+    expect(session.getState().elapsedMs).toBe(3_100)
     expect(session.getPresentationSnapshot().trackingState).toBe('SOFT_RECOVERY')
-    const softFrozen = session.getState()
-    session.tick(1_600, false)
-    expect(session.getState()).toEqual(softFrozen)
+    session.tick(2_899, false)
+    expect(session.getState().elapsedMs).toBe(5_999)
+    session.tick(1, false)
+    expect(session.getState().elapsedMs).toBe(6_000)
     expect(session.getPresentationSnapshot().trackingState).toBe('HARD_PAUSE')
+    const hardPaused = session.getState()
+    session.tick(500, false)
+    expect(session.getState()).toEqual(hardPaused)
     await session.stop()
   })
 
@@ -96,7 +100,7 @@ describe('Balloon Rally spatial session', () => {
       spatialSnapshot: unavailable,
     }))
 
-    session.tick(1_400, resolveBalloonRallyTrackingInput({
+    session.tick(2_900, resolveBalloonRallyTrackingInput({
       phase: 'PLAYING',
       runtimeReady: false,
       hardFailure: false,
@@ -110,7 +114,7 @@ describe('Balloon Rally spatial session', () => {
       spatialSnapshot: unavailable,
     }))
     expect(session.getPresentationSnapshot().trackingState).toBe('SOFT_RECOVERY')
-    session.tick(1_500, resolveBalloonRallyTrackingInput({
+    session.tick(2_900, resolveBalloonRallyTrackingInput({
       phase: 'PLAYING',
       runtimeReady: false,
       hardFailure: false,
@@ -187,10 +191,11 @@ describe('Balloon Rally spatial session', () => {
     session.tick(0, true)
     expect(session.getState().hits).toBe(2)
 
-    session.tick(1_500, false)
-    const beforePause = session.getState()
+    session.tick(3_000, false)
+    const beforeSoftRecovery = session.getState()
     session.tick(1, false)
-    expect(session.getState()).toEqual(beforePause)
+    expect(session.getState().elapsedMs).toBe(beforeSoftRecovery.elapsedMs + 1)
+    expect(session.getPresentationSnapshot().trackingState).toBe('SOFT_RECOVERY')
 
     spatialInput.ingest(spatial(3, { x: 0.1, y: 0.5 }, { x: 0.9, y: 0.5 }), GEOMETRY)
     session.tick(0, true)

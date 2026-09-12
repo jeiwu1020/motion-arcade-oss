@@ -1,3 +1,5 @@
+import { BALLOON_RALLY_RULES } from './BalloonRallyCore'
+
 export type BalloonRallyVisualHandSide = 'LEFT' | 'RIGHT'
 
 export interface BalloonRallyHandVisualSnapshot {
@@ -41,6 +43,15 @@ export interface BalloonRallyPresentationState {
   readonly miniEventSequence: number
   readonly partyRush: boolean
   readonly roundRemainingMs: number
+}
+
+export const BALLOON_RALLY_PARTY_RUSH_CUE = Object.freeze({
+  title: 'PARTY RUSH!',
+  subtitle: '最後 10 秒！',
+})
+
+export function hasBalloonRallyCountdownStarted(countdownRemainingMs: number): boolean {
+  return Number.isFinite(countdownRemainingMs) && countdownRemainingMs < BALLOON_RALLY_RULES.countdownMs
 }
 
 export type BalloonRallyOneShotCue =

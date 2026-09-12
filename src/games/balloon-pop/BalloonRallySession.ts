@@ -15,8 +15,8 @@ import type { BalloonRallyHandVisualSnapshot } from './BalloonRallyPresentation'
 export const BALLOON_RALLY_VIRTUAL_HAND_RADIUS = 42
 export const BALLOON_RALLY_CONTACT_TOLERANCE = 10
 export const BALLOON_RALLY_TRACKING_POLICY = Object.freeze({
-  degradedGraceMs: 1_500,
-  hardPauseMs: 3_000,
+  degradedGraceMs: 3_000,
+  hardPauseMs: 6_000,
 })
 
 export const BALLOON_RALLY_POSE_INPUT_REQUEST: MotionInputRequest = Object.freeze({
@@ -156,7 +156,9 @@ export class BalloonRallySession {
     this.#running = false
     this.#trackingLossMs = 0
     this.#setTrackingState('NORMAL')
-    this.#breakSpatialContinuity()
+    this.#contacts.reset()
+    this.#spatialInput.reset()
+    this.#suppressFirstContactAfterReset = true
   }
 
   tick(deltaMs: number, input: boolean | BalloonRallyTrackingInput): void {
@@ -192,13 +194,11 @@ export class BalloonRallySession {
     const priorLossMs = this.#trackingLossMs
     const nextLossMs = priorLossMs + safeDeltaMs
     this.#trackingLossMs = nextLossMs
-    if (priorLossMs < BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs) {
-      const continuingMs = Math.min(
-        safeDeltaMs,
-        BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs - priorLossMs,
-      )
-      if (continuingMs > 0) this.#advance(continuingMs)
-    }
+    const continuingMs = Math.min(
+      safeDeltaMs,
+      Math.max(0, BALLOON_RALLY_TRACKING_POLICY.hardPauseMs - priorLossMs),
+    )
+    if (continuingMs > 0) this.#advance(continuingMs)
     if (nextLossMs < BALLOON_RALLY_TRACKING_POLICY.degradedGraceMs) {
       this.#setTrackingState('DEGRADED')
       return
@@ -276,7 +276,7 @@ export class BalloonRallySession {
 
   #breakSpatialContinuity(): void {
     this.#contacts.reset()
-    this.#spatialInput.reset()
+    this.#spatialInput.resetContinuity()
     this.#suppressFirstContactAfterReset = true
   }
 

@@ -63,11 +63,11 @@ behavior for other games remains unchanged.
 
 Once play begins, tracking follows START STRICT / PLAY RELAXED:
 
-- 0–1,500 ms ordinary degradation: timer and physics continue without a
+- 0–3,000 ms ordinary degradation: timer and physics continue without a
   blocking overlay.
-- 1,500–3,000 ms: freeze Core time and physics; reset contact continuity and
-  show only `雙手回到畫面即可繼續`.
-- >=3,000 ms or a sensor/runtime failure: remain safely paused with the
+- 3,000–6,000 ms: continue Core time and physics with no contacts; reset
+  contact continuity and show only `雙手回到畫面即可繼續拍擊`.
+- >=6,000 ms or a sensor/runtime failure: remain safely paused with the
   existing dominant recovery presentation.
 
 One missing wrist never pauses the round; the available wrist can continue to

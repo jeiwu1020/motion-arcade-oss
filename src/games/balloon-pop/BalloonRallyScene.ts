@@ -4,9 +4,11 @@ import type { BalloonRallyBalloon, BalloonRallyState } from './BalloonRallyCore'
 import type { BalloonRallySession } from './BalloonRallySession'
 import type { BalloonRallyAudio } from './BalloonRallyAudio'
 import {
+  BALLOON_RALLY_PARTY_RUSH_CUE,
   BALLOON_RALLY_HAND_GLOW_CONFIG,
   getBalloonRallyDamageStage,
   getBalloonRallyOneShotCues,
+  hasBalloonRallyCountdownStarted,
   updateBalloonRallyHandGlowTrail,
   type BalloonRallyHandGlowTrailState,
   type BalloonRallyPresentationState,
@@ -32,6 +34,7 @@ export class BalloonRallyScene extends Phaser.Scene {
   #countdownText!: Phaser.GameObjects.Text
   #statusText!: Phaser.GameObjects.Text
   #partyRushText!: Phaser.GameObjects.Text
+  #partyRushSubtitle!: Phaser.GameObjects.Text
   #announcementText!: Phaser.GameObjects.Text
   #partyEdgePulse!: Phaser.GameObjects.Rectangle
   #handGlow!: Phaser.GameObjects.Graphics
@@ -85,13 +88,25 @@ export class BalloonRallyScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(21)
     this.#partyRushText = this.add
-      .text(WORLD_WIDTH / 2, 170, 'PARTY RUSH!', {
+      .text(WORLD_WIDTH / 2, 270, BALLOON_RALLY_PARTY_RUSH_CUE.title, {
         color: '#ffec70',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '76px',
+        fontSize: '132px',
         fontStyle: 'bold',
         stroke: '#6d1f4a',
         strokeThickness: 13,
+      })
+      .setOrigin(0.5)
+      .setDepth(22)
+      .setVisible(false)
+    this.#partyRushSubtitle = this.add
+      .text(WORLD_WIDTH / 2, 380, BALLOON_RALLY_PARTY_RUSH_CUE.subtitle, {
+        color: '#fff8c2',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '56px',
+        fontStyle: 'bold',
+        stroke: '#6d1f4a',
+        strokeThickness: 10,
       })
       .setOrigin(0.5)
       .setDepth(22)
@@ -124,6 +139,15 @@ export class BalloonRallyScene extends Phaser.Scene {
       this.#lastPops = 0
       this.#lastPartyPopulation = 0
       this.#previousPresentationState = this.#toPresentationState(state)
+      this.tweens.killTweensOf([this.#partyRushText, this.#partyRushSubtitle])
+      this.#partyRushText.setVisible(false)
+      this.#partyRushSubtitle.setVisible(false)
+      if (!hasBalloonRallyCountdownStarted(state.countdownRemainingMs)) {
+        this.#lastCountdownNumber = 0
+        this.#countdownText.setText('').setVisible(false)
+        this.#statusText.setVisible(false)
+        return
+      }
       const countdownNumber = Math.max(1, Math.ceil(state.countdownRemainingMs / 1_000))
       if (countdownNumber !== this.#lastCountdownNumber && countdownNumber <= 3) {
         this.#audio?.play('COUNTDOWN_TICK')
@@ -301,18 +325,46 @@ export class BalloonRallyScene extends Phaser.Scene {
     this.#partyRushSeen = true
     this.#audio?.play('PARTY_RUSH_START')
     this.#audio?.setPartyRush()
-    this.#partyRushText.setAlpha(1).setScale(0.72).setVisible(true)
+    this.tweens.killTweensOf([this.#partyRushText, this.#partyRushSubtitle])
+    this.#partyRushText.setAlpha(1).setScale(0.58).setVisible(true)
+    this.#partyRushSubtitle.setAlpha(1).setScale(0.58).setVisible(true)
     this.#partyEdgePulse
       .setAlpha(1)
       .setFillStyle(0xffca5f, 0.22)
       .setStrokeStyle(28, 0xffef8a, 0.96)
+    const rings = [150, 250].map((radius) =>
+      this.add
+        .circle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, radius, 0xffd85c, 0)
+        .setStrokeStyle(14, 0xffef8a, 0.8)
+        .setDepth(20),
+    )
+    rings.forEach((ring, index) => {
+      this.tweens.add({
+        targets: ring,
+        scale: 2.3 + index * 0.35,
+        alpha: 0,
+        duration: 850 + index * 180,
+        delay: index * 90,
+        ease: 'Sine.Out',
+        onComplete: () => ring.destroy(),
+      })
+    })
     this.tweens.add({
-      targets: this.#partyRushText,
-      scale: 1,
-      alpha: 0,
-      duration: 1_350,
+      targets: [this.#partyRushText, this.#partyRushSubtitle],
+      scale: 1.08,
+      duration: 380,
       ease: 'Back.Out',
-      onComplete: () => this.#partyRushText.setVisible(false),
+    })
+    this.tweens.add({
+      targets: [this.#partyRushText, this.#partyRushSubtitle],
+      alpha: 0,
+      delay: 980,
+      duration: 600,
+      ease: 'Sine.In',
+      onComplete: () => {
+        this.#partyRushText.setVisible(false)
+        this.#partyRushSubtitle.setVisible(false)
+      },
     })
     this.tweens.add({
       targets: this.#partyEdgePulse,

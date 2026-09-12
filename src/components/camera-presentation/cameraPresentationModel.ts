@@ -111,10 +111,10 @@ export function resolveCameraPresentation(
         cameraTreatment: 'SUBDUED',
         framingGuide: 'SUBTLE',
         overlay: 'RECOVERY_HINT',
-        statusLabel: '暫停等待追蹤',
+        statusLabel: '遊戲進行中',
         eyebrow: null,
         headline: null,
-        detail: '雙手回到畫面即可繼續',
+        detail: '雙手回到畫面即可繼續拍擊',
         actionLabel: null,
         alert: false,
       })
@@ -178,7 +178,7 @@ export function resolveCameraPresentation(
       overlay: 'GUIDANCE',
       statusLabel: '正在確認站位',
       eyebrow: '站位確認',
-      headline: upperBody ? '請對準人形範圍' : '全身保持在框內',
+       headline: upperBody ? '請將上半身移到人形範圍內' : '全身保持在框內',
       detail: upperBody
         ? '讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。'
         : '面向鏡頭，讓肩膀、髖部、膝蓋與腳踝都清楚可見。',

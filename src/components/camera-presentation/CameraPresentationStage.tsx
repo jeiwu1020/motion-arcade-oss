@@ -164,18 +164,30 @@ export function CameraPresentationStage({
         <div className="camera-presentation-frame-boundary" />
         <svg
           className="camera-presentation-body-guide"
-          viewBox="0 0 240 500"
+          viewBox={
+            presentation.framingRequirement === 'UPPER_BODY'
+              ? '0 0 500 500'
+              : '0 0 240 500'
+          }
+          data-silhouette={
+            presentation.framingRequirement === 'UPPER_BODY'
+              ? 'UPPER_BODY_RAISED_W'
+              : 'FULL_BODY'
+          }
+          data-silhouette-fill={
+            presentation.framingGuide === 'CONFIRMED' ? 'CONFIRMED' : 'GUIDANCE'
+          }
           focusable="false"
         >
           {presentation.framingRequirement === 'UPPER_BODY' ? (
             <>
-              <circle className="camera-presentation-silhouette-head" cx="120" cy="96" r="34" />
+              <circle className="camera-presentation-silhouette-head" cx="250" cy="110" r="52" />
               <path
                 className="camera-presentation-silhouette-body camera-presentation-silhouette-upper"
-                d="M94 142 C84 146 73 155 62 169 L47 143 L38 119 C34 108 40 99 50 96 C60 93 68 99 72 109 L84 137 C94 132 104 129 120 129 C136 129 146 132 156 137 L168 109 C172 99 180 93 190 96 C200 99 206 108 202 119 L193 143 L178 169 C167 155 156 146 146 142 L158 212 L164 459 C152 480 136 490 120 490 C104 490 88 480 76 459 L82 212 Z"
+                d="M184 184 C167 189 148 204 132 226 L103 190 L82 158 C74 145 78 130 91 123 C104 116 119 121 127 134 L153 176 C177 162 198 156 220 154 C228 150 236 146 250 146 C264 146 272 150 280 154 C302 156 323 162 347 176 L373 134 C381 121 396 116 409 123 C422 130 426 145 418 158 L397 190 L368 226 C352 204 333 189 316 184 L330 238 L338 414 C315 430 286 438 250 438 C214 438 185 430 162 414 L170 238 Z"
               />
-              <circle className="camera-presentation-silhouette-hand" cx="44" cy="104" r="10" />
-              <circle className="camera-presentation-silhouette-hand" cx="196" cy="104" r="10" />
+              <circle className="camera-presentation-silhouette-hand" cx="82" cy="145" r="26" />
+              <circle className="camera-presentation-silhouette-hand" cx="418" cy="145" r="26" />
             </>
           ) : (
             <>
@@ -193,7 +205,7 @@ export function CameraPresentationStage({
         </svg>
         <span>
           {presentation.framingRequirement === 'UPPER_BODY'
-            ? '請對準人形範圍'
+            ? '請將上半身移到人形範圍內'
             : '請將全身移到人形範圍內'}
         </span>
       </div>

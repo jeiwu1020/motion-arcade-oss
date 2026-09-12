@@ -153,7 +153,7 @@ describe('camera presentation model', () => {
 
     expect(upperBodyBaseline).toMatchObject({
       framingRequirement: 'UPPER_BODY',
-      headline: '請對準人形範圍',
+        headline: '請將上半身移到人形範圍內',
       detail: '讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。',
     })
     expect(upperBodyLoss.detail).toContain('頭部、肩膀與雙手')
@@ -172,7 +172,7 @@ describe('camera presentation model', () => {
     expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'DEGRADED'))
       .toMatchObject({ mode: 'PLAYING', overlay: 'NONE', framingGuide: 'SUBTLE' })
     expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'SOFT_RECOVERY'))
-      .toMatchObject({ mode: 'PLAYING', overlay: 'RECOVERY_HINT', headline: null, detail: '雙手回到畫面即可繼續' })
+      .toMatchObject({ mode: 'PLAYING', overlay: 'RECOVERY_HINT', headline: null, detail: '雙手回到畫面即可繼續拍擊' })
     expect(resolveActiveTracking(snapshot('TRACKING_LOST'), 'PLAYING', 'UPPER_BODY', 'HARD_PAUSE'))
       .toMatchObject({ mode: 'TRACKING_LOST', overlay: 'GUIDANCE', framingGuide: 'PROMINENT' })
   })

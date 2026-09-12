@@ -36,13 +36,18 @@ countdown and tick cue while gameplay continues.
 
 The shared Camera Presentation layer now uses a large, lower, translucent
 raised-arm human alignment silhouette rather than a stick-figure skeleton.
-UPPER_BODY shows a broad relaxed-W posture with hands separated from the torso;
-FULL_BODY remains the existing whole-body variant. Baseline guidance uses a
-compact bottom bar with `請對準人形範圍` and `讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。`.
+UPPER_BODY uses a dedicated 500×500 wide relaxed-W geometry: a broad head,
+clearly separated hands, bent arms, and a torso ending around the lower 80–88%
+of the stage. The silhouette uses a soft cyan translucent fill (slightly
+stronger cyan/green when confirmed); FULL_BODY remains the existing whole-body
+variant. Baseline guidance uses a compact bottom bar with `請將上半身移到人形範圍內`
+and `讓頭部、肩膀與雙手清楚可見，雙手保持在畫面內。`.
 The guide is visible during setup/acquisition/baselining and recovery, changes
 to a cyan/green confirmation tint when READY, and is hidden during normal
 PLAYING. It is presentation-only and does not calculate overlap or change
-Pose readiness.
+Pose readiness. Balloon Rally active tracking continues for 0–3,000 ms of both
+hands being unavailable, continues with only a subtle hint during 3,000–6,000 ms
+soft recovery, and enters hard pause at 6,000 ms or on an actual sensor failure.
 
 ## Scope and validation
 

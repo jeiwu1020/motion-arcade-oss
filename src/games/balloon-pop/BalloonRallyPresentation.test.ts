@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  BALLOON_RALLY_PARTY_RUSH_CUE,
   getBalloonRallyDamageStage,
   getComboMilestoneCrossed,
   getBalloonRallyOneShotCues,
+  hasBalloonRallyCountdownStarted,
   updateBalloonRallyHandGlowTrail,
   type BalloonRallyHandVisualSnapshot,
   type BalloonRallyHandGlowTrailState,
@@ -24,6 +26,11 @@ const available = (side: 'LEFT' | 'RIGHT', x: number, y: number): BalloonRallyHa
 })
 
 describe('Balloon Rally presentation helpers', () => {
+  it('keeps the Party Rush cue and countdown-start boundary deterministic', () => {
+    expect(BALLOON_RALLY_PARTY_RUSH_CUE).toEqual({ title: 'PARTY RUSH!', subtitle: '最後 10 秒！' })
+    expect(hasBalloonRallyCountdownStarted(3_000)).toBe(false)
+    expect(hasBalloonRallyCountdownStarted(2_999)).toBe(true)
+  })
   it('creates bounded left/right glow anchors from logical interaction coordinates', () => {
     const state = updateBalloonRallyHandGlowTrail(emptyTrail(), [
       available('LEFT', 100, 200),

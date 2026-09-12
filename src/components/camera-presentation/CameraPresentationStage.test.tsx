@@ -161,11 +161,30 @@ describe('CameraPresentationStage', () => {
     )
 
     expect(markup).toContain('data-framing-requirement="UPPER_BODY"')
+    expect(markup).toContain('viewBox="0 0 500 500"')
+    expect(markup).toContain('data-silhouette="UPPER_BODY_RAISED_W"')
+    expect(markup).toContain('data-silhouette-fill="GUIDANCE"')
     expect(markup).toContain('camera-presentation-silhouette-head')
     expect(markup).toContain('camera-presentation-silhouette-body')
     expect(markup).toContain('camera-presentation-silhouette-hand')
-    expect(markup).toContain('請對準人形範圍')
-    expect(markup).not.toContain('M120 98 L120 286')
+    expect(markup).toContain('請將上半身移到人形範圍內')
+    expect(markup).toContain('cx="250" cy="110" r="52"')
+    expect(markup).toContain('cx="82" cy="145" r="26"')
+
+    const confirmedMarkup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'READY', error: null },
+          'COUNTDOWN',
+          'UPPER_BODY',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+      >
+        <div />
+      </CameraPresentationStage>,
+    )
+    expect(confirmedMarkup).toContain('data-silhouette-fill="CONFIRMED"')
   })
 
   it('renders the full-body silhouette variant and hides the guide during normal play', () => {
@@ -197,6 +216,7 @@ describe('CameraPresentationStage', () => {
     )
 
     expect(fullMarkup).toContain('data-framing-requirement="FULL_BODY"')
+    expect(fullMarkup).toContain('viewBox="0 0 240 500"')
     expect(fullMarkup).toContain('camera-presentation-silhouette-legs')
     expect(fullMarkup).toContain('請將全身移到人形範圍內')
     expect(playingMarkup).toContain('data-framing-guide="SUBTLE"')
