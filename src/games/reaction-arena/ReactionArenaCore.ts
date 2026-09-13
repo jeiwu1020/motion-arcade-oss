@@ -213,7 +213,7 @@ function patternSetForPhase(
   return null
 }
 
-function cueForAction(action: MotionActionId | ReactionArenaCueKind): ReactionArenaCueKind | null {
+export function normalizeReactionArenaAction(action: MotionActionId | ReactionArenaCueKind): ReactionArenaCueKind | null {
   switch (action) {
     case 'LEFT':
     case 'MOVE_LEFT':
@@ -609,7 +609,7 @@ export function advanceReactionArena(
     const attemptAt = Math.max(cursor, Math.min(targetTime, attempt.atMs))
     current = advanceTime(current, attemptAt - cursor)
     cursor = attemptAt
-    const kind = cueForAction(attempt.action)
+    const kind = normalizeReactionArenaAction(attempt.action)
     if (!kind || !current.currentCue || current.currentCue.state !== 'ACTIVE') continue
     if (attemptAt < current.currentCue.startTimeMs || attemptAt > current.currentCue.startTimeMs + current.currentCue.responseWindowMs) continue
     if (kind === current.currentCue.kind) current = resolveSuccess(current, attemptAt)

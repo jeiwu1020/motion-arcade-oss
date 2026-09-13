@@ -36,6 +36,18 @@ is active. SPECIAL_EVENT_2 ends at 49,000 ms; the 49,000–50,000 ms interval is
 cue-free transition, and SPEED_ZONE begins at 50,000 ms. Pattern identity and
 index are immutable Core state, so replaying a seed reproduces the same choices.
 
+## Action Practice mode
+
+The Pose screen offers `動作測試` beside normal `開始遊戲`. Practice uses the
+same normalized Motion Action occurrences and FULL_BODY setup, but has no timer,
+score, combo, grade, or automatic expiry. It holds each target until a distinct
+matching action sequence arrives, reports the latest recognized relevant action,
+and holds a large `✓ 成功！` state for 1,000 ms before advancing through:
+`LEFT → RIGHT → REACH_LEFT → REACH_RIGHT → SQUAT`. Completion offers replay,
+entry to the normal 60-second game, or return home. Normal-game scoring,
+response windows, countdown, and FULL_BODY readiness are unchanged; the large
+check/grade pulse is presentation-only feedback.
+
 Validation and real-device testing remain open. In particular, do not claim
 Reaction Arena physical PASS. Record the known Windows Chrome camera-start
 observation 「正在啟動相機」 without changing shared camera/runtime behavior in

@@ -4,20 +4,17 @@ import type {
   MotionInputSnapshot,
 } from '../../motion/contracts/motion'
 import {
-  advanceReactionArena,
-  createReactionArenaState,
-  replayReactionArena,
-  type CreateReactionArenaStateOptions,
-  type ReactionArenaActionAttempt,
-  type ReactionArenaState,
-} from './ReactionArenaCore'
+  advanceReactionArenaPractice,
+  createReactionArenaPracticeState,
+  replayReactionArenaPractice,
+  type ReactionArenaPracticeActionAttempt,
+  type ReactionArenaPracticeState,
+} from './ReactionArenaPracticeCore'
 
-export interface ReactionArenaTrackingInput {
+export interface ReactionArenaPracticeTrackingInput {
   readonly setupReady: boolean
   readonly hardFailure: boolean
 }
-
-export interface ReactionArenaSessionOptions extends CreateReactionArenaStateOptions {}
 
 type Listener = () => void
 
@@ -31,21 +28,20 @@ const REACTION_ACTIONS: readonly MotionActionId[] = [
   'SQUAT',
 ]
 
-/** Bridges normalized MotionInput snapshots to the framework-independent core. */
-export class ReactionArenaSession {
-  readonly mode = 'GAME' as const
+/** Bridges the existing normalized action provider to non-timed practice mode. */
+export class ReactionArenaPracticeSession {
+  readonly mode = 'PRACTICE' as const
   readonly #provider: MotionInputProvider
   readonly #listeners = new Set<Listener>()
-  #state: ReactionArenaState
+  #state: ReactionArenaPracticeState = createReactionArenaPracticeState()
   #running = false
   #lastSeenSequences = new Map<MotionActionId, number>()
 
-  constructor(provider: MotionInputProvider, options: ReactionArenaSessionOptions = {}) {
+  constructor(provider: MotionInputProvider) {
     this.#provider = provider
-    this.#state = createReactionArenaState(options)
   }
 
-  readonly getState = (): ReactionArenaState => this.#state
+  readonly getState = (): ReactionArenaPracticeState => this.#state
 
   readonly subscribe = (listener: Listener): (() => void) => {
     this.#listeners.add(listener)
@@ -63,34 +59,29 @@ export class ReactionArenaSession {
   }
 
   replay(): void {
-    this.#state = replayReactionArena(this.#state)
+    this.#state = replayReactionArenaPractice()
     this.#markCurrentSequences(this.#provider.getSnapshot())
     this.#notify()
   }
 
-  tick(deltaMs: number, tracking: ReactionArenaTrackingInput): void {
+  tick(deltaMs: number, tracking: ReactionArenaPracticeTrackingInput): void {
     if (!this.#running) return
-    const safeDeltaMs = Math.max(0, Number.isFinite(deltaMs) ? deltaMs : 0)
-    const attempts = this.#collectAttempts(safeDeltaMs)
-
-    if (this.#state.phase === 'FINISHED') return
+    const attempts = this.#collectAttempts()
     if (tracking.hardFailure || !tracking.setupReady) {
       this.#notify()
       return
     }
-
-    this.#state = advanceReactionArena(this.#state, {
-      deltaMs: safeDeltaMs,
+    this.#state = advanceReactionArenaPractice(this.#state, {
+      deltaMs,
       actionAttempts: attempts,
     })
     this.#notify()
   }
 
-  #collectAttempts(deltaMs: number): readonly ReactionArenaActionAttempt[] {
-    const snapshot = this.#provider.getSnapshot()
-    const player = snapshot.players[0]
+  #collectAttempts(): readonly ReactionArenaPracticeActionAttempt[] {
+    const player = this.#provider.getSnapshot().players[0]
     if (!player) return []
-    const attempts: ReactionArenaActionAttempt[] = []
+    const attempts: ReactionArenaPracticeActionAttempt[] = []
     for (const action of REACTION_ACTIONS) {
       const actionState = player.actions[action]
       if (!actionState) continue
@@ -98,11 +89,7 @@ export class ReactionArenaSession {
       if (actionState.sequence <= priorSequence) continue
       this.#lastSeenSequences.set(action, actionState.sequence)
       if (actionState.phase !== 'started' && actionState.phase !== 'active') continue
-      attempts.push({
-        action,
-        sequence: actionState.sequence,
-        atMs: this.#state.elapsedMs + deltaMs,
-      })
+      attempts.push({ action, sequence: actionState.sequence })
     }
     return attempts
   }

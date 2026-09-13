@@ -14,6 +14,12 @@ export interface ReactionArenaCueVisual {
   readonly prompt: string
 }
 
+export interface ReactionArenaSuccessVisual {
+  readonly mark: '✓'
+  readonly grade: ReactionArenaGrade
+  readonly durationMs: number
+}
+
 export interface ReactionArenaPresentationState {
   readonly phase: ReactionArenaPhase
   readonly gameplayPhase?: ReactionArenaGameplayPhase
@@ -37,6 +43,20 @@ const VISUALS: Readonly<Record<ReactionArenaCueKind, ReactionArenaCueVisual>> = 
 
 export function getReactionArenaCueVisual(kind: ReactionArenaCueKind): ReactionArenaCueVisual {
   return VISUALS[kind]
+}
+
+export function getReactionArenaPracticeActionLabel(kind: ReactionArenaCueKind): string {
+  switch (kind) {
+    case 'LEFT': return '向左移動'
+    case 'RIGHT': return '向右移動'
+    case 'REACH_LEFT': return '左手伸出'
+    case 'REACH_RIGHT': return '右手伸出'
+    case 'SQUAT': return '蹲下'
+  }
+}
+
+export function getReactionArenaSuccessVisual(grade: ReactionArenaGrade): ReactionArenaSuccessVisual {
+  return { mark: '✓', grade, durationMs: 800 }
 }
 
 export function getReactionArenaGradeLabel(grade: ReactionArenaGrade): string {

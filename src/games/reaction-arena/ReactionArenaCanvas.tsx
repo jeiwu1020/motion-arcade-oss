@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import { mountPhaserGame } from '../../game/phaser/mountPhaserGame'
 import type { ReactionArenaAudio } from './ReactionArenaAudio'
+import type { ReactionArenaPracticeSession } from './ReactionArenaPracticeSession'
 import type { ReactionArenaSession } from './ReactionArenaSession'
 
-export function ReactionArenaCanvas({ session, audio }: { readonly session: ReactionArenaSession; readonly audio?: ReactionArenaAudio }) {
+export type ReactionArenaPlayableSession = ReactionArenaSession | ReactionArenaPracticeSession
+
+export function ReactionArenaCanvas({ session, audio }: { readonly session: ReactionArenaPlayableSession; readonly audio?: ReactionArenaAudio }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string>()
 

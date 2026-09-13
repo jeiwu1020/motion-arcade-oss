@@ -1,32 +1,41 @@
 import Phaser from 'phaser'
 
-import type { ReactionArenaState } from './ReactionArenaCore'
+import type { ReactionArenaCueKind, ReactionArenaState } from './ReactionArenaCore'
 import type { ReactionArenaAudio } from './ReactionArenaAudio'
 import {
   getReactionArenaCueVisual,
+  getReactionArenaPracticeActionLabel,
+  getReactionArenaSuccessVisual,
 } from './ReactionArenaPresentation'
-import type { ReactionArenaSession } from './ReactionArenaSession'
+import type { ReactionArenaPracticeState } from './ReactionArenaPracticeCore'
+import type { ReactionArenaPlayableSession } from './ReactionArenaCanvas'
 
 const WIDTH = 1280
 const HEIGHT = 720
 
 /** Phaser only renders the normalized Reaction Arena state. */
 export class ReactionArenaScene extends Phaser.Scene {
-  readonly #session: ReactionArenaSession
+  readonly #session: ReactionArenaPlayableSession
   readonly #audio: ReactionArenaAudio | null
   #countdown!: Phaser.GameObjects.Text
   #cueLabel!: Phaser.GameObjects.Text
   #cuePrompt!: Phaser.GameObjects.Text
   #status!: Phaser.GameObjects.Text
+  #successMark!: Phaser.GameObjects.Text
   #grade!: Phaser.GameObjects.Text
   #speedZone!: Phaser.GameObjects.Text
+  #practiceHeading!: Phaser.GameObjects.Text
+  #practiceProgress!: Phaser.GameObjects.Text
+  #practiceRecognized!: Phaser.GameObjects.Text
+  #practiceFeedback!: Phaser.GameObjects.Text
   #cueGraphic!: Phaser.GameObjects.Graphics
   #presentationEventCount = 0
+  #practiceEventCount = 0
   #lastResultId = 0
   #lastCountdown = 0
   #bgmStarted = false
 
-  constructor(session: ReactionArenaSession, audio?: ReactionArenaAudio) {
+  constructor(session: ReactionArenaPlayableSession, audio?: ReactionArenaAudio) {
     super('reaction-arena')
     this.#session = session
     this.#audio = audio ?? null
@@ -50,10 +59,30 @@ export class ReactionArenaScene extends Phaser.Scene {
       color: '#ffffff', fontFamily: 'system-ui, sans-serif', fontSize: '30px', fontStyle: 'bold',
       stroke: '#182a5b', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(5)
+    this.#successMark = this.add.text(WIDTH / 2, 285, '✓', {
+      color: '#7dffcf', fontFamily: 'system-ui, sans-serif', fontSize: '150px', fontStyle: 'bold',
+      stroke: '#123e54', strokeThickness: 16,
+    }).setOrigin(0.5).setDepth(9).setVisible(false)
     this.#grade = this.add.text(WIDTH / 2, 175, '', {
       color: '#ffe57d', fontFamily: 'system-ui, sans-serif', fontSize: '62px', fontStyle: 'bold',
       stroke: '#482b72', strokeThickness: 10,
     }).setOrigin(0.5).setDepth(6).setVisible(false)
+    this.#practiceHeading = this.add.text(WIDTH / 2, 70, '動作測試', {
+      color: '#bff5ff', fontFamily: 'system-ui, sans-serif', fontSize: '44px', fontStyle: 'bold',
+      stroke: '#182a5b', strokeThickness: 8,
+    }).setOrigin(0.5).setDepth(6).setVisible(false)
+    this.#practiceProgress = this.add.text(WIDTH / 2, 125, '', {
+      color: '#fff4bd', fontFamily: 'system-ui, sans-serif', fontSize: '34px', fontStyle: 'bold',
+      stroke: '#182a5b', strokeThickness: 7,
+    }).setOrigin(0.5).setDepth(6).setVisible(false)
+    this.#practiceRecognized = this.add.text(WIDTH / 2, HEIGHT - 86, '', {
+      color: '#d7f6ff', fontFamily: 'system-ui, sans-serif', fontSize: '28px', fontStyle: 'bold',
+      stroke: '#182a5b', strokeThickness: 7,
+    }).setOrigin(0.5).setDepth(6).setVisible(false)
+    this.#practiceFeedback = this.add.text(WIDTH / 2, 335, '✓ 成功！', {
+      color: '#8dffd2', fontFamily: 'system-ui, sans-serif', fontSize: '104px', fontStyle: 'bold',
+      stroke: '#123e54', strokeThickness: 14,
+    }).setOrigin(0.5).setDepth(11).setVisible(false)
     this.#speedZone = this.add.text(WIDTH / 2, 265, 'SPEED ZONE!\n最後 10 秒！', {
       align: 'center', color: '#ffec73', fontFamily: 'system-ui, sans-serif', fontSize: '88px', fontStyle: 'bold',
       stroke: '#7d234f', strokeThickness: 14,
@@ -61,6 +90,10 @@ export class ReactionArenaScene extends Phaser.Scene {
   }
 
   update(): void {
+    if (this.#session.mode === 'PRACTICE') {
+      this.#updatePractice(this.#session.getState())
+      return
+    }
     const state = this.#session.getState()
     if (state.phase === 'COUNTDOWN') {
       this.#audio?.resetRoundAudio()
@@ -70,6 +103,8 @@ export class ReactionArenaScene extends Phaser.Scene {
       this.#cueGraphic.clear()
       this.#cueLabel.setText('').setVisible(false)
       this.#cuePrompt.setText('').setVisible(false)
+      this.#successMark.setVisible(false)
+      this.#grade.setVisible(false)
       if (!hasCountdownStarted(state)) {
         this.#lastCountdown = 0
         this.#countdown.setText('').setVisible(false)
@@ -91,6 +126,7 @@ export class ReactionArenaScene extends Phaser.Scene {
       this.#cueGraphic.clear()
       this.#cueLabel.setText('').setVisible(false)
       this.#cuePrompt.setText('').setVisible(false)
+      this.#successMark.setVisible(false)
       this.#status.setText('時間到！').setVisible(true)
       return
     }
@@ -111,8 +147,10 @@ export class ReactionArenaScene extends Phaser.Scene {
     if (state.lastResult && state.lastResult.cueId !== this.#lastResultId) {
       this.#lastResultId = state.lastResult.cueId
       if (state.lastResult.grade) {
-        this.#grade.setText(state.lastResult.grade).setAlpha(1).setVisible(true)
-        this.tweens.add({ targets: this.#grade, alpha: 0, duration: 420 })
+        const successVisual = getReactionArenaSuccessVisual(state.lastResult.grade)
+        this.#successMark.setText(successVisual.mark).setAlpha(1).setVisible(true)
+        this.#grade.setText(successVisual.grade).setAlpha(1).setVisible(true)
+        this.tweens.add({ targets: [this.#successMark, this.#grade], alpha: 0, delay: 520, duration: 280 })
         this.#audio?.play(state.lastResult.grade === 'PERFECT' ? 'PERFECT' : 'SUCCESS')
       }
     }
@@ -120,17 +158,47 @@ export class ReactionArenaScene extends Phaser.Scene {
     this.#status.setText('看提示，做出動作！').setVisible(true)
   }
 
+  #updatePractice(state: ReactionArenaPracticeState): void {
+    this.#audio?.stopBgm()
+    this.#countdown.setVisible(false)
+    this.#speedZone.setVisible(false)
+    this.#grade.setVisible(false)
+    this.#successMark.setVisible(false)
+    this.#status.setText('').setVisible(false)
+    if (state.presentationEvents.length < this.#practiceEventCount) this.#practiceEventCount = 0
+    for (const event of state.presentationEvents.slice(this.#practiceEventCount)) {
+      if (event.kind === 'PRACTICE_SUCCESS') {
+        this.#practiceFeedback.setText('✓ 成功！').setAlpha(1).setScale(0.82).setVisible(true)
+        this.tweens.add({ targets: this.#practiceFeedback, scale: 1, duration: 220 })
+        this.#audio?.play('SUCCESS')
+      }
+    }
+    this.#practiceEventCount = state.presentationEvents.length
+    this.#practiceHeading.setVisible(state.phase !== 'COMPLETE')
+    this.#practiceProgress.setText(`動作 ${Math.min(state.currentIndex + 1, 5)} / 5`).setVisible(state.phase !== 'COMPLETE')
+    this.#practiceRecognized
+      .setText(state.lastRecognizedAction
+        ? `已辨識：${getReactionArenaPracticeActionLabel(state.lastRecognizedAction)}`
+        : '尚未辨識動作')
+      .setVisible(state.phase !== 'COMPLETE')
+    this.#practiceFeedback.setVisible(state.phase === 'SUCCESS_FEEDBACK')
+    this.#drawCueKind(state.currentAction, true)
+  }
+
   #drawCue(state: ReactionArenaState): void {
+    this.#drawCueKind(state.currentCue?.kind ?? null, false)
+  }
+
+  #drawCueKind(kind: ReactionArenaCueKind | null, practice: boolean): void {
     this.#cueGraphic.clear()
-    const cue = state.currentCue
-    if (!cue) {
+    if (!kind) {
       this.#cueLabel.setVisible(false)
       this.#cuePrompt.setVisible(false)
       return
     }
-    const visual = getReactionArenaCueVisual(cue.kind)
-    this.#cueLabel.setText(visual.label).setVisible(true)
-    this.#cuePrompt.setText(visual.prompt).setVisible(true)
+    const visual = getReactionArenaCueVisual(kind)
+    this.#cueLabel.setText(practice ? getReactionArenaPracticeActionLabel(kind) : visual.label).setVisible(true)
+    this.#cuePrompt.setText(practice ? '目標' : visual.prompt).setVisible(true)
     if (visual.family === 'SIDE_GATE') {
       const x = visual.direction === 'LEFT' ? 180 : WIDTH - 180
       this.#cueGraphic.fillStyle(visual.direction === 'LEFT' ? 0x52d5ff : 0xffb75e, 0.25)

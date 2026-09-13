@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   getReactionArenaCueVisual,
   getReactionArenaOneShotEvents,
+  getReactionArenaPracticeActionLabel,
+  getReactionArenaSuccessVisual,
   type ReactionArenaPresentationState,
 } from './ReactionArenaPresentation'
 
@@ -29,5 +31,11 @@ describe('ReactionArenaPresentation', () => {
     expect(getReactionArenaOneShotEvents(base(), base({ combo: 5 }))).toEqual([
       { kind: 'COMBO_MILESTONE', value: 5 },
     ])
+  })
+
+  it('provides readable practice labels and strong success feedback semantics', () => {
+    expect(getReactionArenaPracticeActionLabel('REACH_LEFT')).toBe('左手伸出')
+    expect(getReactionArenaPracticeActionLabel('SQUAT')).toBe('蹲下')
+    expect(getReactionArenaSuccessVisual('GREAT')).toEqual({ mark: '✓', grade: 'GREAT', durationMs: 800 })
   })
 })

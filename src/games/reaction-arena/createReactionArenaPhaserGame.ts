@@ -1,12 +1,13 @@
 import Phaser from 'phaser'
 
 import type { ReactionArenaAudio } from './ReactionArenaAudio'
+import type { ReactionArenaPracticeSession } from './ReactionArenaPracticeSession'
 import { ReactionArenaScene } from './ReactionArenaScene'
 import type { ReactionArenaSession } from './ReactionArenaSession'
 
 export function createReactionArenaPhaserGame(
   parent: HTMLElement,
-  session: ReactionArenaSession,
+  session: ReactionArenaSession | ReactionArenaPracticeSession,
   audio?: ReactionArenaAudio,
 ): Phaser.Game {
   return new Phaser.Game({
