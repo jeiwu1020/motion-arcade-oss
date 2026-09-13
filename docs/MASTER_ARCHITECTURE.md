@@ -135,6 +135,15 @@ A future multi-sensor `SensorManager` will own control-scheme selection. Until t
 
 Phase 1B's `CameraController` → `PoseSensorSession` → `InferenceScheduler` → `PoseInferenceBackend` path remains the acquisition boundary and ends at a MediaPipe-independent `PoseSensorFrame`. Phase 1C continues through `PoseFeatureExtractor` → `PoseMotionAnalyzer` → `PoseMotionInputProvider`. Phase 1D.1 reuses the extractor and feeds `PoseFeatureFrame` to `PoseCalibrationSession`. Phase 1D.2 resolves validated v1 calibration into a session-specific `PoseMotionConfig` before analyzer construction. Phase 1D.3a composes bounded LOW_MOTION range scaling and timestamp-based SLOW_RESPONSE candidate timing into that same effective config. Phase 1D.3b resolves full-body versus upper-body baseline requirements in the same config and reports both readiness levels without changing the game-facing snapshot. Phase 2A.2a composes these existing layers in `PoseGameplayInputRuntime` and gates game time from coarse analyzer readiness without exposing thresholds, frames, or landmarks to the Game Core or Phaser. Phase 2A.3a adds a parallel `PoseSpatialHandTracker` there: it consumes the same Pose frame and publishes only immutable anatomical wrist availability/source coordinates, never raw landmarks or a second sensor pipeline.
 
+Reaction Arena's compact-space pass adds a parallel presentation-only adapter:
+`PoseTrackingSnapshotTracker`. It sanitizes the same Pose frame into immutable
+source-image coordinates/confidence/validity for 12 selected joints and resets
+with the runtime lifecycle. Camera Presentation uses the existing contain-fit
+and display-mirror boundary to render it; neither raw frames nor the snapshot
+reach Phaser or Game Core. The shared config also supports opt-in `KNEES`
+FULL_BODY readiness (core plus knees, optional ankles); default `STRICT`
+readiness and JUMP's real-ankle requirement remain unchanged.
+
 Phase 2A.2b adds no sensor ownership. `CameraPresentationStage` receives the same
 runtime-bound video ref and layers CSS treatment, framing guidance, transparent
 Phaser output, and React foreground UI. CSS mirrors only the DOM video;

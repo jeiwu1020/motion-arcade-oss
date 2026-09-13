@@ -36,8 +36,8 @@ const POSE_ACTION_IDS = [
 interface NeutralBaseline {
   readonly hipX: number
   readonly hipY: number
-  readonly leftAnkleY: number
-  readonly rightAnkleY: number
+  readonly leftAnkleY: number | null
+  readonly rightAnkleY: number | null
   readonly bodyScale: number
   readonly aspectRatio: number
 }
@@ -52,6 +52,8 @@ interface BaselineAccumulator {
   hipY: number
   leftAnkleY: number
   rightAnkleY: number
+  leftAnkleSamples: number
+  rightAnkleSamples: number
   bodyScale: number
   aspectRatio: number
 }
@@ -138,6 +140,7 @@ export class PoseMotionAnalyzer {
     this.#config = mergeConfig(overrides)
     this.#extractor = new PoseFeatureExtractor({
       minimumLandmarkConfidence: this.#config.minimumLandmarkConfidence,
+      lowerBodyReadiness: this.#config.lowerBodyReadiness,
     })
     this.#initializeActions(0)
   }
@@ -320,6 +323,8 @@ export class PoseMotionAnalyzer {
         hipY: features.hipMidpoint.y,
         leftAnkleY: features.leftAnkle.y,
         rightAnkleY: features.rightAnkle.y,
+        leftAnkleSamples: features.leftAnkle.valid ? 1 : 0,
+        rightAnkleSamples: features.rightAnkle.valid ? 1 : 0,
         bodyScale: features.bodyScale,
         aspectRatio: features.aspectRatio,
       }
@@ -333,8 +338,14 @@ export class PoseMotionAnalyzer {
     accumulator.samples += 1
     accumulator.hipX += features.hipMidpoint.x
     accumulator.hipY += features.hipMidpoint.y
-    accumulator.leftAnkleY += features.leftAnkle.y
-    accumulator.rightAnkleY += features.rightAnkle.y
+    if (features.leftAnkle.valid) {
+      accumulator.leftAnkleY += features.leftAnkle.y
+      accumulator.leftAnkleSamples += 1
+    }
+    if (features.rightAnkle.valid) {
+      accumulator.rightAnkleY += features.rightAnkle.y
+      accumulator.rightAnkleSamples += 1
+    }
     accumulator.bodyScale += features.bodyScale
     accumulator.aspectRatio += features.aspectRatio
     accumulator.lastValidTimestampMs = features.timestampMs
@@ -358,8 +369,14 @@ export class PoseMotionAnalyzer {
     this.#baseline = {
       hipX: accumulator.hipX / divisor,
       hipY: accumulator.hipY / divisor,
-      leftAnkleY: accumulator.leftAnkleY / divisor,
-      rightAnkleY: accumulator.rightAnkleY / divisor,
+      leftAnkleY:
+        accumulator.leftAnkleSamples > 0
+          ? accumulator.leftAnkleY / accumulator.leftAnkleSamples
+          : null,
+      rightAnkleY:
+        accumulator.rightAnkleSamples > 0
+          ? accumulator.rightAnkleY / accumulator.rightAnkleSamples
+          : null,
       bodyScale: accumulator.bodyScale / divisor,
       aspectRatio: accumulator.aspectRatio / divisor,
     }
@@ -695,11 +712,13 @@ export class PoseMotionAnalyzer {
       rawDepth,
       this.#config.smoothingAlpha,
     )
-    const kneeAngle =
-      (features.leftKnee.angleDegrees + features.rightKnee.angleDegrees) / 2
+    const kneeAnglesAvailable = features.leftKnee.valid && features.rightKnee.valid
+    const kneeAngle = kneeAnglesAvailable
+      ? (features.leftKnee.angleDegrees + features.rightKnee.angleDegrees) / 2
+      : null
     const enterCandidate =
       rawDepth >= this.#config.squat.enterDepthBodyUnits &&
-      kneeAngle <= this.#config.squat.maximumEnterKneeAngleDegrees
+      (kneeAngle === null || kneeAngle <= this.#config.squat.maximumEnterKneeAngleDegrees)
 
     if (this.#squatState === 'STANDING') {
       if (enterCandidate) {
@@ -757,14 +776,19 @@ export class PoseMotionAnalyzer {
     this.#setAction(
       'SQUAT',
       intensity,
-      Math.min(features.leftKnee.confidence, features.rightKnee.confidence),
+      Math.min(features.leftKneePoint.confidence, features.rightKneePoint.confidence),
       features.timestampMs,
     )
   }
 
   #analyzeJump(features: PoseFeatureFrame): void {
     const baseline = this.#baseline
-    if (!baseline || !features.fullBodyValid) {
+    if (
+      !baseline ||
+      !features.strictFullBodyValid ||
+      baseline.leftAnkleY === null ||
+      baseline.rightAnkleY === null
+    ) {
       this.#jumpState = 'GROUNDED'
       return
     }

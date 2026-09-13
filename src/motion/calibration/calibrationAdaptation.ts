@@ -76,6 +76,18 @@ export const POSE_CALIBRATION_ADAPTATION_LIMITS = Object.freeze({
   }),
 })
 
+/**
+ * LOW_MOTION retains deliberate anatomical reach intent while making the
+ * compact-space profile reachable without changing STANDARD gates.
+ */
+export const LOW_MOTION_REACH_GATES = Object.freeze({
+  enterScore: 0.56,
+  exitScore: 0.42,
+  minimumElbowAngleDegrees: 138,
+  minimumOutsideBodyUnits: 0.42,
+  minimumExtensionRatio: 0.7,
+})
+
 export interface PoseMotionAdaptedActions {
   readonly move: { readonly left: boolean; readonly right: boolean }
   readonly lean: { readonly left: boolean; readonly right: boolean }
@@ -271,6 +283,7 @@ export function resolvePoseMotionConfig(
     abilityProfile.reactionWindowScale,
   )
   const upperBodyMode = abilityProfile.bodyRange === 'UPPER_BODY'
+  const lowMotion = abilityProfile.profileIds.includes('LOW_MOTION')
   const canonicalCalibration =
     !upperBodyMode &&
     isCanonicalV1(calibration) &&
@@ -444,8 +457,28 @@ export function resolvePoseMotionConfig(
     lean: { left: leanLeft, right: leanRight },
     reach: {
       ...POSE_MOTION_CONFIG.reach,
-      left: reachLeft,
-      right: reachRight,
+      ...(lowMotion
+        ? {
+            enterScore: LOW_MOTION_REACH_GATES.enterScore,
+            exitScore: LOW_MOTION_REACH_GATES.exitScore,
+            minimumElbowAngleDegrees:
+              LOW_MOTION_REACH_GATES.minimumElbowAngleDegrees,
+            minimumOutsideBodyUnits:
+              LOW_MOTION_REACH_GATES.minimumOutsideBodyUnits,
+          }
+        : {}),
+      left: {
+        ...reachLeft,
+        ...(lowMotion
+          ? { minimumExtensionRatio: LOW_MOTION_REACH_GATES.minimumExtensionRatio }
+          : {}),
+      },
+      right: {
+        ...reachRight,
+        ...(lowMotion
+          ? { minimumExtensionRatio: LOW_MOTION_REACH_GATES.minimumExtensionRatio }
+          : {}),
+      },
     },
     squat,
   })

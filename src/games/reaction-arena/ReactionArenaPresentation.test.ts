@@ -34,6 +34,8 @@ describe('ReactionArenaPresentation', () => {
   })
 
   it('provides readable practice labels and strong success feedback semantics', () => {
+    expect(getReactionArenaPracticeActionLabel('LEFT')).toBe('向左移動或側傾')
+    expect(getReactionArenaPracticeActionLabel('RIGHT')).toBe('向右移動或側傾')
     expect(getReactionArenaPracticeActionLabel('REACH_LEFT')).toBe('左手伸出')
     expect(getReactionArenaPracticeActionLabel('SQUAT')).toBe('蹲下')
     expect(getReactionArenaSuccessVisual('GREAT')).toEqual({ mark: '✓', grade: 'GREAT', durationMs: 800 })

@@ -8,7 +8,7 @@ import { ReactionArenaPracticeSession } from './ReactionArenaPracticeSession'
 
 const REQUEST: MotionInputRequest = Object.freeze({
   players: Object.freeze([{ playerId: 'player-1', abilityProfile: resolveAbilityProfile(['STANDARD']) }]),
-  actions: Object.freeze(['MOVE_LEFT', 'MOVE_RIGHT', 'REACH_LEFT', 'REACH_RIGHT', 'SQUAT'] as const),
+  actions: Object.freeze(['MOVE_LEFT', 'MOVE_RIGHT', 'LEAN_LEFT', 'LEAN_RIGHT', 'REACH_LEFT', 'REACH_RIGHT', 'SQUAT'] as const),
   sensors: Object.freeze({ pose: false, hands: false, audio: false }),
 })
 
@@ -23,7 +23,7 @@ async function setup() {
 function trigger(
   provider: KeyboardMouseTestInputProvider,
   session: ReactionArenaPracticeSession,
-  action: 'MOVE_LEFT' | 'MOVE_RIGHT' | 'REACH_LEFT' | 'REACH_RIGHT' | 'SQUAT',
+  action: 'MOVE_LEFT' | 'MOVE_RIGHT' | 'LEAN_LEFT' | 'LEAN_RIGHT' | 'REACH_LEFT' | 'REACH_RIGHT' | 'SQUAT',
 ) {
   provider.triggerAction('player-1', action)
   provider.update(16)
@@ -56,6 +56,18 @@ describe('ReactionArenaPracticeSession', () => {
 
     session.tick(16, { setupReady: true, hardFailure: false })
     expect(session.getState().currentAction).toBe('RIGHT')
+  })
+
+  it('treats a new canonical LEAN occurrence as the same directional practice action', async () => {
+    const { provider, session } = await setup()
+
+    trigger(provider, session, 'LEAN_LEFT')
+
+    expect(session.getState()).toMatchObject({
+      phase: 'SUCCESS_FEEDBACK',
+      currentAction: 'LEFT',
+      lastRecognizedAction: 'LEFT',
+    })
   })
 
   it('does not expire without input and replay resets the ordered practice', async () => {

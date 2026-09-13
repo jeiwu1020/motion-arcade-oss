@@ -1,5 +1,8 @@
 import type { CoordinateTransform } from '../coordinates/normalizeCoordinates'
 
+/** Which lower-body landmarks must be genuinely valid for FULL_BODY readiness. */
+export type PoseLowerBodyReadiness = 'STRICT' | 'KNEES'
+
 export interface DirectionalBodyRangeConfig {
   readonly enterBodyUnits: number
   readonly exitBodyUnits: number
@@ -13,6 +16,8 @@ export interface ReachNormalizationConfig {
 
 export interface PoseMotionConfig {
   readonly bodyTrackingMode: 'FULL_BODY' | 'UPPER_BODY'
+  /** STRICT requires knees and ankles; KNEES keeps ankles optional for compact spaces. */
+  readonly lowerBodyReadiness: PoseLowerBodyReadiness
   readonly coordinateTransform: CoordinateTransform
   readonly minimumLandmarkConfidence: number
   readonly staleAfterMs: number
@@ -77,6 +82,7 @@ const STANDARD_REACH_NORMALIZATION = Object.freeze({
 
 export const POSE_MOTION_CONFIG: PoseMotionConfig = Object.freeze({
   bodyTrackingMode: 'FULL_BODY',
+  lowerBodyReadiness: 'STRICT',
   coordinateTransform: Object.freeze({ sourceCoordinates: 'MIRRORED' as const }),
   minimumLandmarkConfidence: 0.55,
   staleAfterMs: 250,

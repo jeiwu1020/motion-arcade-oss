@@ -6,6 +6,7 @@ import type {
   PoseFeaturePoint,
   PoseJointFeature,
 } from './poseMotionTypes'
+import type { PoseLowerBodyReadiness } from './poseMotionConfig'
 
 const LANDMARK_INDEX = {
   leftShoulder: 11,
@@ -24,6 +25,7 @@ const LANDMARK_INDEX = {
 
 export interface PoseFeatureExtractorOptions {
   readonly minimumLandmarkConfidence?: number
+  readonly lowerBodyReadiness?: PoseLowerBodyReadiness
 }
 
 function confidenceOf(landmark: PoseLandmark | undefined): number {
@@ -149,11 +151,13 @@ function armFeature(
 
 export class PoseFeatureExtractor {
   readonly #minimumConfidence: number
+  readonly #lowerBodyReadiness: PoseLowerBodyReadiness
 
   constructor(options: PoseFeatureExtractorOptions = {}) {
     this.#minimumConfidence = clamp01(
       options.minimumLandmarkConfidence ?? 0.55,
     )
+    this.#lowerBodyReadiness = options.lowerBodyReadiness ?? 'STRICT'
   }
 
   extract(frame: PoseSensorFrame): PoseFeatureFrame {
@@ -220,12 +224,18 @@ export class PoseFeatureExtractor {
     )
     const shoulderWidth = distance(leftShoulder, rightShoulder, aspectRatio)
     const coreValid = shoulderMidpoint.valid && hipMidpoint.valid
-    const fullBodyValid =
+    const kneesBodyValid =
       coreValid &&
       leftKneePoint.valid &&
-      rightKneePoint.valid &&
+      rightKneePoint.valid
+    const strictFullBodyValid =
+      kneesBodyValid &&
       leftAnkle.valid &&
       rightAnkle.valid
+    const fullBodyValid =
+      this.#lowerBodyReadiness === 'KNEES'
+        ? kneesBodyValid
+        : strictFullBodyValid
     const corePoints = [leftShoulder, rightShoulder, leftHip, rightHip]
 
     return {
@@ -234,6 +244,8 @@ export class PoseFeatureExtractor {
       aspectRatio,
       trackingConfidence: Math.min(...corePoints.map(({ confidence }) => confidence)),
       coreValid,
+      kneesBodyValid,
+      strictFullBodyValid,
       fullBodyValid,
       shoulderMidpoint,
       hipMidpoint,
@@ -250,6 +262,8 @@ export class PoseFeatureExtractor {
       rightWrist,
       leftHip,
       rightHip,
+      leftKneePoint,
+      rightKneePoint,
       leftKnee: jointFeature(
         leftHip,
         leftKneePoint,

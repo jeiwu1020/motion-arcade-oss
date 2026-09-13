@@ -4,6 +4,7 @@ import { CameraPresentationStage } from '../../components/camera-presentation/Ca
 import { resolveCameraPresentation } from '../../components/camera-presentation/cameraPresentationModel'
 import { PoseMotionInputProvider } from '../../motion/pose/PoseMotionInputProvider'
 import { PoseGameplayInputRuntime, type PoseGameplayInputSnapshot } from '../../motion/runtime/PoseGameplayInputRuntime'
+import type { PoseTrackingSnapshot } from '../../motion/contracts/poseTracking'
 import { resolveAbilityProfile } from '../../motion/adaptive/profiles'
 import { ReactionArenaAudio } from './ReactionArenaAudio'
 import { ReactionArenaCanvas } from './ReactionArenaCanvas'
@@ -13,8 +14,8 @@ import './ReactionArenaGameScreen.css'
 
 // oxlint-disable-next-line react/only-export-components
 export const REACTION_ARENA_POSE_INPUT_REQUEST = Object.freeze({
-  players: Object.freeze([{ playerId: 'player-1', abilityProfile: resolveAbilityProfile(['STANDARD']) }]),
-  actions: Object.freeze(['MOVE_LEFT', 'MOVE_RIGHT', 'REACH_LEFT', 'REACH_RIGHT', 'SQUAT'] as const),
+  players: Object.freeze([{ playerId: 'player-1', abilityProfile: resolveAbilityProfile(['LOW_MOTION']) }]),
+  actions: Object.freeze(['MOVE_LEFT', 'MOVE_RIGHT', 'LEAN_LEFT', 'LEAN_RIGHT', 'REACH_LEFT', 'REACH_RIGHT', 'SQUAT'] as const),
   sensors: Object.freeze({ pose: true, hands: false, audio: false }),
 })
 
@@ -38,7 +39,7 @@ export default function ReactionArenaPoseGameScreen({ onExit }: ReactionArenaPos
   const videoRef = useRef<HTMLVideoElement>(null)
   const runtimeRef = useRef<PoseGameplayInputRuntime | null>(null)
   const activeSessionRef = useRef<ReactionArenaSession | ReactionArenaPracticeSession | null>(null)
-  const [provider] = useState(() => new PoseMotionInputProvider())
+  const [provider] = useState(() => new PoseMotionInputProvider({ lowerBodyReadiness: 'KNEES' }))
   const [gameSession] = useState(() => new ReactionArenaSession(provider))
   const [practiceSession] = useState(() => new ReactionArenaPracticeSession(provider))
   const [audio] = useState(() => new ReactionArenaAudio())
@@ -47,6 +48,7 @@ export default function ReactionArenaPoseGameScreen({ onExit }: ReactionArenaPos
   const previousSessionRef = useRef(activeSession)
   const initialSessionRef = useRef(activeSession)
   const [poseSnapshot, setPoseSnapshot] = useState(INITIAL_SNAPSHOT)
+  const [poseTrackingSnapshot, setPoseTrackingSnapshot] = useState<PoseTrackingSnapshot | null>(null)
   const [, setSessionRevision] = useState(0)
 
   useEffect(() => {
@@ -63,13 +65,21 @@ export default function ReactionArenaPoseGameScreen({ onExit }: ReactionArenaPos
     const runtime = new PoseGameplayInputRuntime({ getVideo: () => videoRef.current, provider, framingRequirement: 'FULL_BODY' })
     runtimeRef.current = runtime
     setPoseSnapshot(runtime.getSnapshot())
-    const unsubscribe = runtime.subscribe(() => setPoseSnapshot(runtime.getSnapshot()))
+    const updateRuntimePresentation = () => {
+      setPoseSnapshot(runtime.getSnapshot())
+      setPoseTrackingSnapshot(runtime.getPoseTrackingSnapshot())
+    }
+    const unsubscribe = runtime.subscribe(updateRuntimePresentation)
     let cancelled = false
     let animationFrame = 0
     let previousTime = performance.now()
     const frame = (time: number) => {
       void runtime.update(time)
       const snapshot = runtime.getSnapshot()
+      const trackingSnapshot = runtime.getPoseTrackingSnapshot()
+      setPoseTrackingSnapshot((current) =>
+        current?.sequence === trackingSnapshot.sequence ? current : trackingSnapshot,
+      )
       activeSessionRef.current?.tick(time - previousTime, {
         setupReady: snapshot.status === 'READY',
         hardFailure: snapshot.status === 'ERROR' || snapshot.status === 'CAMERA_NOT_STARTED',
@@ -88,6 +98,7 @@ export default function ReactionArenaPoseGameScreen({ onExit }: ReactionArenaPos
       cancelAnimationFrame(animationFrame)
       unsubscribe()
       if (runtimeRef.current === runtime) runtimeRef.current = null
+      setPoseTrackingSnapshot(null)
       void Promise.all([gameSession.stop(), practiceSession.stop(), runtime.dispose(), audio.dispose()])
     }
   }, [audio, gameSession, practiceSession, provider])
@@ -136,6 +147,9 @@ export default function ReactionArenaPoseGameScreen({ onExit }: ReactionArenaPos
         : mode === 'GAME' && gameState.phase === 'FINISHED'
           ? <ReactionArenaResult state={gameState} onReplay={() => gameSession.replay()} onExit={onExit} />
           : null}
+      {...(poseTrackingSnapshot ? { poseTrackingSnapshot } : {})}
+      showPoseTrackingOverlay={mode === 'PRACTICE' || presentation.mode !== 'PLAYING'}
+      framingInstruction="請讓頭、肩、髖部與雙膝清楚入鏡，腳踝可暫時離開畫面"
     >
       <ReactionArenaCanvas session={activeSession} audio={audio} />
     </CameraPresentationStage>

@@ -88,6 +88,42 @@
   pointer-events: none;
 }
 
+.camera-presentation-pose-tracking {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+
+.camera-presentation-pose-tracking-svg {
+  display: block;
+  overflow: visible;
+}
+
+.camera-presentation-pose-bone,
+.camera-presentation-pose-joint {
+  vector-effect: non-scaling-stroke;
+  stroke: rgb(113 238 255 / 92%);
+  filter: drop-shadow(0 0 0.28rem rgb(5 20 35 / 82%));
+}
+
+.camera-presentation-pose-bone {
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.camera-presentation-pose-joint {
+  fill: rgb(113 238 255 / 82%);
+  stroke-width: 2;
+}
+
+.camera-presentation-pose-bone[data-pose-confidence='LOW'],
+.camera-presentation-pose-joint[data-pose-confidence='LOW'] {
+  stroke: rgb(255 191 90 / 74%);
+  fill: rgb(255 191 90 / 58%);
+  opacity: 0.7;
+}
+
 .camera-presentation-spatial-diagnostic-title {
   position: absolute;
   top: 0.7rem;

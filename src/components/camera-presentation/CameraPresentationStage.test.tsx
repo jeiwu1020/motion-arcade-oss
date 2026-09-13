@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
+import type { PoseTrackingSnapshot } from '../../motion/contracts/poseTracking'
 import { CameraPresentationStage } from './CameraPresentationStage'
 import { resolveCameraPresentation } from './cameraPresentationModel'
 
@@ -18,6 +19,26 @@ const SPATIAL_SNAPSHOT: SpatialHandSnapshot = Object.freeze({
     availability: 'UNAVAILABLE' as const,
     timestampMs: 100,
     sequence: 1,
+  }),
+})
+
+const POSE_TRACKING_SNAPSHOT: PoseTrackingSnapshot = Object.freeze({
+  timestampMs: 100,
+  sequence: 1,
+  posePresent: true,
+  joints: Object.freeze({
+    leftShoulder: { x: 0.6, y: 0.3, confidence: 0.9, valid: true },
+    rightShoulder: { x: 0.4, y: 0.3, confidence: 0.9, valid: true },
+    leftElbow: { x: 0.65, y: 0.4, confidence: 0.9, valid: true },
+    rightElbow: { x: 0.35, y: 0.4, confidence: 0.9, valid: true },
+    leftWrist: { x: 0.8, y: 0.5, confidence: 0.9, valid: true },
+    rightWrist: { x: 0.2, y: 0.5, confidence: 0.9, valid: true },
+    leftHip: { x: 0.55, y: 0.55, confidence: 0.9, valid: true },
+    rightHip: { x: 0.45, y: 0.55, confidence: 0.9, valid: true },
+    leftKnee: { x: 0.55, y: 0.7, confidence: 0.9, valid: true },
+    rightKnee: { x: 0.45, y: 0.7, confidence: 0.9, valid: true },
+    leftAnkle: { x: 0.55, y: 0.9, confidence: 0.9, valid: true },
+    rightAnkle: { x: 0.45, y: 0.9, confidence: 0.9, valid: true },
   }),
 })
 
@@ -143,6 +164,46 @@ describe('CameraPresentationStage', () => {
     )
 
     expect(markup).not.toContain('data-spatial-diagnostic="engineering"')
+  })
+
+  it('adds sanitized Pose tracking feedback only when the caller enables it', () => {
+    const markup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'BASELINING', error: null },
+          'COUNTDOWN',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+        poseTrackingSnapshot={POSE_TRACKING_SNAPSHOT}
+        showPoseTrackingOverlay
+      >
+        <div>GAME PLAYFIELD</div>
+      </CameraPresentationStage>,
+    )
+
+    expect(markup).toContain('data-pose-tracking-overlay="visible"')
+    expect(markup).not.toContain('data-spatial-diagnostic="engineering"')
+  })
+
+  it('allows a FULL_BODY game to supply compact-space setup copy without changing framing semantics', () => {
+    const markup = renderToStaticMarkup(
+      <CameraPresentationStage
+        presentation={resolveCameraPresentation(
+          { status: 'BASELINING', error: null },
+          'COUNTDOWN',
+          'FULL_BODY',
+        )}
+        videoRef={createRef<HTMLVideoElement>()}
+        onStartCamera={() => undefined}
+        framingInstruction="請讓頭、肩、髖部與雙膝清楚入鏡，腳踝可暫時離開畫面"
+      >
+        <div />
+      </CameraPresentationStage>,
+    )
+
+    expect(markup).toContain('data-framing-requirement="FULL_BODY"')
+    expect(markup).toContain('腳踝可暫時離開畫面')
   })
 
   it('renders a broad upper-body alignment silhouette with presentation-only guidance copy', () => {

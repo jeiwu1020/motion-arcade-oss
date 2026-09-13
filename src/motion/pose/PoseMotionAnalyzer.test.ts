@@ -70,6 +70,43 @@ describe('PoseMotionAnalyzer baseline and quality', () => {
     expect(analyzer.getSnapshot(900).quality).toBe('LIMITED')
   })
 
+  it('allows an explicit knees-only full-body baseline without fabricating ankle data', () => {
+    const analyzer = new PoseMotionAnalyzer({ lowerBodyReadiness: 'KNEES' })
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      let frame = withLandmarkConfidence(
+        createSyntheticPoseFrame('neutral', { timestampMs }),
+        27,
+        0.1,
+      )
+      frame = withLandmarkConfidence(frame, 28, 0.1)
+      analyzer.ingest(frame)
+    }
+
+    expect(analyzer.getSnapshot(900)).toMatchObject({
+      baselineReady: true,
+      fullBodyReady: true,
+      quality: 'READY',
+    })
+    expect(analyzer.getSnapshot(900).actions.JUMP?.value).toBe(0)
+  })
+
+  it('still blocks knees-only compact readiness when either required knee is missing', () => {
+    const analyzer = new PoseMotionAnalyzer({ lowerBodyReadiness: 'KNEES' })
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      analyzer.ingest(withLandmarkConfidence(
+        createSyntheticPoseFrame('neutral', { timestampMs }),
+        25,
+        0.1,
+      ))
+    }
+
+    expect(analyzer.getSnapshot(900)).toMatchObject({
+      baselineReady: false,
+      fullBodyReady: false,
+      quality: 'LIMITED',
+    })
+  })
+
   it('preserves full-body baseline progress across a brief lower-body dropout', () => {
     const analyzer = new PoseMotionAnalyzer()
     analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 0 }))
@@ -297,6 +334,37 @@ describe('PoseMotionAnalyzer REACH and SQUAT', () => {
     analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 1_150 }))
     analyzer.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 1_200 }))
     expect(numericAction(analyzer, 'SQUAT', 1_200)).toBe(0)
+  })
+
+  it('lets explicit knees-only compact tracking recognize deliberate hip descent without ankles', () => {
+    const analyzer = new PoseMotionAnalyzer({
+      lowerBodyReadiness: 'KNEES',
+      squat: {
+        enterDepthBodyUnits: 0.18,
+        exitDepthBodyUnits: 0.1,
+        fullDepthBodyUnits: 0.39,
+        maximumEnterKneeAngleDegrees: 155,
+      },
+    })
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      let frame = withLandmarkConfidence(
+        createSyntheticPoseFrame('neutral', { timestampMs }),
+        27,
+        0.1,
+      )
+      frame = withLandmarkConfidence(frame, 28, 0.1)
+      analyzer.ingest(frame)
+    }
+    let squat = withLandmarkConfidence(
+      createSyntheticPoseFrame('squat', { timestampMs: 1_000 }),
+      27,
+      0.1,
+    )
+    squat = withLandmarkConfidence(squat, 28, 0.1)
+    analyzer.ingest(squat)
+    analyzer.ingest({ ...squat, timestampMs: 1_050 })
+
+    expect(numericAction(analyzer, 'SQUAT', 1_050)).toBeGreaterThan(0)
   })
 })
 

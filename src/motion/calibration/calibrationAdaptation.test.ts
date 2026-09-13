@@ -275,7 +275,7 @@ describe('resolvePoseMotionConfig bounded adaptation', () => {
     })
     expect(resolved.config.lean.left.fullIntensityBodyUnits).toBeCloseTo(0.33)
     expect(resolved.config.reach.left).toEqual({
-      minimumExtensionRatio: 0.75,
+      minimumExtensionRatio: 0.7,
       fullExtensionRatio: 0.9,
     })
     expect(resolved.config.squat).toMatchObject({
@@ -285,6 +285,25 @@ describe('resolvePoseMotionConfig bounded adaptation', () => {
     })
     expect(resolved.config.squat.fullDepthBodyUnits).toBeCloseTo(0.39)
     expect(resolved.config.jump).toEqual(POSE_MOTION_CONFIG.jump)
+  })
+
+  it('uses the compact LOW_MOTION reach gates while STANDARD remains byte-for-byte default', () => {
+    const lowMotion = resolvePoseMotionConfig(
+      undefined,
+      resolveAbilityProfile(['LOW_MOTION']),
+    )
+
+    expect(resolvePoseMotionConfig(undefined, STANDARD).config.reach).toEqual(
+      POSE_MOTION_CONFIG.reach,
+    )
+    expect(lowMotion.config.reach).toMatchObject({
+      enterScore: 0.56,
+      exitScore: 0.42,
+      minimumElbowAngleDegrees: 138,
+      minimumOutsideBodyUnits: 0.42,
+      left: { minimumExtensionRatio: 0.7 },
+      right: { minimumExtensionRatio: 0.7 },
+    })
   })
 
   it('applies SLOW_RESPONSE timing without reducing physical range', () => {

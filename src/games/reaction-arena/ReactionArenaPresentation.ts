@@ -47,8 +47,8 @@ export function getReactionArenaCueVisual(kind: ReactionArenaCueKind): ReactionA
 
 export function getReactionArenaPracticeActionLabel(kind: ReactionArenaCueKind): string {
   switch (kind) {
-    case 'LEFT': return '向左移動'
-    case 'RIGHT': return '向右移動'
+    case 'LEFT': return '向左移動或側傾'
+    case 'RIGHT': return '向右移動或側傾'
     case 'REACH_LEFT': return '左手伸出'
     case 'REACH_RIGHT': return '右手伸出'
     case 'SQUAT': return '蹲下'

@@ -1,8 +1,10 @@
 import type { MotionInputRequest } from '../contracts/motion'
 import type { SpatialHandSnapshot } from '../contracts/spatial'
+import type { PoseTrackingSnapshot } from '../contracts/poseTracking'
 import { PoseMotionInputProvider } from '../pose/PoseMotionInputProvider'
 import type { PoseMotionAnalyzerSnapshot } from '../pose/poseMotionTypes'
 import { PoseSpatialHandTracker } from '../spatial/PoseSpatialHandTracker'
+import { PoseTrackingSnapshotTracker } from '../tracking/PoseTrackingSnapshotTracker'
 import {
   CameraController,
   CameraControllerError,
@@ -131,6 +133,7 @@ export class PoseGameplayInputRuntime {
   readonly #now: () => number
   readonly #provider: PoseMotionInputProvider
   readonly #spatialHands = new PoseSpatialHandTracker()
+  readonly #poseTracking = new PoseTrackingSnapshotTracker()
   readonly #listeners = new Set<Listener>()
   #session: PoseSensorSession | null = null
   #snapshot = INITIAL_SNAPSHOT
@@ -168,6 +171,11 @@ export class PoseGameplayInputRuntime {
     return this.#spatialHands.getSnapshot(this.#now())
   }
 
+  /** Sanitized selected-joint feedback for Camera Presentation only. */
+  getPoseTrackingSnapshot(): PoseTrackingSnapshot {
+    return this.#poseTracking.getSnapshot(this.#now())
+  }
+
   start(request: MotionInputRequest): Promise<void> {
     if (this.#disposed) {
       return Promise.reject(new Error('Pose gameplay runtime is disposed.'))
@@ -195,6 +203,7 @@ export class PoseGameplayInputRuntime {
     this.#hasBeenReady = false
     this.#lastFullyReadyAtMs = undefined
     this.#spatialHands.reset(this.#now())
+    this.#poseTracking.reset(this.#now())
     await Promise.all([
       this.#session?.stop(),
       this.#provider.stop(),
@@ -210,6 +219,7 @@ export class PoseGameplayInputRuntime {
     this.#hasBeenReady = false
     this.#lastFullyReadyAtMs = undefined
     this.#spatialHands.reset(this.#now())
+    this.#poseTracking.reset(this.#now())
     const session = this.#session
     this.#session = null
     await Promise.all([session?.dispose(), this.#provider.stop()])
@@ -316,6 +326,7 @@ export class PoseGameplayInputRuntime {
 
   #handleInferenceResult(result: PoseInferenceResult): void {
     this.#spatialHands.ingest(result.frame)
+    this.#poseTracking.ingest(result.frame)
     this.#provider.ingest(result.frame)
     this.#refreshReadiness()
   }
@@ -333,6 +344,7 @@ export class PoseGameplayInputRuntime {
       this.#hasBeenReady = false
       this.#lastFullyReadyAtMs = undefined
       this.#spatialHands.reset(this.#now())
+      this.#poseTracking.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot('CAMERA_NOT_STARTED', null)
       return
@@ -341,6 +353,7 @@ export class PoseGameplayInputRuntime {
       this.#hasBeenReady = false
       this.#lastFullyReadyAtMs = undefined
       this.#spatialHands.reset(this.#now())
+      this.#poseTracking.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot(
         'ERROR',

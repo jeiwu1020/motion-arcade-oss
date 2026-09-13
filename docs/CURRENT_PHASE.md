@@ -55,6 +55,15 @@ thresholds, or preserve stale actions; sustained loss still follows the normal
 TRACKING_LOST path. Physical validation of the stability improvement remains
 open.
 
+Reaction Arena's compact-space Pose pass is engineering implemented. It retains
+`FULL_BODY` but opts into typed `KNEES` readiness: shoulders, hips, and both
+knees remain required at the global `0.55` threshold while ankles may be
+absent. Default `STRICT` FULL_BODY games and Balloon Rally's UPPER_BODY path
+are unchanged. Reaction Arena uses existing LOW_MOTION, accepts MOVE or LEAN
+for directional cues, uses bounded compact reach and hip-led squat behavior,
+and provides a selected-12-joint in-memory Pose skeleton for setup/Practice.
+Windows/iPhone compact-space validation remains open.
+
 Balloon Rally remains the validated Phase 2A production reference:
 
 Engineering status: v3 gameplay/presentation implementation complete; final

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
 import type { SpatialHandSnapshot } from '../../motion/contracts/spatial'
+import type { PoseTrackingSnapshot } from '../../motion/contracts/poseTracking'
+import { CameraPoseTrackingOverlay } from './CameraPoseTrackingOverlay'
 import { CameraSpatialDiagnosticOverlay } from './CameraSpatialDiagnosticOverlay'
 import type { CameraPresentation } from './cameraPresentationModel'
 import type {
@@ -18,6 +20,10 @@ export interface CameraPresentationStageProps {
   readonly className?: string
   readonly spatialSnapshot?: SpatialHandSnapshot
   readonly showSpatialDiagnostic?: boolean
+  readonly poseTrackingSnapshot?: PoseTrackingSnapshot
+  readonly showPoseTrackingOverlay?: boolean
+  /** Game-local setup copy; it does not change the selected framing requirement. */
+  readonly framingInstruction?: string
   readonly onSpatialLayoutChange?: (
     layout: CameraPresentationSpatialLayout,
   ) => void
@@ -110,6 +116,9 @@ export function CameraPresentationStage({
   className,
   spatialSnapshot,
   showSpatialDiagnostic = false,
+  poseTrackingSnapshot,
+  showPoseTrackingOverlay = false,
+  framingInstruction,
   onSpatialLayoutChange,
 }: CameraPresentationStageProps) {
   const stageRef = useRef<HTMLElement>(null)
@@ -151,6 +160,18 @@ export function CameraPresentationStage({
         <CameraSpatialDiagnosticOverlay
           snapshot={spatialSnapshot}
           sourceDimensions={sourceDimensions}
+          stageDimensions={stageDimensions}
+        />
+      ) : null}
+
+      {poseTrackingSnapshot && showPoseTrackingOverlay ? (
+        <CameraPoseTrackingOverlay
+          snapshot={poseTrackingSnapshot}
+          sourceDimensions={
+            sourceDimensions.width > 0 && sourceDimensions.height > 0
+              ? sourceDimensions
+              : null
+          }
           stageDimensions={stageDimensions}
         />
       ) : null}
@@ -250,9 +271,9 @@ export function CameraPresentationStage({
           )}
         </svg>
         <span>
-          {presentation.framingRequirement === 'UPPER_BODY'
+          {framingInstruction ?? (presentation.framingRequirement === 'UPPER_BODY'
             ? '請將上半身移到人形範圍內'
-            : '請將全身移到人形範圍內'}
+            : '請將全身移到人形範圍內')}
         </span>
       </div>
 

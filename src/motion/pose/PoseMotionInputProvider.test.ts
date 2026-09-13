@@ -7,6 +7,7 @@ import { PoseMotionInputProvider } from './PoseMotionInputProvider'
 import { POSE_MOTION_CONFIG } from './poseMotionConfig'
 import {
   createSyntheticPoseFrame,
+  withLandmarkConfidence,
   withPoseTranslation,
 } from './syntheticPoseFixtures'
 
@@ -265,6 +266,38 @@ describe('PoseMotionInputProvider', () => {
     expect(provider.getEffectiveConfig().source).toBe('STANDARD')
     expect(provider.getEffectiveConfig().config).toEqual(POSE_MOTION_CONFIG)
     expect(provider.getDiagnostics().baselineReady).toBe(false)
+  })
+
+  it('keeps STRICT full-body readiness by default but supports an explicit knees-only compact session', async () => {
+    const nowRef = { value: 0 }
+    const compact = new PoseMotionInputProvider({
+      now: () => nowRef.value,
+      lowerBodyReadiness: 'KNEES',
+    })
+    await compact.start({
+      ...request(['SQUAT']),
+      players: [{
+        playerId: 'player-1',
+        abilityProfile: resolveAbilityProfile(['LOW_MOTION']),
+      }],
+    })
+    for (let timestampMs = 0; timestampMs <= 900; timestampMs += 100) {
+      nowRef.value = timestampMs
+      let frame = withLandmarkConfidence(
+        createSyntheticPoseFrame('neutral', { timestampMs }),
+        27,
+        0.1,
+      )
+      frame = withLandmarkConfidence(frame, 28, 0.1)
+      compact.ingest(frame)
+    }
+
+    expect(compact.getDiagnostics()).toMatchObject({
+      baselineReady: true,
+      fullBodyReady: true,
+      quality: 'READY',
+    })
+    expect(compact.getEffectiveConfig().config.lowerBodyReadiness).toBe('KNEES')
   })
 
   it('resolves functional range and reaction profiles once per provider start', async () => {

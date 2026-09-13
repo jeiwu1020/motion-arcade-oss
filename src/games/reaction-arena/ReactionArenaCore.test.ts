@@ -5,6 +5,7 @@ import {
   advanceReactionArena,
   createReactionArenaState,
   hasReactionArenaCountdownStarted,
+  normalizeReactionArenaAction,
   replayReactionArena,
   type ReactionArenaActionAttempt,
 } from './ReactionArenaCore'
@@ -62,6 +63,14 @@ function resolveCurrentCue(
 }
 
 describe('ReactionArenaCore', () => {
+  it('accepts MOVE and LEAN occurrences as the same canonical left or right cue without reversing sides', () => {
+    expect(normalizeReactionArenaAction('MOVE_LEFT')).toBe('LEFT')
+    expect(normalizeReactionArenaAction('LEAN_LEFT')).toBe('LEFT')
+    expect(normalizeReactionArenaAction('MOVE_RIGHT')).toBe('RIGHT')
+    expect(normalizeReactionArenaAction('LEAN_RIGHT')).toBe('RIGHT')
+    expect(normalizeReactionArenaAction('LEAN_RIGHT')).not.toBe('LEFT')
+  })
+
   it('recognizes that visible countdown starts only after the initial state advances', () => {
     expect(hasReactionArenaCountdownStarted(REACTION_ARENA_RULES.countdownMs)).toBe(false)
     expect(hasReactionArenaCountdownStarted(REACTION_ARENA_RULES.countdownMs - 1)).toBe(true)

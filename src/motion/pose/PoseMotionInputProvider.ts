@@ -16,12 +16,17 @@ import type {
 } from '../contracts/motion'
 import type { PoseSensorFrame } from '../../sensors/pose/poseTypes'
 import { PoseMotionAnalyzer } from './PoseMotionAnalyzer'
-import { POSE_MOTION_CONFIG } from './poseMotionConfig'
+import {
+  POSE_MOTION_CONFIG,
+  type PoseLowerBodyReadiness,
+} from './poseMotionConfig'
 import type { PoseMotionAnalyzerSnapshot } from './poseMotionTypes'
 
 export interface PoseMotionInputProviderOptions {
   readonly now?: () => number
   readonly analyzer?: PoseMotionAnalyzer
+  /** Opt-in per provider session; default preserves strict FULL_BODY readiness. */
+  readonly lowerBodyReadiness?: PoseLowerBodyReadiness
 }
 
 function frozenIdleAction(
@@ -44,6 +49,7 @@ export class PoseMotionInputProvider implements MotionInputProvider {
 
   readonly #now: () => number
   readonly #injectedAnalyzer: PoseMotionAnalyzer | undefined
+  readonly #lowerBodyReadiness: PoseLowerBodyReadiness
   #analyzer: PoseMotionAnalyzer
   #effectiveConfig: ResolvedPoseMotionConfig
   readonly #listeners = new Set<() => void>()
@@ -56,6 +62,7 @@ export class PoseMotionInputProvider implements MotionInputProvider {
   constructor(options: PoseMotionInputProviderOptions = {}) {
     this.#now = options.now ?? (() => performance.now())
     this.#injectedAnalyzer = options.analyzer
+    this.#lowerBodyReadiness = options.lowerBodyReadiness ?? 'STRICT'
     this.#effectiveConfig = resolvePoseMotionConfig(
       undefined,
       resolveAbilityProfile(['STANDARD']),
@@ -73,10 +80,11 @@ export class PoseMotionInputProvider implements MotionInputProvider {
     this.#request = request
     this.#running = true
     const requestedPlayer = request.players[0]
-    this.#effectiveConfig = resolvePoseMotionConfig(
+    const resolvedConfig = resolvePoseMotionConfig(
       requestedPlayer?.calibration,
       requestedPlayer?.abilityProfile ?? resolveAbilityProfile(['STANDARD']),
     )
+    this.#effectiveConfig = this.#withLowerBodyReadiness(resolvedConfig)
     this.#analyzer =
       this.#effectiveConfig.config === POSE_MOTION_CONFIG && this.#injectedAnalyzer
         ? this.#injectedAnalyzer
@@ -188,6 +196,21 @@ export class PoseMotionInputProvider implements MotionInputProvider {
       playerId: requestedPlayer.playerId,
       abilityProfile: requestedPlayer.abilityProfile,
       actions: Object.freeze(actions),
+    })
+  }
+
+  #withLowerBodyReadiness(
+    resolved: ResolvedPoseMotionConfig,
+  ): ResolvedPoseMotionConfig {
+    if (this.#lowerBodyReadiness === resolved.config.lowerBodyReadiness) {
+      return resolved
+    }
+    return Object.freeze({
+      ...resolved,
+      config: Object.freeze({
+        ...resolved.config,
+        lowerBodyReadiness: this.#lowerBodyReadiness,
+      }),
     })
   }
 }

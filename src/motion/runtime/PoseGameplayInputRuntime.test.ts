@@ -344,4 +344,27 @@ describe('PoseGameplayInputRuntime', () => {
       rightHand: { availability: 'UNAVAILABLE' },
     })
   })
+
+  it('derives a sanitized pose-tracking snapshot from the same inference frame and clears it on lifecycle reset', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+    await harness.infer(createSyntheticPoseFrame('reach-left', { timestampMs: 100 }))
+
+    const tracking = harness.runtime.getPoseTrackingSnapshot()
+    expect(tracking).toMatchObject({
+      posePresent: true,
+      joints: {
+        leftWrist: { x: 0.81, y: 0.32, confidence: 0.99, valid: true },
+        rightKnee: { x: 0.46, y: 0.72, confidence: 0.99, valid: true },
+      },
+    })
+    expect(tracking).not.toHaveProperty('poses')
+    expect(harness.runtime.getProvider().getSnapshot()).not.toHaveProperty('poseTracking')
+
+    await harness.runtime.dispose()
+    expect(harness.runtime.getPoseTrackingSnapshot()).toMatchObject({
+      posePresent: false,
+      joints: { leftWrist: { x: null, y: null, valid: false } },
+    })
+  })
 })

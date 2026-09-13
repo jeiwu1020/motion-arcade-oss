@@ -105,6 +105,25 @@ function leanLeft(timestampMs: number): PoseSensorFrame {
   }
 }
 
+function compactReachLeft(timestampMs: number): PoseSensorFrame {
+  const frame = createSyntheticPoseFrame('neutral', { timestampMs })
+  const pose = frame.poses[0]
+  if (!pose) return frame
+  return {
+    ...frame,
+    poses: [{
+      ...pose,
+      landmarks: pose.landmarks.map((point, index) =>
+        index === 13
+          ? { ...point, x: 0.61, y: 0.32 }
+          : index === 15
+            ? { ...point, x: 0.645, y: 0.3 }
+            : point,
+      ),
+    }],
+  }
+}
+
 function ingestRepeated(
   target: PoseMotionAnalyzer,
   build: (timestampMs: number) => PoseSensorFrame,
@@ -166,6 +185,21 @@ describe('LOW_MOTION analyzer behavior', () => {
     expect(action(target, 'MOVE_RIGHT', now)).toBe(0)
     expect(action(target, 'REACH_LEFT', now)).toBe(0)
     expect(action(target, 'REACH_RIGHT', now)).toBe(0)
+  })
+
+  it('accepts a deliberate compact reach only for LOW_MOTION while keeping a resting arm neutral', () => {
+    const standard = analyzer(['STANDARD'])
+    const lowMotion = analyzer(['LOW_MOTION'])
+    establishBaseline(standard)
+    establishBaseline(lowMotion)
+
+    const now = ingestRepeated(lowMotion, compactReachLeft)
+    ingestRepeated(standard, compactReachLeft)
+
+    expect(action(standard, 'REACH_LEFT', now)).toBe(0)
+    expect(action(lowMotion, 'REACH_LEFT', now)).toBeGreaterThan(0)
+    lowMotion.ingest(createSyntheticPoseFrame('neutral', { timestampMs: 1_150 }))
+    expect(action(lowMotion, 'REACH_RIGHT', 1_150)).toBe(0)
   })
 
   it('allows bounded shallower SQUAT but rejects tiny bends and preserves JUMP', () => {

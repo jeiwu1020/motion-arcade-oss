@@ -48,6 +48,37 @@ entry to the normal 60-second game, or return home. Normal-game scoring,
 response windows, countdown, and FULL_BODY readiness are unchanged; the large
 check/grade pulse is presentation-only feedback.
 
+## Compact-space Pose pass
+
+Reaction Arena remains `FULL_BODY`, but its production Pose provider opts into
+the reusable `KNEES` lower-body readiness policy. Shoulders, hips, and both
+knees remain required at `minimumLandmarkConfidence = 0.55`; ankles are
+optional for baseline/readiness. Default `STRICT` readiness remains knees plus
+ankles. The existing 350 ms baseline-gap and 1,000 ms READY-loss grace remain.
+
+Ankle baseline values are accumulated only from real valid ankle samples and
+are optional. JUMP still requires strict full-body tracking and usable ankle
+baselines; Reaction Arena does not request it. Compact SQUAT remains
+baseline-relative hip descent with existing smoothing/debounce/hysteresis.
+Valid knee geometry corroborates a candidate; when ankles are absent, a clear
+hip descent with both knees tracked can still enter SQUAT. No landmarks/actions
+are fabricated.
+
+Reaction Arena requests `LOW_MOTION` (range scale `0.6`) and `LEAN_LEFT` /
+`LEAN_RIGHT` alongside its existing actions. MOVE or LEAN fulfills the matching
+directional cue. LOW_MOTION reach gates are: enter `0.56`, exit `0.42`, elbow
+angle `138°`, outside-body minimum `0.42` body units, extension minimum `0.70`.
+STANDARD reach behavior is unchanged.
+
+`PoseGameplayInputRuntime.getPoseTrackingSnapshot()` now exposes an immutable,
+in-memory, presentation-only snapshot of 12 selected source-normalized joints.
+`CameraPoseTrackingOverlay` uses the existing contain-fit mirrored Camera
+Presentation mapping. Reaction Arena shows it in setup/baselining and Action
+Practice (including success feedback), then hides it during normal active play.
+High-confidence joints/bones are cyan, finite low-confidence observations are
+amber, and missing joints are not rendered. It never enters Game Core, Phaser,
+Motion Input, persistence, or networking.
+
 Validation and real-device testing remain open. In particular, do not claim
 Reaction Arena physical PASS. Record the known Windows Chrome camera-start
 observation 「正在啟動相機」 without changing shared camera/runtime behavior in

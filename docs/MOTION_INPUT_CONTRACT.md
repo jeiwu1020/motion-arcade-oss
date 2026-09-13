@@ -323,3 +323,24 @@ freshness interval, and resets to coordinate-free unavailability on stop,
 suspend, dispose, or sensor error. Its wrist availability does not require
 full-body readiness, knees, or ankles; the current Balloon Pop game readiness
 rule remains unchanged.
+
+### Pose tracking presentation snapshot
+
+`PoseGameplayInputRuntime.getPoseTrackingSnapshot()` is a separate,
+presentation-only read boundary. It contains exactly selected shoulders,
+elbows, wrists, hips, knees, and ankles as immutable source-image-normalized
+`x`/`y`, confidence, and validity data plus timestamp/sequence/pose-present
+metadata. It never exposes a raw `PoseSensorFrame`, full landmark array,
+MediaPipe result, stream, or game-facing input field. Missing, stale, and reset
+points are coordinate-free and invalid. Camera Presentation maps it using the
+same contain-fit rectangle and display-only mirror as the video.
+
+### FULL_BODY lower-body readiness policy
+
+Default `STRICT` FULL_BODY readiness requires core landmarks, both knees, and
+both ankles. An explicitly configured `KNEES` policy requires core landmarks
+and both knees while making ankles optional for compact-space setup. This
+changes readiness/baseline eligibility only; confidence, freshness, temporal
+grace, and action safety remain unchanged. Optional ankle baseline values are
+never fabricated, and JUMP continues requiring strict full-body/real-ankle
+data.

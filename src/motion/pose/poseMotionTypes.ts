@@ -27,6 +27,10 @@ export interface PoseFeatureFrame {
   readonly aspectRatio: number
   readonly trackingConfidence: number
   readonly coreValid: boolean
+  /** Core + both knees, independent of ankle availability. */
+  readonly kneesBodyValid: boolean
+  /** Core + both knees + both ankles, retained for JUMP/strict readiness. */
+  readonly strictFullBodyValid: boolean
   readonly fullBodyValid: boolean
   readonly shoulderMidpoint: PoseFeaturePoint
   readonly hipMidpoint: PoseFeaturePoint
@@ -43,6 +47,8 @@ export interface PoseFeatureFrame {
   readonly rightWrist: PoseFeaturePoint
   readonly leftHip: PoseFeaturePoint
   readonly rightHip: PoseFeaturePoint
+  readonly leftKneePoint: PoseFeaturePoint
+  readonly rightKneePoint: PoseFeaturePoint
   readonly leftKnee: PoseJointFeature
   readonly rightKnee: PoseJointFeature
   readonly leftAnkle: PoseFeaturePoint
