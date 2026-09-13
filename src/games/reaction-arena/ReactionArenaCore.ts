@@ -43,6 +43,10 @@ export type ReactionArenaSpecialEvent =
   | 'REACH_BURST'
   | 'SIDE_DASH'
   | 'DUCK_AND_STRIKE'
+export type ReactionArenaPatternSet =
+  | 'COMBO_CHAIN'
+  | 'SPEED_ZONE'
+  | 'SPECIAL_EVENT'
 
 export interface ReactionArenaCue {
   readonly id: number
@@ -100,6 +104,10 @@ export interface ReactionArenaState {
   readonly initialSeed: number
   readonly nextCueAtMs: number
   readonly specialCueIndex: number
+  readonly activePatternSet: ReactionArenaPatternSet | null
+  readonly activePatternId: number | null
+  readonly activePatternIndex: number
+  readonly activePatternEvent: ReactionArenaSpecialEvent | null
   readonly lastCueKind: ReactionArenaCueKind | null
 }
 
@@ -188,7 +196,20 @@ function responseWindowFor(phase: ReactionArenaGameplayPhase): number {
 
 function specialEventFor(state: ReactionArenaState): ReactionArenaSpecialEvent | null {
   if (state.gameplayPhase === 'SPECIAL_EVENT_1') return state.specialEvents[0] ?? null
-  if (state.gameplayPhase === 'SPECIAL_EVENT_2') return state.specialEvents[1] ?? null
+  if (
+    state.gameplayPhase === 'SPECIAL_EVENT_2' &&
+    state.elapsedMs < REACTION_ARENA_RULES.specialEventTwoEndMs
+  ) {
+    return state.specialEvents[1] ?? null
+  }
+  return null
+}
+
+function patternSetForPhase(
+  phase: ReactionArenaGameplayPhase,
+): readonly (readonly ReactionArenaCueKind[])[] | null {
+  if (phase === 'COMBO_CHAIN') return CHAIN_PATTERNS
+  if (phase === 'SPEED_ZONE') return SPEED_PATTERNS
   return null
 }
 
@@ -244,6 +265,10 @@ export function createReactionArenaState(options: CreateReactionArenaStateOption
     initialSeed,
     nextCueAtMs: 0,
     specialCueIndex: 0,
+    activePatternSet: null,
+    activePatternId: null,
+    activePatternIndex: 0,
+    activePatternEvent: null,
     lastCueKind: null,
   })
 }
@@ -265,25 +290,71 @@ function chooseRegularCue(state: ReactionArenaState): readonly [ReactionArenaCue
   return [state.lastCueKind === 'LEFT' ? 'RIGHT' : 'LEFT', randomState]
 }
 
-function choosePatternCue(state: ReactionArenaState, event: ReactionArenaSpecialEvent | null): readonly [ReactionArenaCueKind, number, number] {
-  if (event) {
-    const pattern = SPECIAL_CUE_PATTERNS[event]
-    const index = Math.min(state.specialCueIndex, pattern.length - 1)
-    return [pattern[index]!, state.randomState, state.specialCueIndex + 1]
-  }
-  const patternSet = state.gameplayPhase === 'SPEED_ZONE' ? SPEED_PATTERNS : CHAIN_PATTERNS
-  const [unit, randomState] = nextRandom(state.randomState)
-  const pattern = patternSet[Math.floor(unit * patternSet.length)]!
-  const index = Math.min(state.specialCueIndex, pattern.length - 1)
-    return [pattern[index]!, randomState, state.specialCueIndex + 1]
-}
-
 function createCue(state: ReactionArenaState): ReactionArenaState {
+  if (
+    state.gameplayPhase === 'SPECIAL_EVENT_2' &&
+    state.elapsedMs >= REACTION_ARENA_RULES.specialEventTwoEndMs &&
+    state.elapsedMs < REACTION_ARENA_RULES.speedZoneStartMs
+  ) {
+    return freezeState({
+      ...state,
+      currentCue: null,
+      nextCueAtMs: REACTION_ARENA_RULES.speedZoneStartMs,
+      specialCueIndex: 0,
+      activePatternSet: null,
+      activePatternId: null,
+      activePatternIndex: 0,
+      activePatternEvent: null,
+    })
+  }
+
   const event = specialEventFor(state)
   const phase = state.gameplayPhase
-  const [kind, randomState, specialCueIndex] = event || phase === 'COMBO_CHAIN' || phase === 'SPEED_ZONE'
-    ? choosePatternCue(state, event)
-    : [...chooseRegularCue(state), state.specialCueIndex] as const
+  let kind: ReactionArenaCueKind
+  let randomState = state.randomState
+  let activePatternSet: ReactionArenaPatternSet | null = null
+  let activePatternId: number | null = null
+  let activePatternIndex = 0
+  let activePatternEvent: ReactionArenaSpecialEvent | null = null
+
+  if (event) {
+    const pattern = SPECIAL_CUE_PATTERNS[event]
+    const reusePattern =
+      state.activePatternSet === 'SPECIAL_EVENT' &&
+      state.activePatternEvent === event
+    activePatternSet = 'SPECIAL_EVENT'
+    activePatternId = 0
+    activePatternEvent = event
+    activePatternIndex = reusePattern
+      ? Math.min(state.activePatternIndex, pattern.length - 1)
+      : 0
+    kind = pattern[activePatternIndex]!
+  } else {
+    const patternSet = patternSetForPhase(phase)
+    if (patternSet) {
+      const patternSetName = phase === 'COMBO_CHAIN' ? 'COMBO_CHAIN' : 'SPEED_ZONE'
+      const reusePattern =
+        state.activePatternSet === patternSetName && state.activePatternId !== null
+      activePatternSet = patternSetName
+      if (reusePattern) {
+        activePatternId = state.activePatternId
+      } else {
+        const [unit, nextState] = nextRandom(randomState)
+        randomState = nextState
+        activePatternId = Math.floor(unit * patternSet.length)
+      }
+      const pattern = patternSet[activePatternId] ?? patternSet[0]!
+      activePatternIndex = reusePattern
+        ? Math.min(state.activePatternIndex, pattern.length - 1)
+        : 0
+      kind = pattern[activePatternIndex]!
+    } else {
+      const [regularKind, nextState] = chooseRegularCue(state)
+      kind = regularKind
+      randomState = nextState
+    }
+  }
+
   const cue: ReactionArenaCue = Object.freeze({
     id: state.nextCueId,
     kind,
@@ -292,7 +363,12 @@ function createCue(state: ReactionArenaState): ReactionArenaState {
     responseWindowMs: responseWindowFor(phase),
     event,
   })
-  const shouldAnnounceEvent = event !== null && state.specialCueIndex === 0
+  const shouldAnnounceEvent =
+    event !== null &&
+    !(
+      state.activePatternSet === 'SPECIAL_EVENT' &&
+      state.activePatternEvent === event
+    )
   const events: ReactionArenaPresentationEvent[] = shouldAnnounceEvent
     ? [{ kind: 'SPECIAL_EVENT_START', sequence: state.nextCueId, event }]
     : []
@@ -303,7 +379,11 @@ function createCue(state: ReactionArenaState): ReactionArenaState {
     currentCue: cue,
     nextCueId: state.nextCueId + 1,
     randomState,
-    specialCueIndex,
+    specialCueIndex: activePatternIndex,
+    activePatternSet,
+    activePatternId,
+    activePatternIndex,
+    activePatternEvent,
     speedZone: state.speedZone || speedZoneChanged,
     presentationEvents: [...state.presentationEvents, ...events],
     lastCueKind: kind,
@@ -314,6 +394,10 @@ function withElapsed(state: ReactionArenaState, elapsedMs: number): ReactionAren
   const nextElapsed = Math.min(REACTION_ARENA_RULES.roundMs, Math.max(0, elapsedMs))
   const nextGameplayPhase = gameplayPhaseAt(nextElapsed)
   const phaseChanged = nextGameplayPhase !== state.gameplayPhase
+  const entersSpecialEventGap =
+    state.gameplayPhase === 'SPECIAL_EVENT_2' &&
+    state.elapsedMs < REACTION_ARENA_RULES.specialEventTwoEndMs &&
+    nextElapsed >= REACTION_ARENA_RULES.specialEventTwoEndMs
   const speedZoneChanged = state.elapsedMs < REACTION_ARENA_RULES.speedZoneStartMs && nextElapsed >= REACTION_ARENA_RULES.speedZoneStartMs && !state.speedZone
   const presentationEvents = speedZoneChanged
     ? [...state.presentationEvents, { kind: 'SPEED_ZONE_START' as const, sequence: state.nextCueId }]
@@ -324,6 +408,18 @@ function withElapsed(state: ReactionArenaState, elapsedMs: number): ReactionAren
     roundRemainingMs: Math.max(0, REACTION_ARENA_RULES.roundMs - nextElapsed),
     gameplayPhase: nextGameplayPhase,
     specialCueIndex: phaseChanged ? 0 : state.specialCueIndex,
+    currentCue: entersSpecialEventGap && state.currentCue?.event !== null
+      ? null
+      : state.currentCue,
+    nextCueAtMs: entersSpecialEventGap
+      ? REACTION_ARENA_RULES.speedZoneStartMs
+      : state.nextCueAtMs,
+    activePatternSet: entersSpecialEventGap
+      ? null
+      : state.activePatternSet,
+    activePatternId: entersSpecialEventGap ? null : state.activePatternId,
+    activePatternIndex: entersSpecialEventGap ? 0 : state.activePatternIndex,
+    activePatternEvent: entersSpecialEventGap ? null : state.activePatternEvent,
     speedZone: state.speedZone || speedZoneChanged,
     presentationEvents,
   })
@@ -341,6 +437,44 @@ function resolveCue(
   const events: ReactionArenaPresentationEvent[] = milestone
     ? [{ kind: 'COMBO_MILESTONE', sequence: result.cueId, value: combo }]
     : []
+  let activePatternSet = state.activePatternSet
+  let activePatternId = state.activePatternId
+  let activePatternIndex = state.activePatternIndex
+  let activePatternEvent = state.activePatternEvent
+  const cue = state.currentCue
+  if (
+    cue?.event &&
+    state.activePatternSet === 'SPECIAL_EVENT' &&
+    state.activePatternEvent === cue.event
+  ) {
+    const pattern = SPECIAL_CUE_PATTERNS[cue.event]
+    activePatternIndex =
+      state.activePatternIndex + 1 >= pattern.length
+        ? 0
+        : state.activePatternIndex + 1
+  } else if (
+    cue &&
+    !cue.event &&
+    (state.activePatternSet === 'COMBO_CHAIN' ||
+      state.activePatternSet === 'SPEED_ZONE') &&
+    state.activePatternId !== null
+  ) {
+    const patternSet = patternSetForPhase(state.activePatternSet)
+    const pattern = patternSet?.[state.activePatternId]
+    if (pattern && state.activePatternIndex + 1 < pattern.length) {
+      activePatternIndex = state.activePatternIndex + 1
+    } else {
+      activePatternSet = null
+      activePatternId = null
+      activePatternIndex = 0
+      activePatternEvent = null
+    }
+  } else {
+    activePatternSet = null
+    activePatternId = null
+    activePatternIndex = 0
+    activePatternEvent = null
+  }
   return freezeState({
     ...state,
     score,
@@ -354,7 +488,11 @@ function resolveCue(
     currentCue: null,
     lastResult: result,
     nextCueAtMs: state.elapsedMs + REACTION_ARENA_RULES.interCueGapMs,
-    specialCueIndex: successful || result.state === 'EXPIRED' ? state.specialCueIndex : state.specialCueIndex,
+    specialCueIndex: activePatternIndex,
+    activePatternSet,
+    activePatternId,
+    activePatternIndex,
+    activePatternEvent,
     presentationEvents: [...state.presentationEvents, ...events],
   })
 }
