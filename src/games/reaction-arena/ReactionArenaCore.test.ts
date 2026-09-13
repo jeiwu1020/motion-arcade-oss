@@ -4,6 +4,7 @@ import {
   REACTION_ARENA_RULES,
   advanceReactionArena,
   createReactionArenaState,
+  hasReactionArenaCountdownStarted,
   type ReactionArenaActionAttempt,
 } from './ReactionArenaCore'
 
@@ -22,6 +23,41 @@ function startPlaying(seed = 1) {
 }
 
 describe('ReactionArenaCore', () => {
+  it('recognizes that visible countdown starts only after the initial state advances', () => {
+    expect(hasReactionArenaCountdownStarted(REACTION_ARENA_RULES.countdownMs)).toBe(false)
+    expect(hasReactionArenaCountdownStarted(REACTION_ARENA_RULES.countdownMs - 1)).toBe(true)
+  })
+
+  it('accumulates countdown time across repeated small frames', () => {
+    let state = createReactionArenaState({ seed: 42 })
+
+    for (let elapsedMs = 100; elapsedMs <= 2_000; elapsedMs += 100) {
+      state = advance(state, 100)
+      if (elapsedMs === 100 || elapsedMs === 1_000 || elapsedMs === 2_000) {
+        expect(state.countdownRemainingMs).toBe(REACTION_ARENA_RULES.countdownMs - elapsedMs)
+      }
+    }
+
+    state = advance(state, 1_000)
+    expect(state.phase).toBe('PLAYING')
+    expect(state.countdownRemainingMs).toBe(0)
+  })
+
+  it('transitions from countdown with realistic repeated 16/17 ms frames', () => {
+    let state = createReactionArenaState()
+    let elapsedMs = 0
+    let frameIndex = 0
+    while (state.phase === 'COUNTDOWN' && elapsedMs < 4_000) {
+      const deltaMs = frameIndex % 2 === 0 ? 16 : 17
+      state = advance(state, deltaMs)
+      elapsedMs += deltaMs
+      frameIndex += 1
+    }
+
+    expect(state.phase).toBe('PLAYING')
+    expect(state.countdownRemainingMs).toBe(0)
+  })
+
   it('uses deterministic cue and special-event choices for the same seed', () => {
     const first = startPlaying(42)
     const second = startPlaying(42)

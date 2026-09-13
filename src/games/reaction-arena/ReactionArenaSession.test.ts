@@ -25,6 +25,24 @@ function tickToPlaying(session: ReactionArenaSession) {
 }
 
 describe('ReactionArenaSession', () => {
+  it('pauses and resumes countdown progression with setup readiness', async () => {
+    const { session } = await setup()
+
+    session.tick(100, { setupReady: false, hardFailure: false })
+    expect(session.getState().countdownRemainingMs).toBe(REACTION_ARENA_RULES.countdownMs)
+
+    session.tick(100, { setupReady: true, hardFailure: false })
+    expect(session.getState().countdownRemainingMs).toBe(2_900)
+    session.tick(100, { setupReady: true, hardFailure: false })
+    expect(session.getState().countdownRemainingMs).toBe(2_800)
+
+    session.tick(250, { setupReady: false, hardFailure: false })
+    expect(session.getState().countdownRemainingMs).toBe(2_800)
+
+    session.tick(100, { setupReady: true, hardFailure: false })
+    expect(session.getState().countdownRemainingMs).toBe(2_700)
+  })
+
   it('consumes only new action sequences after the cue is active', async () => {
     const { provider, session } = await setup()
     provider.triggerAction('player-1', 'MOVE_LEFT')

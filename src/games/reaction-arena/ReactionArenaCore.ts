@@ -458,7 +458,7 @@ export function advanceReactionArena(
     ? REACTION_ARENA_RULES.countdownMs - state.countdownRemainingMs
     : state.elapsedMs
   const targetTime = state.phase === 'COUNTDOWN'
-    ? deltaMs
+    ? startTime + deltaMs
     : state.elapsedMs + deltaMs
   const attempts = [...(frame.actionAttempts ?? [])]
     .filter((attempt) => Number.isFinite(attempt.atMs))
