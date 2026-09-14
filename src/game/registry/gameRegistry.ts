@@ -3,6 +3,7 @@ import { reactionArenaRegistration } from '../../games/reaction-arena/registrati
 import { runnerRegistration } from '../../games/runner/registration'
 import { rhythmMotionRegistration } from '../../games/rhythm-motion/registration'
 import { tennisRegistration } from '../../games/tennis/registration'
+import { badmintonRegistration } from '../../games/badminton/registration'
 import type { GameRegistration } from './types'
 import { assertValidGameRegistry } from './validateRegistry'
 
@@ -12,6 +13,7 @@ export const gameRegistry = Object.freeze([
   runnerRegistration,
   rhythmMotionRegistration,
   tennisRegistration,
+  badmintonRegistration,
 ]) satisfies readonly GameRegistration[]
 
 assertValidGameRegistry(gameRegistry)

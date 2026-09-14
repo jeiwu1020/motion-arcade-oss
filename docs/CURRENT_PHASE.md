@@ -73,7 +73,16 @@ Sports Motion Session, bilateral Developer Test Mode, and explicit-permission
 [Batch C1 — Tennis](./PHASE_BATCH_C1_TENNIS.md). Physical swing recognition,
 iPhone Safari, compact-space, fatigue, and projector validation remain open.
 
-Current next implementation: **Batch C2 — Badminton**.
+Batch C2 — Badminton has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. Its deterministic CLEAR/DRIVE/DROP shuttle course,
+four visual target regions, sequence-safe bilateral Sports Motion Session,
+optional game-local Smash presentation, and explicit-permission `UPPER_BODY`
+production route are recorded in
+[Batch C2 — Badminton](./PHASE_BATCH_C2_BADMINTON.md). Physical swing
+recognition, iPhone Safari, compact-space, fatigue, and projector validation
+remain open.
+
+Current next implementation: **Batch C3 — Bowling**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

@@ -170,7 +170,7 @@ claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_
 
 **Game:** Badminton
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
@@ -178,6 +178,13 @@ claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_
 - Reuse Batch C0.
 - Differentiate it from Tennis through a shuttle arc, faster exchange rhythm,
   overhead/lateral target regions, and arcade rally pacing.
+- Delivered: deterministic 3-second/60-second seeded CLEAR/DRIVE/DROP shuttle
+  course with four visual target regions, forgiving symmetric contact grades,
+  bilateral sequence-safe Sports Motion Session consumption, bounded
+  vector/intensity return presentation, optional Smash bonus, rally scoring,
+  Developer Test Mode, and explicit-permission `UPPER_BODY` production Pose
+  route. Physical validation remains pending. Detailed record:
+  [Batch C2 — Badminton](./PHASE_BATCH_C2_BADMINTON.md).
 
 ### Batch C3 — Bowling
 

@@ -37,6 +37,13 @@ describe('application hash routing', () => {
     })).toBe('TENNIS')
   })
 
+  it('opens Badminton in production without developer gates', () => {
+    expect(screenFromHash('#game/badminton', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('BADMINTON')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,
