@@ -253,7 +253,7 @@ validation remains pending. Detailed record:
 
 **Game:** Swimming
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **First-game design model:** Sol High
 
@@ -264,9 +264,12 @@ validation remains pending. Detailed record:
 - Player movement: standing simulation, never real swimming.
 - Goals: alternating strokes propel the swimmer, bilateral movement, lane race,
   short rounds, and optional stroke-inspired patterns later.
-- Foundation note: extend a shared normalized motion boundary only as much as
-  this first arm-cycle game proves necessary; do not put stroke detection in
-  Game Core.
+- Engineering result: existing C0 LEFT/RIGHT `SportsSwingEvent` output was
+  sufficient. A game-local Session/cycle adapter enforces alternation, derives
+  bounded rhythm/intensity propulsion, and preserves retained-event safety; no
+  new shared arm-cycle detector was required. Production reuses the single Pose
+  pipeline with explicit `UPPER_BODY` camera setup. Physical standing arm-cycle
+  recognition remains pending. Detailed record: [Batch D2 — Swimming](./PHASE_BATCH_D2_SWIMMING.md).
 
 ### Batch D3 — High Jump
 
@@ -417,9 +420,9 @@ and tests to be stable enough to avoid knowingly carrying regressions forward.
 | Shared foundation | Required consumers | Notes |
 |---|---|---|
 | Existing normalized Motion Actions + Pose runtime | Runner, Rhythm Motion, High Jump | No new shared detector is planned for their initial versions. |
-| C0 Sports Motion Toolkit | Tennis, Badminton, Bowling, Baseball | Reuses canonical spatial-wrist concepts and supplies broad body-relative swing, vector, and bounded-intensity output. Bowling demonstrates that one swing event is sufficient for the engineering release contract; `RELEASE` remains deferred because physical validation is pending. |
+| C0 Sports Motion Toolkit | Tennis, Badminton, Bowling, Swimming, Baseball | Reuses canonical spatial-wrist concepts and supplies broad body-relative swing, vector, and bounded-intensity output. Bowling demonstrates that one swing event is sufficient for the engineering release contract, and Swimming demonstrates that game-local bilateral alternation is sufficient for the engineering arm-cycle contract. `RELEASE` and a shared arm-cycle detector remain deferred because physical validation is pending. |
 | D0 Locomotion Toolkit | Running Race, Long Jump Challenge | Running-in-place cadence/intensity is shared; Long Jump also uses existing JUMP. |
-| Minimal alternating arm-cycle extension | Swimming | Establish outside Game Core during the first-game design; keep it no larger than proven necessary. |
+| Game-local alternating arm cycle | Swimming | Existing C0 LEFT/RIGHT swing events proved sufficient for the engineering contract; alternation and propulsion remain game-local outside Core, with no new shared detector. |
 | F0 Voice Input Foundation | Vocal Hop, Sound Cannon | Microphone is opt-in and active only for requesting games. |
 | G0 Multiplayer Foundation | Two-Player Dodge Duel | Multi-person identity/routing must be stable before simultaneous play. |
 

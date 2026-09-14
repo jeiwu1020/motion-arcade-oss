@@ -106,7 +106,17 @@ and preserves pause/recovery sequence safety. Physical cadence/running
 recognition, iPhone Safari, compact-space, fatigue, and projector validation
 remain open. See [Batch D1 — Running Race](./PHASE_BATCH_D1_RUNNING_RACE.md).
 
-Current next implementation: **Batch D2 — Swimming**.
+Batch D2 — Swimming has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. The standing 60-second pool race consumes only retained
+C0 LEFT/RIGHT Sports Motion swing events through a game-local alternating cycle,
+with bounded cadence/intensity propulsion and sequence-safe recovery. Existing
+C0 was sufficient for the engineering arm-cycle contract, so no shared detector
+was added. Production uses explicit `UPPER_BODY` Pose setup with no Hands or
+microphone. Physical arm-cycle recognition, iPhone Safari, standing comfort,
+fatigue, and projector validation remain open. See
+[Batch D2 — Swimming](./PHASE_BATCH_D2_SWIMMING.md).
+
+Current next implementation: **Batch D3 — High Jump**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

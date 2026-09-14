@@ -58,6 +58,13 @@ describe('application hash routing', () => {
     })).toBe('RUNNING_RACE')
   })
 
+  it('opens Swimming in production without developer gates', () => {
+    expect(screenFromHash('#game/swimming', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('SWIMMING')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,
