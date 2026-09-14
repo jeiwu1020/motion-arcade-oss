@@ -1,9 +1,11 @@
 import type { MotionInputRequest } from '../contracts/motion'
 import type { SpatialHandSnapshot } from '../contracts/spatial'
+import type { SportsMotionSnapshot } from '../contracts/sportsMotion'
 import type { PoseTrackingSnapshot } from '../contracts/poseTracking'
 import { PoseMotionInputProvider } from '../pose/PoseMotionInputProvider'
 import type { PoseMotionAnalyzerSnapshot } from '../pose/poseMotionTypes'
 import { PoseSpatialHandTracker } from '../spatial/PoseSpatialHandTracker'
+import { PoseSportsMotionTracker } from '../sports/PoseSportsMotionTracker'
 import { PoseTrackingSnapshotTracker } from '../tracking/PoseTrackingSnapshotTracker'
 import {
   CameraController,
@@ -133,6 +135,7 @@ export class PoseGameplayInputRuntime {
   readonly #now: () => number
   readonly #provider: PoseMotionInputProvider
   readonly #spatialHands = new PoseSpatialHandTracker()
+  readonly #sportsMotion = new PoseSportsMotionTracker()
   readonly #poseTracking = new PoseTrackingSnapshotTracker()
   readonly #listeners = new Set<Listener>()
   #session: PoseSensorSession | null = null
@@ -171,6 +174,11 @@ export class PoseGameplayInputRuntime {
     return this.#spatialHands.getSnapshot(this.#now())
   }
 
+  /** Sanitized, body-relative wrist swing output from the same Pose frames. */
+  getSportsMotionSnapshot(): SportsMotionSnapshot {
+    return this.#sportsMotion.getSnapshot(this.#now())
+  }
+
   /** Sanitized selected-joint feedback for Camera Presentation only. */
   getPoseTrackingSnapshot(): PoseTrackingSnapshot {
     return this.#poseTracking.getSnapshot(this.#now())
@@ -203,6 +211,7 @@ export class PoseGameplayInputRuntime {
     this.#hasBeenReady = false
     this.#lastFullyReadyAtMs = undefined
     this.#spatialHands.reset(this.#now())
+    this.#sportsMotion.reset(this.#now())
     this.#poseTracking.reset(this.#now())
     await Promise.all([
       this.#session?.stop(),
@@ -219,6 +228,7 @@ export class PoseGameplayInputRuntime {
     this.#hasBeenReady = false
     this.#lastFullyReadyAtMs = undefined
     this.#spatialHands.reset(this.#now())
+    this.#sportsMotion.reset(this.#now())
     this.#poseTracking.reset(this.#now())
     const session = this.#session
     this.#session = null
@@ -255,6 +265,7 @@ export class PoseGameplayInputRuntime {
   ): Promise<void> {
     this.#hasBeenReady = false
     this.#lastFullyReadyAtMs = undefined
+    this.#sportsMotion.reset(this.#now())
     this.#setSnapshot('PERMISSION_STARTING', null)
 
     try {
@@ -326,6 +337,7 @@ export class PoseGameplayInputRuntime {
 
   #handleInferenceResult(result: PoseInferenceResult): void {
     this.#spatialHands.ingest(result.frame)
+    this.#sportsMotion.ingest(result.frame)
     this.#poseTracking.ingest(result.frame)
     this.#provider.ingest(result.frame)
     this.#refreshReadiness()
@@ -344,6 +356,7 @@ export class PoseGameplayInputRuntime {
       this.#hasBeenReady = false
       this.#lastFullyReadyAtMs = undefined
       this.#spatialHands.reset(this.#now())
+      this.#sportsMotion.reset(this.#now())
       this.#poseTracking.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot('CAMERA_NOT_STARTED', null)
@@ -353,6 +366,7 @@ export class PoseGameplayInputRuntime {
       this.#hasBeenReady = false
       this.#lastFullyReadyAtMs = undefined
       this.#spatialHands.reset(this.#now())
+      this.#sportsMotion.reset(this.#now())
       this.#poseTracking.reset(this.#now())
       void this.#provider.stop()
       this.#setSnapshot(

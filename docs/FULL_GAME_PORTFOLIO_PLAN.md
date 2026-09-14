@@ -122,7 +122,7 @@ as games.
 
 **Type:** shared foundation; not a game
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`
 
 **Primary model:** Terra High; escalate to Astra only if the shared abstraction
 becomes genuinely difficult
@@ -139,6 +139,12 @@ and bowling motion:
 Reuse the existing spatial-wrist pipeline wherever possible. Do not create a
 complex detector contract when the existing Spatial Interaction boundary is
 sufficient. Games must not consume raw landmarks.
+
+Delivered: immutable anatomical hand/swing snapshots; body-relative speed,
+vector, and bounded intensity; per-hand single-event re-arm semantics; runtime
+reuse of the existing Pose inference result; and a camera-free synthetic test
+provider. `RELEASE` remains intentionally deferred. No physical validation is
+claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_SPORTS_MOTION_TOOLKIT.md).
 
 ### Batch C1 — Tennis
 
@@ -381,7 +387,7 @@ and tests to be stable enough to avoid knowingly carrying regressions forward.
 | Shared foundation | Required consumers | Notes |
 |---|---|---|
 | Existing normalized Motion Actions + Pose runtime | Runner, Rhythm Motion, High Jump | No new shared detector is planned for their initial versions. |
-| C0 Sports Motion Toolkit | Tennis, Badminton, Bowling, Baseball | Reuse existing spatial wrists before adding swing/direction/release/intensity fields. |
+| C0 Sports Motion Toolkit | Tennis, Badminton, Bowling, Baseball | Reuses canonical spatial-wrist concepts and supplies broad body-relative swing, vector, and bounded-intensity output. `RELEASE` remains deferred until Bowling demonstrates the need. |
 | D0 Locomotion Toolkit | Running Race, Long Jump Challenge | Running-in-place cadence/intensity is shared; Long Jump also uses existing JUMP. |
 | Minimal alternating arm-cycle extension | Swimming | Establish outside Game Core during the first-game design; keep it no larger than proven necessary. |
 | F0 Voice Input Foundation | Vocal Hop, Sound Cannon | Microphone is opt-in and active only for requesting games. |

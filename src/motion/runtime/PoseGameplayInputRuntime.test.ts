@@ -144,6 +144,21 @@ function upperBodyOnlyFrame(timestampMs: number): PoseSensorFrame {
   return frame
 }
 
+function sportsSweepFrame(timestampMs: number, leftWristOffsetX: number): PoseSensorFrame {
+  const frame = createSyntheticPoseFrame('neutral', { timestampMs })
+  const pose = frame.poses[0]
+  if (!pose) throw new Error('Synthetic fixture must contain one pose.')
+  return {
+    ...frame,
+    poses: [{
+      ...pose,
+      landmarks: pose.landmarks.map((point, index) =>
+        index === 15 ? { ...point, x: point.x + leftWristOffsetX } : point,
+      ),
+    }],
+  }
+}
+
 describe('PoseGameplayInputRuntime', () => {
   it('does not request camera permission until explicit start and reports startup/baselining', async () => {
     const harness = createHarness()
@@ -237,6 +252,9 @@ describe('PoseGameplayInputRuntime', () => {
     expect(harness.runtime.getProvider().isRunning()).toBe(false)
     expect(harness.camera.stop).toHaveBeenCalledOnce()
     expect(harness.backend.close).toHaveBeenCalledOnce()
+    expect(harness.runtime.getSportsMotionSnapshot()).toMatchObject({
+      leftHand: { availability: 'UNAVAILABLE' }, leftSwing: null,
+    })
     await expect(harness.runtime.start(POSE_REQUEST)).rejects.toThrow('disposed')
   })
 
@@ -342,6 +360,56 @@ describe('PoseGameplayInputRuntime', () => {
     expect(harness.runtime.getSpatialSnapshot()).toMatchObject({
       leftHand: { availability: 'UNAVAILABLE' },
       rightHand: { availability: 'UNAVAILABLE' },
+    })
+  })
+
+  it('derives sanitized sports motion from the same Pose inference result and clears it on stop', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+    await harness.infer(sportsSweepFrame(0, 0))
+    await harness.infer(sportsSweepFrame(100, 0.03))
+    await harness.infer(sportsSweepFrame(200, 0.06))
+
+    expect(harness.runtime.getSportsMotionSnapshot()).toMatchObject({
+      leftHand: { availability: 'AVAILABLE', vectorX: 1, vectorY: 0 },
+      leftSwing: { hand: 'LEFT', sequence: 1, vectorX: 1, vectorY: 0 },
+      rightSwing: null,
+    })
+    expect(harness.runtime.getSportsMotionSnapshot()).not.toHaveProperty('poses')
+    expect(harness.runtime.getProvider().getSnapshot()).not.toHaveProperty('sportsMotion')
+    expect(harness.backend.infer).toHaveBeenCalledTimes(3)
+    expect(harness.camera.start).toHaveBeenCalledOnce()
+    expect(harness.backend.initialize).toHaveBeenCalledOnce()
+
+    await harness.runtime.stop()
+    expect(harness.runtime.getSportsMotionSnapshot()).toMatchObject({
+      leftHand: { availability: 'UNAVAILABLE' },
+      rightHand: { availability: 'UNAVAILABLE' },
+      leftSwing: null,
+      rightSwing: null,
+    })
+  })
+
+  it('clears sports output for suspended and error lifecycles', async () => {
+    const suspended = createHarness()
+    await suspended.runtime.start(POSE_REQUEST)
+    await suspended.infer(sportsSweepFrame(100, 0))
+    suspended.documentTarget.visibilityState = 'hidden'
+    suspended.documentTarget.dispatch('visibilitychange')
+    await flushLifecycle()
+    expect(suspended.runtime.getSportsMotionSnapshot()).toMatchObject({
+      leftHand: { availability: 'UNAVAILABLE' }, leftSwing: null,
+    })
+
+    const failed = createHarness()
+    await failed.runtime.start(POSE_REQUEST)
+    await failed.infer(sportsSweepFrame(100, 0))
+    failed.queuedResults.push(new Error('fatal sports inference failure'))
+    failed.now.value = 200
+    failed.video.currentTime += 0.1
+    await failed.runtime.update(200)
+    expect(failed.runtime.getSportsMotionSnapshot()).toMatchObject({
+      leftHand: { availability: 'UNAVAILABLE' }, leftSwing: null,
     })
   })
 

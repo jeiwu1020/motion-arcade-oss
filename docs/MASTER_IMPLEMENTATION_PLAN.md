@@ -23,8 +23,8 @@ tuning sweep.
   shared-foundation batch and cross-consumer regression coverage.
 - Batch A — Runner / Avatar Action is `ENGINEERING PASS` and `PHYSICAL QA
   PENDING`; Batch B — Rhythm Motion is also `ENGINEERING PASS` and `PHYSICAL
-  QA PENDING`; the next implementation batch is Batch C0 — Sports Motion
-  Toolkit.
+  QA PENDING`; Batch C0 — Sports Motion Toolkit is `ENGINEERING PASS`; the
+  next implementation batch is Batch C1 — Tennis.
 
 The full 15-game portfolio, foundation dependencies, exact batch order,
 Engineering Prototype PASS contract, art policy, and future physical QA matrix

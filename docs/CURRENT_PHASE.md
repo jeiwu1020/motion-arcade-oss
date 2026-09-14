@@ -59,7 +59,14 @@ Session sequence safety, Developer Test Mode, and explicit-permission
 `UPPER_BODY` production Pose route are recorded in
 [Batch B — Rhythm Motion](./PHASE_BATCH_B_RHYTHM.md).
 
-Current next implementation: **Batch C0 — Sports Motion Toolkit**.
+C0 — Sports Motion Toolkit has completed its `ENGINEERING PASS`. It provides
+immutable anatomical wrist availability, body-relative velocity/vector/speed,
+bounded intensity, and one sequence-safe broad swing event per hand from the
+existing Pose inference result. It has no sport classification or RELEASE
+event; physical swing recognition remains unvalidated. Details are recorded in
+[Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_SPORTS_MOTION_TOOLKIT.md).
+
+Current next implementation: **Batch C1 — Tennis**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
@@ -82,6 +89,19 @@ Foundation → F1 Vocal Hop → F2 Sound Cannon → G0 Multiplayer Foundation �
 Two-Player Dodge Duel → portfolio physical QA sweep → production polish.
 
 ## Frozen game baselines and historical phase record
+
+### Batch C0 — Sports Motion Toolkit
+
+Engineering status: PASS. The shared toolkit exposes only immutable normalized
+anatomical hand availability, source position, body-relative velocity/vector,
+speed, bounded intensity, and independent sequence-safe swing events. It
+reuses the existing Pose inference frame inside `PoseGameplayInputRuntime`,
+with no second inference, Hands model, camera owner, or raw landmarks reaching
+games. Continuity clears safely on stale/lost samples and all runtime lifecycle
+resets. No shared Pose threshold or existing game behavior changed. Tennis,
+Badminton, Bowling, and Baseball physical recognition remains future work; no
+physical swing validation is claimed. See
+[Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_SPORTS_MOTION_TOOLKIT.md).
 
 ### Batch B — Rhythm Motion / 節奏動一動
 

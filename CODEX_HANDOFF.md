@@ -1,21 +1,21 @@
 # Motion Arcade Handoff
 
-- Phase: Portfolio Batch Build — Batch B Rhythm Motion.
-- Status: 節奏動一動 has an Engineering Prototype PASS and is
-  `PHYSICAL QA PENDING`. It includes a deterministic four-lane chart, exact
-  symmetric judgement windows, combo/timing metrics, normalized sequence-
-  consuming Session, Developer Test Mode, procedural Phaser presentation,
-  result/replay, registry/home navigation, and the existing explicit-
-  permission `UPPER_BODY` Pose route.
-- Validation: typecheck PASS; lint PASS; 423 / 423 tests across 63 files PASS;
-  production build PASS; Developer and production `852 × 393` landscape smoke
-  checks PASS; `git diff --check` is the final commit gate.
-- Safety boundary: no shared Pose thresholds, Balloon Rally gameplay, or
-  Reaction Arena gameplay were changed. Runner has no microphone path.
-- Known risk: real-device action recognition, compact-space behavior, fatigue,
-  projector readability, and physical game-feel timing remain intentionally
+- Phase: Portfolio Batch Build — Batch C0 Sports Motion Toolkit.
+- Status: C0 has an `ENGINEERING PASS`. It provides a minimal immutable
+  sports-motion contract: anatomical left/right wrist availability, canonical
+  source position, body-relative velocity/vector/speed, bounded intensity, and
+  independent sequence-safe broad-swing events. The same Pose inference result
+  feeds the existing action/spatial/tracking consumers and the new tracker;
+  there is no second inference or camera pipeline. RELEASE remains deferred.
+- Validation: typecheck and lint pass; all 442 tests across 66 files pass;
+  production build and `git diff --check` pass. The local homepage smoke check
+  showed the existing Runner, Balloon Rally, Reaction Arena, and Rhythm Motion
+  cards, with no automatic camera or microphone permission request.
+- Safety boundary: no shared Pose thresholds, MotionActionId, SpatialHandSnapshot
+  semantics, SpatialCollisionInputAdapter behavior, camera permission lifecycle,
+  or existing-game gameplay changed.
+- Known risk: physical swing recognition, compact-space behavior, fatigue,
+  projector readability, and sport-specific game-feel remain intentionally
   unvalidated.
-- Next safest task: Batch C0 — Sports Motion Toolkit. Keep Balloon Rally,
-  Reaction Arena, and Runner frozen unless a shared regression requires a
-  focused correction; defer Rhythm Motion detector tuning to the portfolio
-  physical QA sweep.
+- Next safest task: Batch C1 — Tennis. Consume only the sports-motion contract;
+  keep sport interpretation game-local and preserve C0's RELEASE deferral.
