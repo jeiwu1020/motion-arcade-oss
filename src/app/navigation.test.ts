@@ -79,6 +79,13 @@ describe('application hash routing', () => {
     })).toBe('LONG_JUMP')
   })
 
+  it('opens Baseball in production without developer gates', () => {
+    expect(screenFromHash('#game/baseball', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('BASEBALL')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

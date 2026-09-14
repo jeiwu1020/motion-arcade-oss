@@ -317,7 +317,7 @@ validation remains pending. Detailed record:
 
 **Game:** Baseball — Batting
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Sol High
 
@@ -327,6 +327,16 @@ validation remains pending. Detailed record:
   direction/distance, home-run presentation, and multiple pitch patterns.
 - Boundary: batting comes first. Do not implement pitching first unless a
   clearly reusable need is established.
+- Delivered: deterministic 3-second countdown and 60-second batting round;
+  seeded FASTBALL/CURVEBALL/CHANGEUP schedule; HIGH/CENTER/LOW visual targets;
+  exact timing grades; bounded game-local power, field, launch, and arcade hit
+  results; full scoring/statistics; retained-event-safe C0 Session; camera-free
+  Developer Test Mode; explicit `UPPER_BODY` production route; procedural
+  stadium and HOME RUN RUSH presentation; result and same-seed replay.
+- Safety/status: no physical bat is required or encouraged, no real bat-speed
+  or power claim is made, and no new detector or threshold was added. Physical
+  swing timing, iPhone Safari, compact-space, fatigue, and projector QA remain
+  pending. Detailed record: [Batch E — Baseball](./PHASE_BATCH_E_BASEBALL.md).
 
 ### Batch F0 — Voice Input Foundation
 

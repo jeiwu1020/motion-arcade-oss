@@ -1,0 +1,85 @@
+.baseball-shell {
+  --baseball-ink: #fff8e7;
+  width: 100dvw;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  padding: max(0.65rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right)) max(0.65rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
+  overflow: hidden;
+  color: var(--baseball-ink);
+  background: linear-gradient(145deg, #07162a, #102f3e 58%, #491c25);
+}
+
+.baseball-shell[data-input-mode='pose'] { grid-template-rows: auto minmax(0, 1fr); }
+.baseball-topbar { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: clamp(0.5rem, 1.8vw, 1rem); }
+.baseball-title h1, .baseball-title small { display: block; margin: 0; }
+.baseball-title h1 { font-size: clamp(1.3rem, 3vw, 2.1rem); letter-spacing: -0.045em; line-height: 1; }
+.baseball-title h1 span { color: #ffbf68; font-size: 0.48em; letter-spacing: 0.08em; vertical-align: 0.18em; }
+.baseball-title small { margin-bottom: 0.22rem; color: #75e3d3; font-size: clamp(0.58rem, 1.05vw, 0.78rem); font-weight: 900; letter-spacing: 0.09em; }
+.baseball-home, .baseball-test-controls button, .baseball-result button { min-height: 2.8rem; border: 1px solid rgb(255 191 104 / 55%); border-radius: 0.85rem; padding: 0.62rem 0.9rem; color: #fff; background: #17394b; cursor: pointer; font-weight: 900; }
+.baseball-home:focus-visible, .baseball-test-controls button:focus-visible, .baseball-result button:focus-visible { outline: 3px solid #fff2a8; outline-offset: 3px; }
+.baseball-hud { display: flex; justify-content: flex-end; gap: 0.45rem; }
+.baseball-hud span { min-width: 5.2rem; border: 1px solid rgb(255 191 104 / 34%); border-radius: 0.8rem; padding: 0.42rem 0.66rem; color: #cce4e5; background: rgb(4 19 32 / 88%); font-size: clamp(0.7rem, 1.2vw, 0.88rem); font-weight: 850; text-align: center; }
+.baseball-hud strong { display: inline-block; margin-left: 0.22rem; color: #fff; font-size: clamp(1.15rem, 2vw, 1.5rem); }
+.baseball-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; border: 2px solid rgb(255 191 104 / 48%); border-radius: clamp(0.8rem, 2vw, 1.3rem); background: #071d2b; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%), 0 1rem 3rem rgb(0 0 0 / 28%); }
+.baseball-canvas { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; contain: size layout paint; background: #071d2b; }
+.baseball-canvas canvas { display: block; }
+.baseball-test-controls { display: grid; grid-template-columns: minmax(18rem, 1fr) repeat(2, minmax(10rem, 0.55fr)); gap: 0.5rem; }
+.baseball-test-controls div { align-self: center; }
+.baseball-test-controls small { display: block; margin-top: 0.15rem; color: #bcd3da; }
+.baseball-test-controls button { min-height: 3.2rem; font-size: clamp(1rem, 2vw, 1.25rem); background: linear-gradient(145deg, #147b73, #176084); }
+.baseball-test-controls button:last-child { background: linear-gradient(145deg, #b95c32, #8d3749); }
+.baseball-result { position: absolute; z-index: 12; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgb(2 13 24 / 86%); backdrop-filter: blur(8px); pointer-events: auto; }
+.baseball-result-card { width: min(50rem, 95%); border: 3px solid rgb(255 191 104 / 78%); border-radius: 1.6rem; padding: clamp(1rem, 2.5vw, 1.8rem); color: #122b38; background: linear-gradient(155deg, #fffdf4, #fff0d8); box-shadow: 0 1.4rem 4rem rgb(0 0 0 / 42%); text-align: center; }
+.baseball-result-card p, .baseball-result-card h2 { margin: 0; }
+.baseball-result-card > p:first-child { color: #9c4c28; font-weight: 900; letter-spacing: 0.08em; }
+.baseball-result-card h2 { margin-top: 0.15rem; font-size: clamp(1.7rem, 4.4vw, 3rem); }
+.baseball-result-card > strong { display: block; margin-top: 0.2rem; color: #bd372e; font-size: clamp(2rem, 5vw, 3.5rem); }
+.baseball-result-card dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem; margin: 0.8rem 0 0; }
+.baseball-result-card dl > div { border-radius: 0.85rem; padding: 0.55rem; background: #f0dfc8; }
+.baseball-result-card dt { color: #536875; font-size: 0.78rem; font-weight: 800; }
+.baseball-result-card dd { margin: 0.1rem 0 0; font-size: 1.5rem; font-weight: 950; }
+.baseball-grades { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.7rem; color: #344f64; font-size: 0.84rem; font-weight: 900; }
+.baseball-grades b { color: #bd372e; font-size: 1.05rem; }
+.baseball-breakdown, .baseball-hand-stats { margin-top: 0.48rem !important; color: #536875; font-size: 0.82rem; }
+.baseball-result-actions { display: flex; justify-content: center; gap: 0.7rem; margin-top: 0.8rem; }
+.baseball-pose-setup-guide { position: absolute; right: 50%; bottom: clamp(0.55rem, 2vh, 1.1rem); display: grid; gap: 0.22rem; width: min(62rem, 92%); padding: 0.55rem 0.8rem; border: 1px solid rgb(255 191 104 / 48%); border-radius: 0.8rem; color: #fff9ea; background: rgb(6 25 42 / 84%); box-shadow: 0 0.55rem 1.6rem rgb(0 0 0 / 25%); text-align: center; transform: translateX(50%); pointer-events: none; }
+.baseball-pose-setup-guide strong { color: #ffbf68; font-size: clamp(0.85rem, 1.4vw, 1.1rem); }
+.baseball-pose-setup-guide > span { color: #d6e7eb; font-size: clamp(0.72rem, 1.2vw, 0.94rem); }
+.baseball-pose-setup-guide div { display: flex; justify-content: center; gap: 1.2rem; color: #fff4cf; font-size: clamp(0.68rem, 1.1vw, 0.88rem); font-weight: 800; }
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='PLAYING'] .camera-presentation-video,
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='READY'] .camera-presentation-video,
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='RESULT'] .camera-presentation-video { opacity: 0; }
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='SETUP'] .camera-presentation-playfield,
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='STARTING'] .camera-presentation-playfield,
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='BASELINING'] .camera-presentation-playfield,
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='TRACKING_LOST'] .camera-presentation-playfield,
+.baseball-shell[data-input-mode='pose'][data-presentation-mode='ERROR'] .camera-presentation-playfield { opacity: 0; }
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  .baseball-shell { gap: 0.4rem; padding-block: max(0.38rem, env(safe-area-inset-top)) max(0.38rem, env(safe-area-inset-bottom)); }
+  .baseball-title h1 { font-size: 1.2rem; }
+  .baseball-title small { display: none; }
+  .baseball-home, .baseball-test-controls button { min-height: 2.35rem; padding: 0.4rem 0.6rem; }
+  .baseball-hud span { min-width: 4.35rem; padding: 0.22rem 0.42rem; }
+  .baseball-hud strong { font-size: 1.1rem; }
+  .baseball-test-controls { grid-template-columns: minmax(14rem, 1fr) repeat(2, minmax(7rem, 0.55fr)); gap: 0.35rem; }
+  .baseball-test-controls small { font-size: 0.66rem; }
+  .baseball-result { padding: 0.25rem; }
+  .baseball-result-card { padding: 0.38rem 0.8rem; border-width: 2px; border-radius: 1rem; }
+  .baseball-result-card > p:first-child { font-size: 0.65rem; line-height: 1; }
+  .baseball-result-card h2 { margin-top: 0.05rem; font-size: 1.15rem; line-height: 1; }
+  .baseball-result-card > strong { margin-top: 0.05rem; font-size: 1.55rem; line-height: 1; }
+  .baseball-result-card dl { gap: 0.3rem; margin-top: 0.3rem; }
+  .baseball-result-card dl > div { padding: 0.22rem; }
+  .baseball-result-card dt { font-size: 0.62rem; line-height: 1; }
+  .baseball-result-card dd { margin-top: 0; font-size: 0.95rem; line-height: 1.1; }
+  .baseball-grades { gap: 0.45rem; margin-top: 0.25rem; font-size: 0.68rem; line-height: 1; }
+  .baseball-grades b { font-size: 0.82rem; }
+  .baseball-breakdown, .baseball-hand-stats { margin-top: 0.18rem !important; font-size: 0.68rem; line-height: 1; }
+  .baseball-result-actions { gap: 0.5rem; margin-top: 0.28rem; }
+  .baseball-result button { min-height: 1.9rem; padding: 0.2rem 0.7rem; font-size: 0.78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) { .baseball-shell * { scroll-behavior: auto; } }

@@ -1,23 +1,23 @@
 # Motion Arcade Handoff
 
-- Phase: Portfolio Batch Build — Batch D4 Long Jump Challenge.
-- Status: D4 has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`. Long Jump
-  is a deterministic three-attempt in-place charge/takeoff game that consumes
-  D0 normalized locomotion intensity plus strictly newer normalized JUMP
-  occurrences. Its Core owns charge, timing quality, fictional distance,
-  attempt lifecycle, score, replay, and immutable results. JUMP magnitude is
-  intentionally ignored. Production uses the one existing Pose pipeline with
-  explicit `FULL_BODY` `STRICT` setup and ankle readiness; Developer Test Mode
-  is camera-free with D0 step and JUMP controls.
-- Validation: final typecheck, lint, test, production build, diff check, and
-  landscape browser smoke are recorded in the completion report.
-- Safety boundary: C0 Sports Motion thresholds/semantics, D0 Locomotion, Pose
-  thresholds, JUMP/SQUAT behavior, camera lifecycle, registry schema, and all
-  existing games remain unchanged. No new detector, second inference path, raw
-  Pose game dependency, or microphone path was added. The participant is not
-  asked to jump forward or maximize physical effort.
-- Known risk: comfortable physical jump timing, ankle framing, iPhone Safari,
-  compact-space variation, fatigue, recovery, and projector use remain
-  unvalidated. No Physical PASS is claimed.
-- Next safest task: Batch E — Baseball. Preserve the existing JUMP and D0
-  contracts; do not reopen shared thresholds.
+- Phase: Portfolio Batch Build — Batch E Baseball.
+- Status: Baseball has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`.
+  It is a deterministic, batting-only 60-second game consuming strictly newer
+  retained C0 left/right swing events through a game-local Session. The Core
+  owns pitch timing, contact, fictional hit results, score, stats, and replay;
+  Phaser renders an opaque procedural stadium and HOME RUN RUSH.
+- Validation: typecheck, lint, all 657 tests across 110 files, production build,
+  and `git diff --check` pass. DEV completed a full 60-second 852×393 landscape
+  round with bilateral controls, hit/miss, HOME RUN, result, and replay. The
+  production build shows an explicit camera button and complete `UPPER_BODY`
+  setup at 852×393 with no page overflow, microphone, or console errors.
+- Safety boundary: no new swing, bat, two-hand, release, or pitching detector;
+  C0 Sports Motion, D0 Locomotion, Pose/JUMP thresholds, camera lifecycle,
+  registry schema, and existing game behavior remain unchanged. Production is
+  explicit-start `UPPER_BODY` Pose with no Hands or microphone. No physical bat
+  is required and no real bat-speed or power claim is made.
+- Known risk: physical empty-hand swing recognition, timing tolerance,
+  compact-space comfort, fatigue, recovery, iPhone Safari, and projector
+  readability remain unvalidated. No Physical PASS is claimed.
+- Next safest task: Batch F0 — Voice Input Foundation. Keep microphone
+  permission explicit and lifecycle ownership isolated to requesting games.

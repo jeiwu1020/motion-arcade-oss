@@ -134,7 +134,16 @@ no-forward-jump safety copy is part of the game. Details are recorded in
 locomotion/jump recognition, iPhone Safari, compact-space, fatigue, and
 projector validation remain open.
 
-Current next implementation: **Batch E — Baseball**.
+Batch E — Baseball / 全壘打王 has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. Its pure deterministic Core owns the seeded three-type
+pitch course, timing grades, bounded arcade hit result, scoring, 60-second
+lifecycle, and replay. The sequence-safe Session consumes only retained C0
+Sports Motion events; production reuses one explicit-start `UPPER_BODY` Pose
+pipeline with no Hands or microphone. Players use empty-hand swings and no
+real bat-speed or physical-power claim is made. Details are recorded in
+[Batch E — Baseball](./PHASE_BATCH_E_BASEBALL.md).
+
+Current next implementation: **Batch F0 — Voice Input Foundation**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
