@@ -42,6 +42,12 @@ const RhythmMotionGameScreen = lazy(
       ? import('./games/rhythm-motion/RhythmGameScreen')
       : import('./games/rhythm-motion/RhythmPoseGameScreen'),
 )
+const TennisGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/tennis/TennisGameScreen')
+      : import('./games/tennis/TennisPoseGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -111,6 +117,14 @@ function App() {
     )
   }
 
+  if (screen === 'TENNIS') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <TennisGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
@@ -119,6 +133,7 @@ function App() {
       onOpenReactionArena={() => navigate('REACTION_ARENA')}
       onOpenRunner={() => navigate('RUNNER')}
       onOpenRhythmMotion={() => navigate('RHYTHM_MOTION')}
+      onOpenTennis={() => navigate('TENNIS')}
     />
   )
 }
@@ -130,6 +145,7 @@ function HomeScreen({
   onOpenReactionArena,
   onOpenRunner,
   onOpenRhythmMotion,
+  onOpenTennis,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
@@ -137,6 +153,7 @@ function HomeScreen({
   readonly onOpenReactionArena: () => void
   readonly onOpenRunner: () => void
   readonly onOpenRhythmMotion: () => void
+  readonly onOpenTennis: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -186,8 +203,10 @@ function HomeScreen({
                     ? onOpenReactionArena
                     : game.id === 'runner'
                       ? onOpenRunner
-                      : game.id === 'rhythm-motion'
-                        ? onOpenRhythmMotion
+                    : game.id === 'rhythm-motion'
+                      ? onOpenRhythmMotion
+                      : game.id === 'tennis'
+                        ? onOpenTennis
                       : undefined
               }
             >

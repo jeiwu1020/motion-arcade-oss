@@ -30,6 +30,13 @@ describe('application hash routing', () => {
     })).toBe('RHYTHM_MOTION')
   })
 
+  it('opens Tennis in production without developer gates', () => {
+    expect(screenFromHash('#game/tennis', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('TENNIS')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

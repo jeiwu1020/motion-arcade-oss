@@ -150,7 +150,7 @@ claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_
 
 **Game:** Tennis
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max after Batch C0
 
@@ -159,6 +159,12 @@ claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_
 - Goals: readable incoming ball, forehand/backhand-style contact, arcade timing,
   return trajectory, and rally count/score.
 - Boundary: no realistic tennis simulation is required.
+- Delivered: deterministic 3-second/60-second seeded arcade course with
+  NORMAL/FAST/LOB shots, forgiving symmetric contact grades, bilateral
+  sequence-safe Sports Motion Session consumption, bounded return trajectory,
+  rally scoring, Developer Test Mode, and explicit-permission `UPPER_BODY`
+  production Pose route. Physical validation remains pending. Detailed record:
+  [Batch C1 — Tennis](./PHASE_BATCH_C1_TENNIS.md).
 
 ### Batch C2 — Badminton
 

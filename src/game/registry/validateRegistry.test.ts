@@ -42,6 +42,21 @@ describe('game registry validation', () => {
     })
   })
 
+  it('treats the optional Sports Motion capability as absent by default and accepts it when declared', () => {
+    expect(validFixture.controlSchemes[0]?.requiresSportsMotion ?? false).toBe(false)
+    const sportsFixture = {
+      ...validFixture,
+      controlSchemes: [{
+        ...validFixture.controlSchemes[0]!,
+        requiredActions: [],
+        requiresSportsMotion: true,
+        requiresSpatialHands: false,
+      }],
+    }
+
+    expect(validateGameRegistry([sportsFixture])).toEqual({ valid: true, errors: [] })
+  })
+
   it('reports duplicate IDs and empty control schemes with useful paths', () => {
     const invalid = {
       ...validFixture,

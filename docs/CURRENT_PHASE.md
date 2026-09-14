@@ -66,7 +66,14 @@ existing Pose inference result. It has no sport classification or RELEASE
 event; physical swing recognition remains unvalidated. Details are recorded in
 [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_SPORTS_MOTION_TOOLKIT.md).
 
-Current next implementation: **Batch C1 — Tennis**.
+Batch C1 — Tennis has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. Its deterministic racket-style Core, sequence-safe
+Sports Motion Session, bilateral Developer Test Mode, and explicit-permission
+`UPPER_BODY` production route are recorded in
+[Batch C1 — Tennis](./PHASE_BATCH_C1_TENNIS.md). Physical swing recognition,
+iPhone Safari, compact-space, fatigue, and projector validation remain open.
+
+Current next implementation: **Batch C2 — Badminton**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
