@@ -1,14 +1,17 @@
 # Motion Arcade — Current Phase
 
-Updated: 2026-09-12
+Updated: 2026-09-14
 
-This file is the short live checkpoint. Long-term product and implementation order are canonicalized in [Master Implementation Plan](./MASTER_IMPLEMENTATION_PLAN.md).
+This file is the short live checkpoint. Long-term product and architecture are
+canonicalized in [Master Implementation Plan](./MASTER_IMPLEMENTATION_PLAN.md),
+and the current game/batch order is canonicalized in
+[Full Game Portfolio Plan v1](./FULL_GAME_PORTFOLIO_PLAN.md).
 
 ## Current implementation baseline
 
-Current implementation baseline for the final Balloon Rally UX / variety pass:
+Current implementation baseline at the Batch Build Mode transition:
 
-`da0609927bcf6adac469f1445ce3fdea9035ea67` — Reaction Arena v1 implementation baseline
+`d4455aca3d5eb06e641a13ca2a1cd66e47bdd9e8` — frozen Balloon Rally and Reaction Arena engineering baseline
 
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
@@ -37,6 +40,34 @@ Use current `main` as the working baseline unless a task explicitly pins another
 - Legacy projects are gameplay references; new implementations must use the current normalized runtime architecture.
 
 ## Current phase
+
+### PORTFOLIO BATCH BUILD
+
+Current next implementation: **Batch A — Runner / Avatar Action**.
+
+The portfolio will be built to Engineering Prototype PASS before the separate
+physical QA/tuning sweep. Runner is currently `PLANNED`; move it to
+`ENGINEERING IN PROGRESS` only when its implementation begins. Balloon Rally
+and Reaction Arena are frozen at `PHYSICAL QA PENDING`; neither has a claimed
+`PHYSICAL PASS`.
+
+Batch Build Mode rules:
+
+- do not block later games on an earlier game's pending physical detector
+  tuning;
+- do not reopen the two frozen games unless shared work creates a regression;
+- do not tune shared Pose/audio thresholds for one unvalidated game;
+- schedule shared sensor changes as explicit foundation batches;
+- keep games behind normalized input contracts and preserve explicit sensor
+  permission/lifecycle boundaries.
+
+Canonical order: A Runner → B Rhythm → C0 Sports Toolkit → C1 Tennis → C2
+Badminton → C3 Bowling → D0 Locomotion Toolkit → D1 Running Race → D2
+Swimming → D3 High Jump → D4 Long Jump Challenge → E Baseball → F0 Voice
+Foundation → F1 Vocal Hop → F2 Sound Cannon → G0 Multiplayer Foundation → G1
+Two-Player Dodge Duel → portfolio physical QA sweep → production polish.
+
+## Frozen game baselines and historical phase record
 
 ### Phase 2B — Reaction Arena v1 / 光速反應王
 
@@ -142,7 +173,11 @@ Planned framing requirements:
 The framing guide, Pose readiness requirement, and player setup copy derive
 from the selected game's framing requirement.
 
-## Immediately following phases
+## Superseded pre-batch next-phase note
+
+The following Phase 2A.5 note is preserved as historical planning context. Its
+physical work now belongs to the portfolio-wide physical QA sweep rather than
+blocking Batch A.
 
 ### Phase 2A.5 — game feel + device validation
 
@@ -150,15 +185,20 @@ from the selected game's framing requirement.
 - Windows + iPhone Safari landscape + projector physical validation;
 - then batch adaptive-profile gameplay validation.
 
-## Planned game sequence after Balloon Rally
+## Portfolio batch sequence
 
-1. Reaction Challenge / 光速反應王 successor — prove Motion Actions across another Game Core.
-2. Runner / 磚塊衝刺 successor — action-driven avatar and lane/jump/squat gameplay.
-3. Rhythm exploration — after latency characteristics are known.
-4. Voice foundation + Vocal Hop / Voice Cannon successors — phone microphone, normalized volume/pitch.
-5. Expanded adaptive modes / multiplayer only after several stable single-player games exist.
+1. A — Runner / Avatar Action.
+2. B — Rhythm Motion.
+3. C0–C3 — Sports Motion Toolkit, Tennis, Badminton, Bowling.
+4. D0–D4 — Locomotion Toolkit, Running Race, Swimming, High Jump, Long Jump Challenge.
+5. E — Baseball batting.
+6. F0–F2 — Voice Input Foundation, Vocal Hop, Sound Cannon.
+7. G0–G1 — Multiplayer Foundation, then Two-Player Dodge Duel.
+8. Portfolio-wide physical QA sweep, then production polish.
 
-Detailed migration rationale and Definition of Done live in `MASTER_IMPLEMENTATION_PLAN.md`.
+Detailed game briefs, model allocation, shared-foundation dependencies, and the
+Engineering Prototype PASS contract live in
+[Full Game Portfolio Plan v1](./FULL_GAME_PORTFOLIO_PLAN.md).
 
 ## Manual / physical testing still open
 

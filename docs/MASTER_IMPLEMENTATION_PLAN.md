@@ -1,8 +1,31 @@
 # Motion Arcade — Master Implementation Plan
 
-Updated: 2026-09-12
+Updated: 2026-09-14
 
-This is the canonical implementation roadmap for Motion Arcade. It defines what the product is trying to become, what must remain true across phases, and the order in which major capabilities and games should be matured. `CURRENT_PHASE.md` is the short live checkpoint; this file is the longer-term plan.
+This is the canonical implementation roadmap for Motion Arcade. It defines what the product is trying to become, what must remain true across phases, and the order in which major capabilities and games should be matured. [Full Game Portfolio Plan v1](./FULL_GAME_PORTFOLIO_PLAN.md) is the canonical game/batch schedule and model allocation policy. `CURRENT_PHASE.md` is the short live checkpoint; this file is the longer-term product and architecture plan.
+
+## Current development strategy — Batch Build Mode
+
+Motion Arcade now builds the complete planned portfolio to **Engineering
+Prototype PASS first**, then performs a separate game-by-game physical QA and
+tuning sweep.
+
+- Later engineering batches are not blocked by an earlier game's incomplete
+  real-device tuning.
+- `ENGINEERING PASS` does not imply physical validation. Use the portfolio states
+  `PLANNED`, `ENGINEERING IN PROGRESS`, `ENGINEERING PASS`,
+  `PHYSICAL QA PENDING`, `PHYSICAL PASS`, `PRODUCTION POLISH PENDING`, and
+  `PRODUCTION READY` consistently.
+- Balloon Rally and Reaction Arena are frozen at `PHYSICAL QA PENDING` during
+  the portfolio build unless a shared regression requires focused work.
+- Shared Pose, spatial, locomotion, or audio thresholds must not be tuned for a
+  single unvalidated game. Shared sensor work requires an explicit
+  shared-foundation batch and cross-consumer regression coverage.
+- The next implementation batch is Batch A — Runner / Avatar Action.
+
+The full 15-game portfolio, foundation dependencies, exact batch order,
+Engineering Prototype PASS contract, art policy, and future physical QA matrix
+are defined in [Full Game Portfolio Plan v1](./FULL_GAME_PORTFOLIO_PLAN.md).
 
 ## 1. Product goal
 
@@ -233,7 +256,11 @@ Target experience:
 
 Physics should feel natural but remain arcade-controlled: bounded speed, anti-corner recovery, playable spawn regions, and stable collision behavior are more important than physically accurate balloon simulation.
 
-## 6. Ordered implementation roadmap
+## 6. Historical phase roadmap and portfolio transition
+
+The phase record below preserves the route used to establish the current
+platform and first two games. Its former future-game labels are superseded by
+the ordered batches in [Full Game Portfolio Plan v1](./FULL_GAME_PORTFOLIO_PLAN.md).
 
 ### Foundation — Phase 1A through 1D
 
@@ -400,7 +427,7 @@ The v1 core is deterministic, uses FULL_BODY setup, and keeps the known
 Windows Chrome camera-start observation record-only until a shared lifecycle
 investigation is scheduled.
 
-### Phase 2C — Third production game: Runner / Avatar Action game
+### Phase 2C — Former label for Runner / Avatar Action
 
 Use concepts from 磚塊衝刺 / Extreme Runner.
 
@@ -412,11 +439,14 @@ First Avatar direction:
 - SQUAT triggers duck animation;
 - do not begin with full real-time landmark-to-avatar retargeting.
 
-This phase validates a non-camera-AR presentation family.
+This phase validates a non-camera-AR presentation family. It is now canonical
+as **Batch A**, the first Portfolio Batch Build implementation.
 
-### Phase 2D — Rhythm game exploration
+### Phase 2D — Former label for Rhythm game exploration
 
-Rebuild the left/right rhythm concept only after latency behavior is understood on real devices.
+Rebuild the left/right rhythm concept with explicit latency instrumentation for
+later physical tuning. Under Batch Build Mode, incomplete physical tuning of
+Runner does not block this engineering batch.
 
 Focus:
 
@@ -425,7 +455,7 @@ Focus:
 - LEFT/RIGHT body actions;
 - avoid premature complex music/chart tooling.
 
-### Phase 3 — Voice Input foundation and voice games
+### Phase 3 — Former label for Voice Input foundation and voice games
 
 Use phone microphone through an explicit, lifecycle-safe audio runtime.
 
@@ -442,13 +472,14 @@ Candidate games:
 - voice cannon;
 - jump/high-jump variants.
 
-### Phase 4 — Expanded accessibility and multiplayer
+### Phase 4 — Former label for expanded accessibility and multiplayer
 
-Only after several single-player games are stable:
+Multiplayer remains gated until several single-player games are stable:
 
 - formal gameplay selection for LOW_MOTION / SLOW_RESPONSE / SEATED / UPPER_BODY;
 - LEFT_SIDE / RIGHT_SIDE if real game needs justify them;
-- multi-person tracking research;
+- multi-person tracking research, now Batch G0 and explicitly allocated to
+  Astra;
 - team/turn-based modes that do not require simultaneous multi-person tracking where possible.
 
 ## 7. Visual quality roadmap
@@ -470,6 +501,11 @@ Do not spend major art effort before a game's input/physics loop passes real-dev
 ## 8. Definition of done for a production game
 
 A game is not considered mature merely because it runs in desktop dev mode.
+
+The earlier production gates below remain release requirements. During Batch
+Build Mode, the separate Engineering Prototype PASS contract in
+[Full Game Portfolio Plan v1](./FULL_GAME_PORTFOLIO_PLAN.md) is the engineering
+acceptance gate and must not be presented as a physical or production pass.
 
 Minimum production gates:
 
@@ -494,6 +530,9 @@ Before adding a new sensor capability, ask:
 1. Does a planned game actually need it?
 2. Can an existing normalized action/spatial/voice contract solve the gameplay need?
 3. Can the capability be implemented once as shared runtime rather than inside a game?
-4. Has the preceding playable phase been physically validated enough to justify expansion?
+4. Is the capability part of an explicit shared-foundation batch with enough
+   engineering evidence and regression coverage to expand safely?
 
 Prefer finishing useful games over accumulating unused detector capabilities.
+Physical tuning is batched after the portfolio Engineering Prototype phase and
+does not automatically block the next game's engineering work.
