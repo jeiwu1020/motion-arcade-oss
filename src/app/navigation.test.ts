@@ -44,6 +44,13 @@ describe('application hash routing', () => {
     })).toBe('BADMINTON')
   })
 
+  it('opens Bowling in production without developer gates', () => {
+    expect(screenFromHash('#game/bowling', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('BOWLING')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

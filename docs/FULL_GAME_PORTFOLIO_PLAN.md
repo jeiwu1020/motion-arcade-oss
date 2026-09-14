@@ -190,15 +190,21 @@ claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_
 
 **Game:** Bowling
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
-- Framing: `UPPER_BODY` unless implementation evidence proves lower-body
-  tracking is necessary.
-- Reuse the shared swing/release abstraction.
-- Goals: arm backswing/forward release, lane aiming without large room movement,
-  arcade ball physics, pins, and clear score/result presentation.
+- Framing: `UPPER_BODY`; lower-body tracking is not required.
+- Input: the existing C0 Sports Motion Toolkit. One newer game-local swing
+  attempt is one arcade release; no shared RELEASE event was added.
+- Delivered: deterministic five-frame arcade match, 2,500 ms aim sweep,
+  deterministic ten-pin resolver, exact ball/settling/transition timing,
+  bilateral sequence-safe Session, explicit-permission production route,
+  Developer Test Mode, and projector-readable procedural Phaser lane.
+- Engineering conclusion: C0 `SportsSwingEvent` is sufficient to power this
+  engineering release contract. Physical release recognition remains pending;
+  no physical PASS is claimed. Detailed record:
+  [Batch C3 — Bowling](./PHASE_BATCH_C3_BOWLING.md).
 
 ### Batch D0 — Locomotion Toolkit
 
@@ -400,7 +406,7 @@ and tests to be stable enough to avoid knowingly carrying regressions forward.
 | Shared foundation | Required consumers | Notes |
 |---|---|---|
 | Existing normalized Motion Actions + Pose runtime | Runner, Rhythm Motion, High Jump | No new shared detector is planned for their initial versions. |
-| C0 Sports Motion Toolkit | Tennis, Badminton, Bowling, Baseball | Reuses canonical spatial-wrist concepts and supplies broad body-relative swing, vector, and bounded-intensity output. `RELEASE` remains deferred until Bowling demonstrates the need. |
+| C0 Sports Motion Toolkit | Tennis, Badminton, Bowling, Baseball | Reuses canonical spatial-wrist concepts and supplies broad body-relative swing, vector, and bounded-intensity output. Bowling demonstrates that one swing event is sufficient for the engineering release contract; `RELEASE` remains deferred because physical validation is pending. |
 | D0 Locomotion Toolkit | Running Race, Long Jump Challenge | Running-in-place cadence/intensity is shared; Long Jump also uses existing JUMP. |
 | Minimal alternating arm-cycle extension | Swimming | Establish outside Game Core during the first-game design; keep it no larger than proven necessary. |
 | F0 Voice Input Foundation | Vocal Hop, Sound Cannon | Microphone is opt-in and active only for requesting games. |

@@ -1,0 +1,71 @@
+.bowling-shell {
+  --bowling-ink: #fff8e7;
+  width: 100dvw;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  padding: max(0.65rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right)) max(0.65rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
+  overflow: hidden;
+  color: var(--bowling-ink);
+  background: linear-gradient(145deg, #160b20, #512b35 62%, #1e243d);
+}
+
+.bowling-shell[data-input-mode='pose'] { grid-template-rows: auto minmax(0, 1fr); }
+.bowling-topbar { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: clamp(0.5rem, 1.8vw, 1rem); }
+.bowling-title h1, .bowling-title small { display: block; margin: 0; }
+.bowling-title h1 { font-size: clamp(1.3rem, 3vw, 2.1rem); letter-spacing: -0.045em; line-height: 1; }
+.bowling-title h1 span { color: #ffd071; font-size: 0.48em; letter-spacing: 0.08em; vertical-align: 0.18em; }
+.bowling-title small { margin-bottom: 0.22rem; color: #ffd071; font-size: clamp(0.58rem, 1.05vw, 0.78rem); font-weight: 900; letter-spacing: 0.09em; }
+.bowling-home, .bowling-test-controls button, .bowling-result button { min-height: 2.8rem; border: 1px solid rgb(255 218 126 / 52%); border-radius: 0.85rem; padding: 0.62rem 0.9rem; color: #fff; background: #693744; cursor: pointer; font-weight: 900; }
+.bowling-home:focus-visible, .bowling-test-controls button:focus-visible, .bowling-result button:focus-visible { outline: 3px solid #fff29a; outline-offset: 3px; }
+.bowling-hud { display: flex; justify-content: flex-end; gap: 0.4rem; }
+.bowling-hud span { min-width: 4.8rem; border: 1px solid rgb(255 220 132 / 32%); border-radius: 0.8rem; padding: 0.42rem 0.55rem; color: #ffe8c2; background: rgb(38 16 36 / 88%); font-size: clamp(0.68rem, 1.12vw, 0.86rem); font-weight: 850; text-align: center; }
+.bowling-hud strong { display: block; margin-top: 0.1rem; color: #fff; font-size: clamp(1.05rem, 2vw, 1.42rem); }
+.bowling-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; border: 2px solid rgb(255 216 112 / 50%); border-radius: clamp(0.8rem, 2vw, 1.3rem); background: #1a0e22; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%), 0 1rem 3rem rgb(0 0 0 / 28%); }
+.bowling-canvas { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; contain: size layout paint; background: #1a0e22; }
+.bowling-canvas canvas { display: block; }
+.bowling-test-controls { display: grid; grid-template-columns: minmax(18rem, 1fr) repeat(2, minmax(10rem, 0.55fr)); gap: 0.5rem; }
+.bowling-test-controls div { align-self: center; }
+.bowling-test-controls small { display: block; margin-top: 0.15rem; color: #f3d8bf; }
+.bowling-test-controls button { min-height: 3.2rem; font-size: clamp(1rem, 2vw, 1.25rem); background: linear-gradient(145deg, #b26543, #804052); }
+.bowling-test-controls button:last-child { background: linear-gradient(145deg, #b38a3d, #7d4a43); }
+.bowling-result { position: absolute; z-index: 12; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgb(17 8 27 / 84%); backdrop-filter: blur(8px); pointer-events: auto; }
+.bowling-result-card { width: min(48rem, 94%); border: 3px solid rgb(255 212 112 / 74%); border-radius: 1.6rem; padding: clamp(1.15rem, 3vw, 2.1rem); color: #3b2030; background: linear-gradient(155deg, #fffaf0, #ffe9c6); box-shadow: 0 1.4rem 4rem rgb(0 0 0 / 42%); text-align: center; }
+.bowling-result-card p, .bowling-result-card h2 { margin: 0; }
+.bowling-result-card > p:first-child { color: #9a5b45; font-weight: 900; letter-spacing: 0.08em; }
+.bowling-result-card h2 { margin-top: 0.2rem; font-size: clamp(2rem, 5vw, 3.3rem); }
+.bowling-result-card > strong { display: block; margin-top: 0.35rem; color: #bb633e; font-size: clamp(2rem, 5vw, 3.6rem); }
+.bowling-result-card dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem; margin: 1.1rem 0 0; }
+.bowling-result-card dl > div { border-radius: 0.9rem; padding: 0.62rem 0.35rem; background: #ffe0ac; }
+.bowling-result-card dt { color: #8e6b5e; font-size: 0.76rem; font-weight: 800; }
+.bowling-result-card dd { margin: 0.12rem 0 0; font-size: 1.55rem; font-weight: 950; }
+.bowling-hand-stats { margin-top: 0.85rem !important; color: #8e6b5e; font-size: 0.9rem; font-weight: 800; }
+.bowling-result-actions { display: flex; justify-content: center; gap: 0.7rem; margin-top: 1.1rem; }
+.bowling-pose-setup-guide { position: absolute; right: 50%; bottom: clamp(0.55rem, 2vh, 1.1rem); display: grid; gap: 0.22rem; width: min(62rem, 92%); padding: 0.55rem 0.8rem; border: 1px solid rgb(255 216 112 / 46%); border-radius: 0.8rem; color: #fff8e7; background: rgb(29 12 35 / 84%); box-shadow: 0 0.55rem 1.6rem rgb(0 0 0 / 24%); text-align: center; transform: translateX(50%); pointer-events: none; }
+.bowling-pose-setup-guide strong { color: #ffd071; font-size: clamp(0.85rem, 1.4vw, 1.1rem); }
+.bowling-pose-setup-guide > span { color: #f3dfcf; font-size: clamp(0.72rem, 1.2vw, 0.94rem); }
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='PLAYING'] .camera-presentation-video,
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='READY'] .camera-presentation-video,
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='RESULT'] .camera-presentation-video { opacity: 0; }
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='SETUP'] .camera-presentation-playfield,
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='STARTING'] .camera-presentation-playfield,
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='BASELINING'] .camera-presentation-playfield,
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='TRACKING_LOST'] .camera-presentation-playfield,
+.bowling-shell[data-input-mode='pose'][data-presentation-mode='ERROR'] .camera-presentation-playfield { opacity: 0; }
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  .bowling-shell { gap: 0.42rem; padding-block: max(0.4rem, env(safe-area-inset-top)) max(0.4rem, env(safe-area-inset-bottom)); }
+  .bowling-title h1 { font-size: 1.25rem; }
+  .bowling-title small { display: none; }
+  .bowling-home, .bowling-test-controls button { min-height: 2.35rem; padding: 0.42rem 0.62rem; }
+  .bowling-hud span { min-width: 4.1rem; padding: 0.25rem 0.4rem; }
+  .bowling-hud strong { font-size: 1.1rem; }
+  .bowling-test-controls { grid-template-columns: minmax(14rem, 1fr) repeat(2, minmax(7rem, 0.55fr)); gap: 0.35rem; }
+  .bowling-test-controls small { font-size: 0.68rem; }
+  .bowling-result-card { padding: 0.85rem 1.2rem; }
+  .bowling-result-card dl { margin-top: 0.6rem; }
+  .bowling-result-actions { margin-top: 0.65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) { .bowling-shell * { scroll-behavior: auto; } }

@@ -82,7 +82,17 @@ production route are recorded in
 recognition, iPhone Safari, compact-space, fatigue, and projector validation
 remain open.
 
-Current next implementation: **Batch C3 — Bowling**.
+Batch C3 — Bowling has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. It is a five-frame arcade lane game powered by one
+game-local interpretation of each newer C0 `SportsSwingEvent` as one release;
+its deterministic aim sweep, pin resolver, retained-event safety, and explicit
+permission `UPPER_BODY` production route are recorded in
+[Batch C3 — Bowling](./PHASE_BATCH_C3_BOWLING.md). Physical bowling-motion
+recognition, iPhone Safari, compact-space, fatigue, and projector validation
+remain open. C0's broad swing was sufficient for the engineering contract, so
+no shared RELEASE event was added.
+
+Current next implementation: **Batch D0 — Locomotion Toolkit**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

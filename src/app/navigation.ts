@@ -8,6 +8,7 @@ export type AppScreen =
   | 'RHYTHM_MOTION'
   | 'TENNIS'
   | 'BADMINTON'
+  | 'BOWLING'
 
 export interface AppRouteGates {
   readonly testInputEnabled: boolean
@@ -24,6 +25,7 @@ export function screenFromHash(
   if (hash === '#game/rhythm-motion') return 'RHYTHM_MOTION'
   if (hash === '#game/tennis') return 'TENNIS'
   if (hash === '#game/badminton') return 'BADMINTON'
+  if (hash === '#game/bowling') return 'BOWLING'
   if (gates.testInputEnabled && hash === '#test-lab') return 'TEST_LAB'
   if (
     gates.realSensorLabEnabled &&
@@ -43,5 +45,6 @@ export function hashForScreen(screen: AppScreen): string {
   if (screen === 'RHYTHM_MOTION') return 'game/rhythm-motion'
   if (screen === 'TENNIS') return 'game/tennis'
   if (screen === 'BADMINTON') return 'game/badminton'
+  if (screen === 'BOWLING') return 'game/bowling'
   return ''
 }
