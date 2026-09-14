@@ -51,6 +51,13 @@ describe('application hash routing', () => {
     })).toBe('BOWLING')
   })
 
+  it('opens Running Race in production without developer gates', () => {
+    expect(screenFromHash('#game/running-race', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('RUNNING_RACE')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

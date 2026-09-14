@@ -232,7 +232,7 @@ validation remains pending. Detailed record:
 
 **Game:** Running Race
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
@@ -241,6 +241,13 @@ validation remains pending. Detailed record:
 - Player movement: running in place; no physical travel across the room.
 - Goals: race against characters/opponents, speed meter, short sprint and
   endurance variants, and strong finish feedback.
+- Delivered: deterministic 3-second/60-second four-runner arcade race with
+  START/PACE/CHASE/FINAL_SPRINT phases, bounded intensity-to-progress mapping,
+  deterministic STEADY/BURST/FINISHER AI, stable rank/overtake events, score and
+  result screen, sequence-safe D0 Session consumption, Developer Test Mode, and
+  explicit-permission `FULL_BODY` + `KNEES` production Pose route. Physical
+  cadence/running recognition remains pending. Detailed record: [Batch D1 —
+  Running Race](./PHASE_BATCH_D1_RUNNING_RACE.md).
 
 ### Batch D2 — Swimming
 

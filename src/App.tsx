@@ -60,6 +60,12 @@ const BowlingGameScreen = lazy(
       ? import('./games/bowling/BowlingGameScreen')
       : import('./games/bowling/BowlingPoseGameScreen'),
 )
+const RunningRaceGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/running-race/RunningRaceGameScreen')
+      : import('./games/running-race/RunningRacePoseGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -153,6 +159,14 @@ function App() {
     )
   }
 
+  if (screen === 'RUNNING_RACE') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <RunningRaceGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
@@ -164,6 +178,7 @@ function App() {
       onOpenTennis={() => navigate('TENNIS')}
       onOpenBadminton={() => navigate('BADMINTON')}
       onOpenBowling={() => navigate('BOWLING')}
+      onOpenRunningRace={() => navigate('RUNNING_RACE')}
     />
   )
 }
@@ -178,6 +193,7 @@ function HomeScreen({
   onOpenTennis,
   onOpenBadminton,
   onOpenBowling,
+  onOpenRunningRace,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
@@ -188,6 +204,7 @@ function HomeScreen({
   readonly onOpenTennis: () => void
   readonly onOpenBadminton: () => void
   readonly onOpenBowling: () => void
+  readonly onOpenRunningRace: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -245,6 +262,8 @@ function HomeScreen({
                         ? onOpenBadminton
                       : game.id === 'bowling'
                         ? onOpenBowling
+                      : game.id === 'running-race'
+                        ? onOpenRunningRace
                       : undefined
               }
             >

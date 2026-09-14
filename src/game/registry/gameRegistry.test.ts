@@ -66,4 +66,20 @@ describe('production game registry', () => {
     })
     await expect(runner?.load()).resolves.toMatchObject({ id: 'runner' })
   })
+
+  it('registers Running Race as a locomotion-driven single-player game', async () => {
+    const runningRace = gameRegistry.find(({ id }) => id === 'running-race')
+    expect(runningRace).toMatchObject({
+      id: 'running-race',
+      title: '原地衝刺王',
+      category: 'SPORTS',
+      subcategory: 'TRACK_FIELD',
+      controlSchemes: [{
+        requiredActions: [],
+        requiresLocomotion: true,
+        bodyAreas: ['FULL_BODY', 'LOWER_BODY'],
+      }],
+    })
+    await expect(runningRace?.load()).resolves.toMatchObject({ id: 'running-race' })
+  })
 })

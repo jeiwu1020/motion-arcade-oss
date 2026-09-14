@@ -57,6 +57,19 @@ describe('game registry validation', () => {
     expect(validateGameRegistry([sportsFixture])).toEqual({ valid: true, errors: [] })
   })
 
+  it('treats the optional Locomotion capability as absent by default and accepts it when declared', () => {
+    expect(validFixture.controlSchemes[0]?.requiresLocomotion ?? false).toBe(false)
+    const locomotionFixture = {
+      ...validFixture,
+      controlSchemes: [{
+        ...validFixture.controlSchemes[0]!,
+        requiredActions: [],
+        requiresLocomotion: true,
+      }],
+    }
+    expect(validateGameRegistry([locomotionFixture])).toEqual({ valid: true, errors: [] })
+  })
+
   it('reports duplicate IDs and empty control schemes with useful paths', () => {
     const invalid = {
       ...validFixture,

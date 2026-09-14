@@ -99,7 +99,14 @@ path, without duplicating JUMP or exposing raw landmarks to games. Physical
 cadence/running recognition remains unvalidated. See
 [Batch D0 — Locomotion Toolkit](./PHASE_BATCH_D0_LOCOMOTION_TOOLKIT.md).
 
-Current next implementation: **Batch D1 — Running Race**.
+Batch D1 — Running Race has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. Its deterministic four-runner arcade race consumes only
+the D0 locomotion contract, uses `FULL_BODY` + `KNEES` readiness without ankles,
+and preserves pause/recovery sequence safety. Physical cadence/running
+recognition, iPhone Safari, compact-space, fatigue, and projector validation
+remain open. See [Batch D1 — Running Race](./PHASE_BATCH_D1_RUNNING_RACE.md).
+
+Current next implementation: **Batch D2 — Swimming**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

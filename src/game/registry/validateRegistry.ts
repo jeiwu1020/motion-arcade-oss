@@ -54,7 +54,8 @@ function validateScheme(
   if (
     scheme.requiredActions.length === 0 &&
     !scheme.requiresSpatialHands &&
-    !scheme.requiresSportsMotion
+    !scheme.requiresSportsMotion &&
+    !scheme.requiresLocomotion
   ) {
     errors.push({
       code: 'EMPTY_REQUIRED_ACTIONS',
