@@ -13,6 +13,10 @@ Current implementation baseline at the Batch Build Mode transition:
 
 `d4455aca3d5eb06e641a13ca2a1cd66e47bdd9e8` — frozen Balloon Rally and Reaction Arena engineering baseline
 
+Batch A Runner implementation started from:
+
+`ca626bd00d084cfabf8029656216c4fe37baceb0`
+
 Use current `main` as the working baseline unless a task explicitly pins another SHA.
 
 ## Validated milestones
@@ -43,13 +47,17 @@ Use current `main` as the working baseline unless a task explicitly pins another
 
 ### PORTFOLIO BATCH BUILD
 
-Current next implementation: **Batch A — Runner / Avatar Action**.
+Runner / 跑酷衝刺 has completed its `ENGINEERING PASS` and is now
+`PHYSICAL QA PENDING`. Its deterministic three-lane Core, normalized Session,
+Developer Test Mode, procedural Phaser presentation, and explicit-permission
+`FULL_BODY` `STRICT` production Pose route are recorded in
+[Batch A — Runner / Avatar Action](./PHASE_BATCH_A_RUNNER.md).
+
+Current next implementation: **Batch B — Rhythm Motion**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
-physical QA/tuning sweep. Runner is currently `PLANNED`; move it to
-`ENGINEERING IN PROGRESS` only when its implementation begins. Balloon Rally
-and Reaction Arena are frozen at `PHYSICAL QA PENDING`; neither has a claimed
-`PHYSICAL PASS`.
+physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
+`PHYSICAL QA PENDING`; none has a claimed `PHYSICAL PASS`.
 
 Batch Build Mode rules:
 
@@ -68,6 +76,18 @@ Foundation → F1 Vocal Hop → F2 Sound Cannon → G0 Multiplayer Foundation �
 Two-Player Dodge Duel → portfolio physical QA sweep → production polish.
 
 ## Frozen game baselines and historical phase record
+
+### Batch A — Runner / Avatar Action
+
+Engineering status: PASS. The 60-second three-lane Runner is registered and
+launchable through production and Developer Test routes. Its pure Core owns the
+seeded obstacle course, action clocks, collision rules, scoring, pacing, and
+stable results. Session consumes only new normalized action sequences and
+pauses Core time outside `READY`. Production uses the existing Pose/runtime and
+Camera Presentation layers with explicit permission, `FULL_BODY` framing,
+default `STRICT` readiness, and no microphone. Shared Pose thresholds and the
+two earlier games are unchanged. Windows/iPhone compact-space and projector
+physical validation remain open.
 
 ### Phase 2B — Reaction Arena v1 / 光速反應王
 
@@ -187,8 +207,8 @@ blocking Batch A.
 
 ## Portfolio batch sequence
 
-1. A — Runner / Avatar Action.
-2. B — Rhythm Motion.
+1. A — Runner / Avatar Action (`ENGINEERING PASS`; `PHYSICAL QA PENDING`).
+2. B — Rhythm Motion (next implementation).
 3. C0–C3 — Sports Motion Toolkit, Tennis, Badminton, Bowling.
 4. D0–D4 — Locomotion Toolkit, Running Race, Swimming, High Jump, Long Jump Challenge.
 5. E — Baseball batting.

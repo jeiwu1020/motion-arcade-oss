@@ -16,6 +16,13 @@ describe('application hash routing', () => {
     expect(screenFromHash('#game/reaction-arena', { testInputEnabled: false, realSensorLabEnabled: false })).toBe('REACTION_ARENA')
   })
 
+  it('opens Runner in production without developer gates', () => {
+    expect(screenFromHash('#game/runner', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('RUNNER')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

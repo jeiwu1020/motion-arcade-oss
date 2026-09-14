@@ -30,6 +30,12 @@ const ReactionArenaGameScreen = lazy(
       ? import('./games/reaction-arena/ReactionArenaGameScreen')
       : import('./games/reaction-arena/ReactionArenaPoseGameScreen'),
 )
+const RunnerGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/runner/RunnerGameScreen')
+      : import('./games/runner/RunnerPoseGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -83,12 +89,21 @@ function App() {
     )
   }
 
+  if (screen === 'RUNNER') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <RunnerGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
       onOpenPoseLab={() => navigate('POSE_SENSOR_LAB')}
       onOpenBalloonPop={() => navigate('BALLOON_POP')}
       onOpenReactionArena={() => navigate('REACTION_ARENA')}
+      onOpenRunner={() => navigate('RUNNER')}
     />
   )
 }
@@ -98,11 +113,13 @@ function HomeScreen({
   onOpenPoseLab,
   onOpenBalloonPop,
   onOpenReactionArena,
+  onOpenRunner,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
   readonly onOpenBalloonPop: () => void
   readonly onOpenReactionArena: () => void
+  readonly onOpenRunner: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -150,10 +167,14 @@ function HomeScreen({
                   ? onOpenBalloonPop
                   : game.id === 'reaction-arena'
                     ? onOpenReactionArena
-                    : undefined
+                    : game.id === 'runner'
+                      ? onOpenRunner
+                      : undefined
               }
             >
-              <span className="home-game-entry-category">小遊戲 · 1 人 · 60 秒</span>
+              <span className="home-game-entry-category">
+                {game.category === 'SPORTS' ? '運動競技' : '小遊戲'} · 1 人 · 60 秒
+              </span>
               <strong>{game.title}</strong>
               <span>{game.description}</span>
               <small>

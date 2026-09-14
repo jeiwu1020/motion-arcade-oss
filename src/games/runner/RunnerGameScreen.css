@@ -1,0 +1,286 @@
+.runner-shell {
+  width: 100dvw;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  padding: max(0.65rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right)) max(0.65rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
+  overflow: hidden;
+  color: #f8fbff;
+  background: linear-gradient(145deg, #07152d, #101d43 58%, #251642);
+}
+
+.runner-shell[data-input-mode='pose'] {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.runner-topbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(0.5rem, 1.8vw, 1rem);
+}
+
+.runner-title h1,
+.runner-title small {
+  display: block;
+  margin: 0;
+}
+
+.runner-title h1 {
+  font-size: clamp(1.35rem, 3vw, 2.1rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.runner-title small {
+  margin-bottom: 0.22rem;
+  color: #67e6c4;
+  font-size: clamp(0.58rem, 1.05vw, 0.78rem);
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.runner-home,
+.runner-test-controls button,
+.runner-result button {
+  min-height: 2.8rem;
+  border: 1px solid rgb(134 213 235 / 48%);
+  border-radius: 0.85rem;
+  padding: 0.62rem 0.9rem;
+  color: #fff;
+  background: #173961;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.runner-home:focus-visible,
+.runner-test-controls button:focus-visible,
+.runner-result button:focus-visible {
+  outline: 3px solid #ffe66f;
+  outline-offset: 3px;
+}
+
+.runner-hud {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.runner-hud span {
+  min-width: 5.5rem;
+  border: 1px solid rgb(113 228 205 / 28%);
+  border-radius: 0.8rem;
+  padding: 0.42rem 0.66rem;
+  color: #bdd3e8;
+  background: rgb(8 28 58 / 88%);
+  font-size: clamp(0.7rem, 1.2vw, 0.88rem);
+  font-weight: 850;
+  text-align: center;
+}
+
+.runner-hud strong {
+  display: inline-block;
+  margin-left: 0.22rem;
+  color: #fff;
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+}
+
+.runner-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 2px solid rgb(110 225 208 / 42%);
+  border-radius: clamp(0.8rem, 2vw, 1.3rem);
+  background: #07132c;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%), 0 1rem 3rem rgb(0 0 0 / 24%);
+}
+
+.runner-canvas {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: size layout paint;
+  background: #07132c;
+}
+
+.runner-canvas canvas {
+  display: block;
+}
+
+.runner-shell[data-input-mode='pose'][data-presentation-mode='PLAYING']
+  .camera-presentation-video,
+.runner-shell[data-input-mode='pose'][data-presentation-mode='READY']
+  .camera-presentation-video,
+.runner-shell[data-input-mode='pose'][data-presentation-mode='RESULT']
+  .camera-presentation-video {
+  opacity: 0;
+}
+
+.runner-shell[data-input-mode='pose'][data-presentation-mode='SETUP']
+  .camera-presentation-playfield,
+.runner-shell[data-input-mode='pose'][data-presentation-mode='STARTING']
+  .camera-presentation-playfield,
+.runner-shell[data-input-mode='pose'][data-presentation-mode='BASELINING']
+  .camera-presentation-playfield,
+.runner-shell[data-input-mode='pose'][data-presentation-mode='TRACKING_LOST']
+  .camera-presentation-playfield,
+.runner-shell[data-input-mode='pose'][data-presentation-mode='ERROR']
+  .camera-presentation-playfield {
+  opacity: 0;
+}
+
+.runner-test-controls {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) repeat(4, minmax(7rem, 0.55fr));
+  gap: 0.5rem;
+}
+
+.runner-test-controls div {
+  align-self: center;
+}
+
+.runner-test-controls small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #a9bfd3;
+}
+
+.runner-result {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(4 14 34 / 82%);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.runner-result-card {
+  width: min(37rem, 94%);
+  border: 3px solid rgb(111 240 196 / 72%);
+  border-radius: 1.6rem;
+  padding: clamp(1.25rem, 3vw, 2.2rem);
+  color: #102040;
+  background: linear-gradient(155deg, #ffffff, #e7fff7);
+  box-shadow: 0 1.4rem 4rem rgb(0 0 0 / 38%);
+  text-align: center;
+}
+
+.runner-result-card p,
+.runner-result-card h2 {
+  margin: 0;
+}
+
+.runner-result-card p {
+  color: #227b74;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.runner-result-card h2 {
+  margin-top: 0.2rem;
+  font-size: clamp(2rem, 5vw, 3.3rem);
+}
+
+.runner-result-card > strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #273ca1;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+}
+
+.runner-result-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  margin: 1.1rem 0 0;
+}
+
+.runner-result-card dl > div {
+  border-radius: 0.9rem;
+  padding: 0.65rem;
+  background: #dceaf3;
+}
+
+.runner-result-card dt {
+  color: #527083;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.runner-result-card dd {
+  margin: 0.12rem 0 0;
+  font-size: 1.65rem;
+  font-weight: 950;
+}
+
+.runner-result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 1.1rem;
+}
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  .runner-shell {
+    gap: 0.42rem;
+    padding-block: max(0.4rem, env(safe-area-inset-top)) max(0.4rem, env(safe-area-inset-bottom));
+  }
+
+  .runner-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .runner-title small {
+    display: none;
+  }
+
+  .runner-home,
+  .runner-test-controls button {
+    min-height: 2.35rem;
+    padding: 0.42rem 0.62rem;
+  }
+
+  .runner-hud span {
+    min-width: 4.8rem;
+    padding: 0.25rem 0.45rem;
+  }
+
+  .runner-hud strong {
+    font-size: 1.15rem;
+  }
+
+  .runner-test-controls {
+    grid-template-columns: minmax(14rem, 1fr) repeat(4, minmax(5.5rem, 0.55fr));
+    gap: 0.35rem;
+  }
+
+  .runner-test-controls small {
+    font-size: 0.68rem;
+  }
+
+  .runner-result-card {
+    padding: 0.85rem 1.2rem;
+  }
+
+  .runner-result-card dl {
+    margin-top: 0.6rem;
+  }
+
+  .runner-result-actions {
+    margin-top: 0.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runner-shell * {
+    scroll-behavior: auto;
+  }
+}

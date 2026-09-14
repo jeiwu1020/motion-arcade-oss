@@ -72,9 +72,11 @@ as games.
 
 ### Batch A — Runner / Avatar Action
 
-**Game:** Runner / 跑酷
+**Game:** 跑酷衝刺 / Runner
 
-**State:** `PLANNED`
+**Engineering gate:** `ENGINEERING PASS`
+
+**Portfolio state:** `PHYSICAL QA PENDING`
 
 **Primary model:** Sol High for the first implementation
 
@@ -86,6 +88,13 @@ as games.
 - Goals: three lanes, lane changes, jump obstacles, duck obstacles, increasing
   speed/density, and action-driven avatar animation.
 - Boundary: do not implement full landmark retargeting.
+- Delivered: deterministic 3-second countdown and 60-second course; warm-up,
+  flow, challenge, and Final Rush pacing; three obstacle families; score,
+  streak, collision, result, and same-seed replay; procedural action-driven
+  avatar; Developer Test Mode; and an explicit-permission production Pose route.
+- Physical status: Windows Chrome, iPhone Safari landscape, compact-space, and
+  projector validation remain pending. No physical pass is claimed.
+- Detailed record: [Batch A — Runner / Avatar Action](./PHASE_BATCH_A_RUNNER.md).
 
 ### Batch B — Rhythm
 

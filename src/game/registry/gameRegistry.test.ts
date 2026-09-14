@@ -42,4 +42,28 @@ describe('production game registry', () => {
     })
     await expect(reaction?.load()).resolves.toMatchObject({ id: 'reaction-arena' })
   })
+
+  it('registers Runner as a single-player SPORTS track-field game', async () => {
+    const runner = gameRegistry.find(({ id }) => id === 'runner')
+
+    expect(validateGameRegistry(gameRegistry)).toEqual({ valid: true, errors: [] })
+    expect(runner).toMatchObject({
+      id: 'runner',
+      title: '跑酷衝刺',
+      category: 'SPORTS',
+      subcategory: 'TRACK_FIELD',
+      supportedTeams: [1],
+      simultaneousPlayers: { min: 1, max: 1 },
+      controlSchemes: [{
+        requiredActions: ['MOVE_LEFT', 'MOVE_RIGHT', 'JUMP', 'SQUAT'],
+        inputTypes: ['BODY'],
+        bodyAreas: ['FULL_BODY', 'LOWER_BODY'],
+        posture: ['STANDING'],
+        activityLevel: 'HIGH',
+        supportedAbilityProfiles: ['STANDARD'],
+        sensorRequirements: { pose: true, hands: false, audio: false },
+      }],
+    })
+    await expect(runner?.load()).resolves.toMatchObject({ id: 'runner' })
+  })
 })

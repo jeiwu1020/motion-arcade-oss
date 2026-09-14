@@ -21,7 +21,9 @@ tuning sweep.
 - Shared Pose, spatial, locomotion, or audio thresholds must not be tuned for a
   single unvalidated game. Shared sensor work requires an explicit
   shared-foundation batch and cross-consumer regression coverage.
-- The next implementation batch is Batch A — Runner / Avatar Action.
+- Batch A — Runner / Avatar Action is `ENGINEERING PASS` and
+  `PHYSICAL QA PENDING`; the next implementation batch is Batch B — Rhythm
+  Motion.
 
 The full 15-game portfolio, foundation dependencies, exact batch order,
 Engineering Prototype PASS contract, art policy, and future physical QA matrix
