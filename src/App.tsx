@@ -78,6 +78,12 @@ const HighJumpGameScreen = lazy(
       ? import('./games/high-jump/HighJumpGameScreen')
       : import('./games/high-jump/HighJumpPoseGameScreen'),
 )
+const LongJumpGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/long-jump/LongJumpGameScreen')
+      : import('./games/long-jump/LongJumpPoseGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -195,6 +201,14 @@ function App() {
     )
   }
 
+  if (screen === 'LONG_JUMP') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <LongJumpGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
@@ -209,6 +223,7 @@ function App() {
       onOpenRunningRace={() => navigate('RUNNING_RACE')}
       onOpenSwimming={() => navigate('SWIMMING')}
       onOpenHighJump={() => navigate('HIGH_JUMP')}
+      onOpenLongJump={() => navigate('LONG_JUMP')}
     />
   )
 }
@@ -226,6 +241,7 @@ function HomeScreen({
   onOpenRunningRace,
   onOpenSwimming,
   onOpenHighJump,
+  onOpenLongJump,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
@@ -239,6 +255,7 @@ function HomeScreen({
   readonly onOpenRunningRace: () => void
   readonly onOpenSwimming: () => void
   readonly onOpenHighJump: () => void
+  readonly onOpenLongJump: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -302,6 +319,8 @@ function HomeScreen({
                         ? onOpenSwimming
                       : game.id === 'high-jump'
                         ? onOpenHighJump
+                      : game.id === 'long-jump'
+                        ? onOpenLongJump
                       : undefined
               }
             >

@@ -72,6 +72,13 @@ describe('application hash routing', () => {
     })).toBe('HIGH_JUMP')
   })
 
+  it('opens Long Jump in production without developer gates', () => {
+    expect(screenFromHash('#game/long-jump', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('LONG_JUMP')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

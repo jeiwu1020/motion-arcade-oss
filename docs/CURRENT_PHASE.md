@@ -124,7 +124,17 @@ readiness remain unchanged. Details are recorded in
 [Batch D3 — High Jump](./PHASE_BATCH_D3_HIGH_JUMP.md). Physical jump-timing,
 iPhone Safari, compact-space, fatigue, and projector validation remain open.
 
-Current next implementation: **Batch D4 — Long Jump Challenge**.
+Batch D4 — Long Jump Challenge has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. It combines D0 normalized locomotion intensity with the
+existing binary JUMP occurrence: in-place charge and takeoff timing produce a
+fictional distance value, while JUMP magnitude is ignored. Production uses one
+explicit-start Pose pipeline with `FULL_BODY` `STRICT` readiness and ankles;
+no-forward-jump safety copy is part of the game. Details are recorded in
+[Batch D4 — Long Jump Challenge](./PHASE_BATCH_D4_LONG_JUMP.md). Physical
+locomotion/jump recognition, iPhone Safari, compact-space, fatigue, and
+projector validation remain open.
+
+Current next implementation: **Batch E — Baseball**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

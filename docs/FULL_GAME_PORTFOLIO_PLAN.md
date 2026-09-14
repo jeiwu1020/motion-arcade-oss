@@ -295,7 +295,7 @@ validation remains pending. Detailed record:
 
 **Game:** Long Jump Challenge
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
@@ -303,8 +303,15 @@ validation remains pending. Detailed record:
 - Inputs: running-in-place/charge from Batch D0 plus vertical `JUMP`.
 - Goals: charge meter, takeoff timing, exaggerated avatar long-jump animation,
   and fictional arcade distance.
-- Safety: never ask the player to leap forward toward the phone. The measured
+- Safety: never ask the player to leap forward toward the phone. The fictional
   game distance is not a real biomechanical distance claim.
+- Delivered: deterministic three-attempt in-place charge and takeoff game,
+  exact D0-intensity charge formula, fictional timing-weighted distance,
+  sequence-safe dual-source Session, explicit `FULL_BODY` `STRICT` production
+  route, camera-free Developer Test Mode, and projector-readable procedural
+  runway. JUMP magnitude is ignored; physical jump timing and D0 locomotion
+  recognition remain pending. Detailed record: [Batch D4 — Long Jump
+  Challenge](./PHASE_BATCH_D4_LONG_JUMP.md).
 
 ### Batch E — Baseball
 

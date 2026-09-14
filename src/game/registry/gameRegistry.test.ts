@@ -82,4 +82,20 @@ describe('production game registry', () => {
     })
     await expect(runningRace?.load()).resolves.toMatchObject({ id: 'running-race' })
   })
+
+  it('registers Long Jump as a dual locomotion and JUMP track-field game', async () => {
+    const longJump = gameRegistry.find(({ id }) => id === 'long-jump')
+    expect(longJump).toMatchObject({
+      id: 'long-jump',
+      title: '飛躍挑戰',
+      category: 'SPORTS',
+      subcategory: 'TRACK_FIELD',
+      controlSchemes: [{
+        requiredActions: ['JUMP'],
+        requiresLocomotion: true,
+        bodyAreas: ['FULL_BODY', 'LOWER_BODY'],
+      }],
+    })
+    await expect(longJump?.load()).resolves.toMatchObject({ id: 'long-jump' })
+  })
 })
