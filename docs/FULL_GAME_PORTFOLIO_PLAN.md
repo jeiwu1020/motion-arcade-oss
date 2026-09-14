@@ -342,22 +342,30 @@ validation remains pending. Detailed record:
 
 **Type:** shared foundation; not a game
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Terra High; use Astra only if architecture, browser
 compatibility, or signal-processing difficulty justifies escalation
 
-Build a shared microphone architecture with explicit permission and no
-recording, persistence, or transcription. Normalized outputs should consider:
+Delivered: explicit single-player microphone ownership; a reusable
+source → RMS/dBFS analyzer → existing `MotionInputSnapshot` route; bounded
+`VOICE_LEVEL`, `VOICE_TRIGGER`, and `VOICE_SUSTAINED_DURATION`; deterministic
+stop/dispose/device-loss cleanup; hidden/pagehide privacy cleanup; and retained
+Developer voice simulation. No game, route, card, recording, persistence, or
+transcription was added. Physical microphone validation remains pending.
 
-- `VOICE_VOLUME` in `0..1`;
-- `VOICE_PITCH` in `0..1` only if technically reliable enough;
-- optional discrete derived events above the raw audio layer.
+Production F0 uses the existing normalized names:
+
+- `VOICE_LEVEL` in `0..1`;
+- `VOICE_TRIGGER` as a sequence-safe derived onset;
+- `VOICE_SUSTAINED_DURATION` in `0..4` seconds.
 
 Lifecycle requirements are explicit start, deterministic stop/dispose,
 page/background cleanup, and no microphone activity in games that do not
-request it. Reconcile the final public name with the existing normalized
-`VOICE_LEVEL` contract rather than creating duplicate volume semantics.
+request it. `VOICE_PITCH` remains in the public contract and Developer
+simulation but is explicitly deferred in production pending physical evidence;
+there is no duplicate volume semantic. Detailed record:
+[Batch F0 — Voice Input Foundation](./PHASE_BATCH_F0_VOICE_INPUT_FOUNDATION.md).
 
 ### Batch F1 — Vocal Hop
 
@@ -367,7 +375,7 @@ request it. Reconcile the final public name with the existing normalized
 
 **Primary model:** Luna Max
 
-- Input: normalized voice volume; normalized pitch is optional.
+- Input: normalized `VOICE_LEVEL`; normalized pitch is optional and deferred.
 - Goals: volume controls jump/lift, pitch affects direction or bonus only if it
   proves reliable, and live feedback remains highly visible.
 - Boundary: no speech recognition.
@@ -380,7 +388,7 @@ request it. Reconcile the final public name with the existing normalized
 
 **Primary model:** Luna Max
 
-- Input: normalized voice volume.
+- Input: normalized `VOICE_LEVEL`.
 - Goals: loudness-driven charge/fire, clear volume meter, targets/waves, party
   presentation, and safe gain normalization.
 

@@ -236,7 +236,7 @@ High-value concepts:
 Primary destination:
 
 - future Voice Input foundation;
-- normalized continuous `VOICE_VOLUME` / `VOICE_PITCH` style channels in addition to discrete events where useful.
+- existing normalized continuous `VOICE_LEVEL` / `VOICE_PITCH` channels in addition to discrete events where useful; production pitch remains deferred until real-device evidence exists.
 
 ## 5. Current game strategy — mature Balloon Pop into Balloon Rally
 
@@ -464,7 +464,7 @@ Use phone microphone through an explicit, lifecycle-safe audio runtime.
 
 Target capabilities:
 
-- normalized voice volume 0..1;
+- normalized `VOICE_LEVEL` 0..1;
 - normalized pitch 0..1 where reliable;
 - optional discrete loud/high/low events derived above the raw audio layer;
 - no raw audio persistence or transcription requirement.

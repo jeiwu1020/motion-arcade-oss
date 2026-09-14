@@ -143,7 +143,18 @@ pipeline with no Hands or microphone. Players use empty-hand swings and no
 real bat-speed or physical-power claim is made. Details are recorded in
 [Batch E — Baseball](./PHASE_BATCH_E_BASEBALL.md).
 
-Current next implementation: **Batch F0 — Voice Input Foundation**.
+Batch F0 — Voice Input Foundation has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. It provides explicit-start, single-player microphone
+capture through the existing `VOICE_LEVEL`, `VOICE_TRIGGER`, and
+`VOICE_SUSTAINED_DURATION` Motion Action contract. RMS/dBFS normalization,
+hysteresis/debounce, bounded sustained duration, deterministic cleanup, and
+hidden/pagehide privacy shutdown are engineering implemented. No recording,
+transcription, upload, persistent audio, voice game, or automatic microphone
+request was added. Production `VOICE_PITCH` is deferred pending physical
+evidence; existing Developer pitch simulation remains available. Details are
+recorded in [Batch F0 — Voice Input Foundation](./PHASE_BATCH_F0_VOICE_INPUT_FOUNDATION.md).
+
+Current next implementation: **Batch F1 — Vocal Hop**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

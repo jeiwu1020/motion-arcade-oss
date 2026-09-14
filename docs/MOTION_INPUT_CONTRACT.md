@@ -73,14 +73,20 @@ Rules:
 
 ## 4. Voice semantics
 
-`VOICE_LEVEL` and `VOICE_PITCH` are calibrated gameplay values:
+`VOICE_LEVEL` is a calibrated gameplay loudness value. `VOICE_PITCH` remains a
+reserved calibrated gameplay value, but production F0 deliberately defers it
+pending real-device evidence:
 
 ```text
-0.0 = participant's calibrated low/floor range
-1.0 = participant's calibrated high/ceiling range
+0.0 = game-control floor range
+1.0 = game-control full range
 ```
 
-Games must not understand Hertz or typical vocal ranges. A real provider may estimate physical frequency internally, then apply voicing, confidence, stability, and per-player calibration before emitting normalized pitch.
+Games must not understand dBFS, Hertz, microphone internals, or typical vocal
+ranges. F0 derives `VOICE_LEVEL` from transient RMS/dBFS analysis and never
+emits production pitch. A future pitch provider must establish voicing,
+confidence, stability, and real-device validation before emitting normalized
+pitch.
 
 Developer-only diagnostic telemetry may contain:
 

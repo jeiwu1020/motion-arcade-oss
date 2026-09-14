@@ -1,23 +1,24 @@
 # Motion Arcade Handoff
 
-- Phase: Portfolio Batch Build — Batch E Baseball.
-- Status: Baseball has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`.
-  It is a deterministic, batting-only 60-second game consuming strictly newer
-  retained C0 left/right swing events through a game-local Session. The Core
-  owns pitch timing, contact, fictional hit results, score, stats, and replay;
-  Phaser renders an opaque procedural stadium and HOME RUN RUSH.
-- Validation: typecheck, lint, all 657 tests across 110 files, production build,
-  and `git diff --check` pass. DEV completed a full 60-second 852×393 landscape
-  round with bilateral controls, hit/miss, HOME RUN, result, and replay. The
-  production build shows an explicit camera button and complete `UPPER_BODY`
-  setup at 852×393 with no page overflow, microphone, or console errors.
-- Safety boundary: no new swing, bat, two-hand, release, or pitching detector;
-  C0 Sports Motion, D0 Locomotion, Pose/JUMP thresholds, camera lifecycle,
-  registry schema, and existing game behavior remain unchanged. Production is
-  explicit-start `UPPER_BODY` Pose with no Hands or microphone. No physical bat
-  is required and no real bat-speed or power claim is made.
-- Known risk: physical empty-hand swing recognition, timing tolerance,
-  compact-space comfort, fatigue, recovery, iPhone Safari, and projector
-  readability remain unvalidated. No Physical PASS is claimed.
-- Next safest task: Batch F0 — Voice Input Foundation. Keep microphone
-  permission explicit and lifecycle ownership isolated to requesting games.
+- Phase: Portfolio Batch Build — Batch F0 Voice Input Foundation.
+- Status: F0 has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`. It adds
+  explicit, one-player microphone ownership through the existing
+  `VOICE_LEVEL`, `VOICE_TRIGGER`, and `VOICE_SUSTAINED_DURATION` Motion Action
+  contract. The source routes microphone input only to an analyser; the
+  provider emits immutable existing MotionInput snapshots for future Sessions.
+- Safety and privacy: no `VOICE_VOLUME` contract, speech recognition,
+  recording, storage, upload, transcription, audio playback, game route, or
+  home card. `VOICE_PITCH` remains reserved in the existing contract and
+  Developer provider but production deliberately rejects it pending physical
+  evidence. Stop/dispose, hidden/pagehide, permission failure, and device loss
+  all stop tracks, close context, and clear actions without automatic restart.
+- Regression boundary: C0, D0, Pose/JUMP thresholds, camera lifecycle,
+  registry schema, the existing Developer provider, and all existing games are
+  unchanged. Nonvoice games do not start microphone capture.
+- Known risk: Windows Chrome/iPhone Safari permission behavior, RMS levels,
+  trigger/sustain feel, room noise, compact-space use, fatigue, recovery, and
+  projector feedback remain physically unvalidated. No Physical PASS is
+  claimed.
+- Next safest task: Batch F1 — Vocal Hop, consuming only production-backed
+  `VOICE_LEVEL` and optional discrete voice actions with an explicit microphone
+  start UI.
