@@ -36,6 +36,12 @@ const RunnerGameScreen = lazy(
       ? import('./games/runner/RunnerGameScreen')
       : import('./games/runner/RunnerPoseGameScreen'),
 )
+const RhythmMotionGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/rhythm-motion/RhythmGameScreen')
+      : import('./games/rhythm-motion/RhythmPoseGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -97,6 +103,14 @@ function App() {
     )
   }
 
+  if (screen === 'RHYTHM_MOTION') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <RhythmMotionGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
@@ -104,6 +118,7 @@ function App() {
       onOpenBalloonPop={() => navigate('BALLOON_POP')}
       onOpenReactionArena={() => navigate('REACTION_ARENA')}
       onOpenRunner={() => navigate('RUNNER')}
+      onOpenRhythmMotion={() => navigate('RHYTHM_MOTION')}
     />
   )
 }
@@ -114,12 +129,14 @@ function HomeScreen({
   onOpenBalloonPop,
   onOpenReactionArena,
   onOpenRunner,
+  onOpenRhythmMotion,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
   readonly onOpenBalloonPop: () => void
   readonly onOpenReactionArena: () => void
   readonly onOpenRunner: () => void
+  readonly onOpenRhythmMotion: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -169,6 +186,8 @@ function HomeScreen({
                     ? onOpenReactionArena
                     : game.id === 'runner'
                       ? onOpenRunner
+                      : game.id === 'rhythm-motion'
+                        ? onOpenRhythmMotion
                       : undefined
               }
             >

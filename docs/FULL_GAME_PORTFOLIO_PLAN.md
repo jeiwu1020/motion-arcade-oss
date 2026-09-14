@@ -98,9 +98,11 @@ as games.
 
 ### Batch B — Rhythm
 
-**Game:** 節奏動作 / Rhythm Motion
+**Game:** 節奏動一動 / Rhythm Motion
 
-**State:** `PLANNED`
+**Engineering gate:** `ENGINEERING PASS`
+
+**Portfolio state:** `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
@@ -110,6 +112,11 @@ as games.
 - Goals: a readable beat lane, forgiving timing, left/right/reach patterns, and
   latency instrumentation suitable for later physical tuning.
 - Boundary: the initial version does not require a new CLAP detector.
+- Delivered: deterministic four-lane chart, 3-second/60-second lifecycle,
+  exact symmetric judgement windows, combo scoring, timing aggregates,
+  Developer Test Mode, and explicit-permission `UPPER_BODY` production Pose
+  route. No physical pass is claimed.
+- Detailed record: [Batch B — Rhythm Motion](./PHASE_BATCH_B_RHYTHM.md).
 
 ### Batch C0 — Sports Motion Toolkit
 

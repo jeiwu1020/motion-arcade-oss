@@ -53,7 +53,13 @@ Developer Test Mode, procedural Phaser presentation, and explicit-permission
 `FULL_BODY` `STRICT` production Pose route are recorded in
 [Batch A — Runner / Avatar Action](./PHASE_BATCH_A_RUNNER.md).
 
-Current next implementation: **Batch B — Rhythm Motion**.
+Rhythm Motion / 節奏動一動 has completed its `ENGINEERING PASS` and is now
+`PHYSICAL QA PENDING`. Its four-action deterministic chart, timing judgement,
+Session sequence safety, Developer Test Mode, and explicit-permission
+`UPPER_BODY` production Pose route are recorded in
+[Batch B — Rhythm Motion](./PHASE_BATCH_B_RHYTHM.md).
+
+Current next implementation: **Batch C0 — Sports Motion Toolkit**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
@@ -76,6 +82,18 @@ Foundation → F1 Vocal Hop → F2 Sound Cannon → G0 Multiplayer Foundation �
 Two-Player Dodge Duel → portfolio physical QA sweep → production polish.
 
 ## Frozen game baselines and historical phase record
+
+### Batch B — Rhythm Motion / 節奏動一動
+
+Engineering status: PASS. The 60-second four-lane rhythm game is registered and
+launchable through production and Developer Test routes. Its pure Core owns the
+seeded chart, symmetric judgement windows, combo scoring, timing aggregates,
+phase pacing, and stable results. Session normalizes MOVE/LEAN/REACH sequences
+and pauses Core time outside `READY`. Production uses the existing
+`UPPER_BODY` Pose/runtime and Camera Presentation layers with explicit
+permission and no microphone. Shared Pose thresholds and the earlier games
+remain unchanged. Windows/iPhone compact-space, timing, fatigue, and projector
+physical validation remain open. See [Batch B — Rhythm Motion](./PHASE_BATCH_B_RHYTHM.md).
 
 ### Batch A — Runner / Avatar Action
 

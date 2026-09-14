@@ -5,6 +5,7 @@ export type AppScreen =
   | 'BALLOON_POP'
   | 'REACTION_ARENA'
   | 'RUNNER'
+  | 'RHYTHM_MOTION'
 
 export interface AppRouteGates {
   readonly testInputEnabled: boolean
@@ -18,6 +19,7 @@ export function screenFromHash(
   if (hash === '#game/balloon-pop') return 'BALLOON_POP'
   if (hash === '#game/reaction-arena') return 'REACTION_ARENA'
   if (hash === '#game/runner') return 'RUNNER'
+  if (hash === '#game/rhythm-motion') return 'RHYTHM_MOTION'
   if (gates.testInputEnabled && hash === '#test-lab') return 'TEST_LAB'
   if (
     gates.realSensorLabEnabled &&
@@ -34,5 +36,6 @@ export function hashForScreen(screen: AppScreen): string {
   if (screen === 'BALLOON_POP') return 'game/balloon-pop'
   if (screen === 'REACTION_ARENA') return 'game/reaction-arena'
   if (screen === 'RUNNER') return 'game/runner'
+  if (screen === 'RHYTHM_MOTION') return 'game/rhythm-motion'
   return ''
 }

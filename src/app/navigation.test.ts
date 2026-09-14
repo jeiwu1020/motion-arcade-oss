@@ -23,6 +23,13 @@ describe('application hash routing', () => {
     })).toBe('RUNNER')
   })
 
+  it('opens Rhythm Motion in production without developer gates', () => {
+    expect(screenFromHash('#game/rhythm-motion', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('RHYTHM_MOTION')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,
