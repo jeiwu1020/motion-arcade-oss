@@ -11,6 +11,7 @@ export type AppScreen =
   | 'BOWLING'
   | 'RUNNING_RACE'
   | 'SWIMMING'
+  | 'HIGH_JUMP'
 
 export interface AppRouteGates {
   readonly testInputEnabled: boolean
@@ -30,6 +31,7 @@ export function screenFromHash(
   if (hash === '#game/bowling') return 'BOWLING'
   if (hash === '#game/running-race') return 'RUNNING_RACE'
   if (hash === '#game/swimming') return 'SWIMMING'
+  if (hash === '#game/high-jump') return 'HIGH_JUMP'
   if (gates.testInputEnabled && hash === '#test-lab') return 'TEST_LAB'
   if (
     gates.realSensorLabEnabled &&
@@ -52,5 +54,6 @@ export function hashForScreen(screen: AppScreen): string {
   if (screen === 'BOWLING') return 'game/bowling'
   if (screen === 'RUNNING_RACE') return 'game/running-race'
   if (screen === 'SWIMMING') return 'game/swimming'
+  if (screen === 'HIGH_JUMP') return 'game/high-jump'
   return ''
 }

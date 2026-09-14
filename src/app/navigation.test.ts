@@ -65,6 +65,13 @@ describe('application hash routing', () => {
     })).toBe('SWIMMING')
   })
 
+  it('opens High Jump in production without developer gates', () => {
+    expect(screenFromHash('#game/high-jump', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('HIGH_JUMP')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,

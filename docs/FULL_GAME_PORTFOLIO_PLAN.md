@@ -275,15 +275,21 @@ validation remains pending. Detailed record:
 
 **Game:** High Jump
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
 - Framing: `FULL_BODY STRICT`.
 - Input: existing `JUMP`.
-- Goals: charge/setup, jump timing, visual height result, escalating bar, and
-  safe small-space play.
-- Safety: do not encourage dangerous maximum-effort jumping.
+- Goals: Core-owned takeoff timing, five fictional bar levels, exaggerated
+  flight presentation, deterministic grading, and safe small-space play.
+- Engineering result: valid JUMP is a binary timing occurrence; physical JUMP
+  magnitude is ignored. Existing JUMP detection and Pose thresholds are
+  unchanged. Production uses explicit `FULL_BODY` `STRICT` readiness because
+  JUMP still requires ankles. Physical jump-timing recognition remains
+  pending. Detailed record: [Batch D3 — High Jump](./PHASE_BATCH_D3_HIGH_JUMP.md).
+- Safety: the game encourages a small comfortable jump and never rewards
+  maximum effort or jump height.
 
 ### Batch D4 — Long Jump Challenge
 

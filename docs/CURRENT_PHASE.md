@@ -116,7 +116,15 @@ microphone. Physical arm-cycle recognition, iPhone Safari, standing comfort,
 fatigue, and projector validation remain open. See
 [Batch D2 — Swimming](./PHASE_BATCH_D2_SWIMMING.md).
 
-Current next implementation: **Batch D3 — High Jump**.
+Batch D3 — High Jump has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. It is a timing-first five-level arcade game consuming
+only new normalized `JUMP` occurrences; physical jump magnitude is ignored,
+and the existing JUMP detector, Pose thresholds, and `FULL_BODY STRICT`
+readiness remain unchanged. Details are recorded in
+[Batch D3 — High Jump](./PHASE_BATCH_D3_HIGH_JUMP.md). Physical jump-timing,
+iPhone Safari, compact-space, fatigue, and projector validation remain open.
+
+Current next implementation: **Batch D4 — Long Jump Challenge**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
