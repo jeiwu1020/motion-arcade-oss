@@ -210,7 +210,7 @@ claimed. Detailed record: [Batch C0 — Sports Motion Toolkit](./PHASE_BATCH_C0_
 
 **Type:** shared foundation; not a game
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Terra High
 
@@ -219,10 +219,14 @@ Investigate reusable normalized data for:
 - running-in-place cadence;
 - alternating knee/leg rhythm;
 - speed/intensity;
-- the existing `JUMP` action.
+- the existing `JUMP` action, kept separate from locomotion.
 
 The contract must be compact-space friendly and must not expose raw landmarks
-to games.
+to games. Delivered: immutable anatomical alternating-step events, bounded
+cadence/intensity, knees-only readiness, stale/lifecycle safety, a camera-free
+test provider, and one existing Pose inference path. Physical cadence/running
+validation remains pending. Detailed record:
+[Batch D0 — Locomotion Toolkit](./PHASE_BATCH_D0_LOCOMOTION_TOOLKIT.md).
 
 ### Batch D1 — Running Race
 

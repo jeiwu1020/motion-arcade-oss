@@ -159,6 +159,22 @@ function sportsSweepFrame(timestampMs: number, leftWristOffsetX: number): PoseSe
   }
 }
 
+function locomotionLiftFrame(timestampMs: number, side: 'LEFT' | 'RIGHT' | 'NEUTRAL'): PoseSensorFrame {
+  const frame = createSyntheticPoseFrame('neutral', { timestampMs })
+  const pose = frame.poses[0]
+  if (!pose) throw new Error('Synthetic fixture must contain one pose.')
+  const kneeIndex = side === 'LEFT' ? 25 : side === 'RIGHT' ? 26 : null
+  return {
+    ...frame,
+    poses: [{
+      ...pose,
+      landmarks: pose.landmarks.map((point, index) =>
+        index === kneeIndex ? { ...point, y: point.y - 0.11 } : point,
+      ),
+    }],
+  }
+}
+
 describe('PoseGameplayInputRuntime', () => {
   it('does not request camera permission until explicit start and reports startup/baselining', async () => {
     const harness = createHarness()
@@ -254,6 +270,9 @@ describe('PoseGameplayInputRuntime', () => {
     expect(harness.backend.close).toHaveBeenCalledOnce()
     expect(harness.runtime.getSportsMotionSnapshot()).toMatchObject({
       leftHand: { availability: 'UNAVAILABLE' }, leftSwing: null,
+    })
+    expect(harness.runtime.getLocomotionSnapshot()).toMatchObject({
+      availability: 'UNAVAILABLE', latestStep: null, cadenceSpm: 0,
     })
     await expect(harness.runtime.start(POSE_REQUEST)).rejects.toThrow('disposed')
   })
@@ -410,6 +429,46 @@ describe('PoseGameplayInputRuntime', () => {
     await failed.runtime.update(200)
     expect(failed.runtime.getSportsMotionSnapshot()).toMatchObject({
       leftHand: { availability: 'UNAVAILABLE' }, leftSwing: null,
+    })
+  })
+
+  it('publishes normalized locomotion from the same inference result and clears it for stop, suspension, and error', async () => {
+    const harness = createHarness()
+    await harness.runtime.start(POSE_REQUEST)
+    await harness.infer(locomotionLiftFrame(0, 'NEUTRAL'))
+    await harness.infer(locomotionLiftFrame(100, 'LEFT'))
+    await harness.infer(locomotionLiftFrame(200, 'LEFT'))
+
+    expect(harness.runtime.getLocomotionSnapshot()).toMatchObject({
+      availability: 'AVAILABLE', latestStep: { side: 'LEFT', sequence: 1 },
+    })
+    expect(harness.runtime.getLocomotionSnapshot()).not.toHaveProperty('poses')
+    expect(harness.runtime.getProvider().getSnapshot()).not.toHaveProperty('locomotion')
+    expect(harness.backend.infer).toHaveBeenCalledTimes(3)
+
+    await harness.runtime.stop()
+    expect(harness.runtime.getLocomotionSnapshot()).toMatchObject({
+      availability: 'UNAVAILABLE', latestStep: null, cadenceSpm: 0,
+    })
+
+    await harness.runtime.start(POSE_REQUEST)
+    await harness.infer(locomotionLiftFrame(300, 'NEUTRAL'))
+    harness.documentTarget.visibilityState = 'hidden'
+    harness.documentTarget.dispatch('visibilitychange')
+    await flushLifecycle()
+    expect(harness.runtime.getLocomotionSnapshot()).toMatchObject({
+      availability: 'UNAVAILABLE', latestStep: null,
+    })
+
+    const failed = createHarness()
+    await failed.runtime.start(POSE_REQUEST)
+    await failed.infer(locomotionLiftFrame(0, 'NEUTRAL'))
+    failed.queuedResults.push(new Error('fatal locomotion inference failure'))
+    failed.now.value = 100
+    failed.video.currentTime += 0.1
+    await failed.runtime.update(100)
+    expect(failed.runtime.getLocomotionSnapshot()).toMatchObject({
+      availability: 'UNAVAILABLE', latestStep: null,
     })
   })
 

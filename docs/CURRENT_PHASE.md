@@ -92,7 +92,14 @@ recognition, iPhone Safari, compact-space, fatigue, and projector validation
 remain open. C0's broad swing was sufficient for the engineering contract, so
 no shared RELEASE event was added.
 
-Current next implementation: **Batch D0 — Locomotion Toolkit**.
+Batch D0 — Locomotion Toolkit has completed its `ENGINEERING PASS` and is
+`PHYSICAL QA PENDING`. It adds a compact-space, knees-only normalized
+alternating-step/cadence contract through the existing single Pose inference
+path, without duplicating JUMP or exposing raw landmarks to games. Physical
+cadence/running recognition remains unvalidated. See
+[Batch D0 — Locomotion Toolkit](./PHASE_BATCH_D0_LOCOMOTION_TOOLKIT.md).
+
+Current next implementation: **Batch D1 — Running Race**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are
