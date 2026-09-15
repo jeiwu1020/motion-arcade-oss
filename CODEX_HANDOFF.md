@@ -1,12 +1,12 @@
 # Motion Arcade Handoff
 
-- Phase: Portfolio Batch Build — Batch F1 Vocal Hop.
-- Status: F1 has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`. It adds
-  a deterministic, camera-free voice-controlled hop game consuming only the
+- Phase: Portfolio Batch Build — Batch F2 Sound Cannon.
+- Status: F2 has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`. It adds
+  a deterministic, camera-free target-blasting game consuming only the
   existing F0 `VOICE_LEVEL`, `VOICE_TRIGGER`, and
-  `VOICE_SUSTAINED_DURATION` actions. A comfortable saturating lift curve,
-  bounded 500 ms boost, seeded obstacle course, score/streak/result lifecycle,
-  and explicit microphone-start production UX are implemented.
+  `VOICE_SUSTAINED_DURATION` actions. A comfort-shaped short charge cycle,
+  quiet-release/900 ms auto-fire, seeded target course, score/streak/result
+  lifecycle, and explicit microphone-start production UX are implemented.
 - F0 foundation remains unchanged: it provides
   explicit, one-player microphone ownership through the existing
   `VOICE_LEVEL`, `VOICE_TRIGGER`, and `VOICE_SUSTAINED_DURATION` Motion Action
@@ -25,6 +25,5 @@
   trigger/sustain feel, room noise, compact-space use, fatigue, recovery, and
   projector feedback remain physically unvalidated. No Physical PASS is
   claimed.
-- Next safest task: Batch F2 — Sound Cannon, consuming only production-backed
-  `VOICE_LEVEL` (and only other existing voice actions if its bounded design
-  genuinely needs them) with the same explicit microphone lifecycle.
+- Next safest task: Batch G0 — Multiplayer Foundation. Do not reopen F0, Vocal
+  Hop, or existing games unless shared regression evidence requires it.

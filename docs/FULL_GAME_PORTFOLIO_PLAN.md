@@ -393,13 +393,21 @@ there is no duplicate volume semantic. Detailed record:
 
 **Game:** Sound Cannon / 音波砲
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
-- Input: normalized `VOICE_LEVEL`.
-- Goals: loudness-driven charge/fire, clear volume meter, targets/waves, party
-  presentation, and safe gain normalization.
+- Input: the existing F0 `VOICE_LEVEL`, `VOICE_TRIGGER`, and
+  `VOICE_SUSTAINED_DURATION` actions only; `VOICE_PITCH` is not requested.
+- Delivered: deterministic 3-second/60-second ORB/SHIELD/COMET target course;
+  short bounded charge/release/900 ms auto-fire cycle; forgiving timing grades;
+  charge-aware scoring and FULL BLAST feedback; camera-free Developer Test
+  Mode; and explicit microphone-start production route.
+- Boundary: no shouting or endurance scoring, pitch estimation, speech
+  recognition, recording, storage, upload, or new microphone provider.
+- Physical status: microphone levels, timing, compact-space, fatigue, iPhone
+  Safari, and projector validation remain pending. No physical pass is claimed.
+- Detailed record: [Batch F2 — Sound Cannon](./PHASE_BATCH_F2_SOUND_CANNON.md).
 
 ### Batch G0 — Multiplayer Foundation
 

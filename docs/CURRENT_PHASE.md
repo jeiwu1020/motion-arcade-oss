@@ -162,7 +162,14 @@ microphone permission in the production route. `VOICE_PITCH` is not requested
 or read; no speech recognition, recording, storage, or shouting requirement is
 introduced. Details are recorded in [Batch F1 — Vocal Hop](./PHASE_BATCH_F1_VOCAL_HOP.md).
 
-Current next implementation: **Batch F2 — Sound Cannon**.
+Batch F2 — Sound Cannon / 音波砲 has completed its `ENGINEERING PASS` and is
+now `PHYSICAL QA PENDING`. It consumes only the F0 voice actions through a
+short comfort-shaped charge cycle, deterministic target timing, and explicit
+microphone-start production route. No pitch, shouting, endurance, recording,
+or physical microphone validation is claimed. Details are recorded in
+[Batch F2 — Sound Cannon](./PHASE_BATCH_F2_SOUND_CANNON.md).
+
+Current next implementation: **Batch G0 — Multiplayer Foundation**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

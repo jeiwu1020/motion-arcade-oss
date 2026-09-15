@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { screenFromHash } from './navigation'
+import { hashForScreen, screenFromHash } from './navigation'
 
 describe('application hash routing', () => {
   it('opens Balloon Pop in production without either developer gate', () => {
@@ -91,6 +91,14 @@ describe('application hash routing', () => {
       testInputEnabled: false,
       realSensorLabEnabled: false,
     })).toBe('VOCAL_HOP')
+  })
+
+  it('opens Sound Cannon in production without developer gates', () => {
+    expect(screenFromHash('#game/sound-cannon', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('SOUND_CANNON')
+    expect(hashForScreen('SOUND_CANNON')).toBe('game/sound-cannon')
   })
 
   it('keeps developer and real-sensor labs behind their existing gates', () => {

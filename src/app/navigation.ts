@@ -15,6 +15,7 @@ export type AppScreen =
   | 'LONG_JUMP'
   | 'BASEBALL'
   | 'VOCAL_HOP'
+  | 'SOUND_CANNON'
 
 export interface AppRouteGates {
   readonly testInputEnabled: boolean
@@ -38,6 +39,7 @@ export function screenFromHash(
   if (hash === '#game/long-jump') return 'LONG_JUMP'
   if (hash === '#game/baseball') return 'BASEBALL'
   if (hash === '#game/vocal-hop') return 'VOCAL_HOP'
+  if (hash === '#game/sound-cannon') return 'SOUND_CANNON'
   if (gates.testInputEnabled && hash === '#test-lab') return 'TEST_LAB'
   if (
     gates.realSensorLabEnabled &&
@@ -64,5 +66,6 @@ export function hashForScreen(screen: AppScreen): string {
   if (screen === 'LONG_JUMP') return 'game/long-jump'
   if (screen === 'BASEBALL') return 'game/baseball'
   if (screen === 'VOCAL_HOP') return 'game/vocal-hop'
+  if (screen === 'SOUND_CANNON') return 'game/sound-cannon'
   return ''
 }

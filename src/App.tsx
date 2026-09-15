@@ -96,6 +96,11 @@ const VocalHopGameScreen = lazy(
       ? import('./games/vocal-hop/VocalHopGameScreen')
       : import('./games/vocal-hop/VocalHopVoiceGameScreen'),
 )
+const SoundCannonGameScreen = lazy(
+  () => import.meta.env.DEV
+    ? import('./games/sound-cannon/SoundCannonGameScreen')
+    : import('./games/sound-cannon/SoundCannonVoiceGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -237,6 +242,10 @@ function App() {
     )
   }
 
+  if (screen === 'SOUND_CANNON') {
+    return <Suspense fallback={<LabLoadingScreen />}><SoundCannonGameScreen onExit={() => navigate('HOME')} /></Suspense>
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
@@ -254,6 +263,7 @@ function App() {
       onOpenLongJump={() => navigate('LONG_JUMP')}
       onOpenBaseball={() => navigate('BASEBALL')}
       onOpenVocalHop={() => navigate('VOCAL_HOP')}
+      onOpenSoundCannon={() => navigate('SOUND_CANNON')}
     />
   )
 }
@@ -274,6 +284,7 @@ function HomeScreen({
   onOpenLongJump,
   onOpenBaseball,
   onOpenVocalHop,
+  onOpenSoundCannon,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
@@ -290,6 +301,7 @@ function HomeScreen({
   readonly onOpenLongJump: () => void
   readonly onOpenBaseball: () => void
   readonly onOpenVocalHop: () => void
+  readonly onOpenSoundCannon: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -359,6 +371,8 @@ function HomeScreen({
                         ? onOpenBaseball
                       : game.id === 'vocal-hop'
                         ? onOpenVocalHop
+                      : game.id === 'sound-cannon'
+                        ? onOpenSoundCannon
                       : undefined
               }
             >
