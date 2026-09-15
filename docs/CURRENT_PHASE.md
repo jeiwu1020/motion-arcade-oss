@@ -169,7 +169,7 @@ microphone-start production route. No pitch, shouting, endurance, recording,
 or physical microphone validation is claimed. Details are recorded in
 [Batch F2 — Sound Cannon](./PHASE_BATCH_F2_SOUND_CANNON.md).
 
-Shared Pose camera startup repair has completed before G0. The shared
+Shared Pose camera startup repair: **ENGINEERING VERIFIED**. The shared
 production path now reports camera opening separately from Pose preparation,
 bounds camera/preview/Worker/MainThread startup, falls back once from a timed
 out Worker to MainThread Pose, exposes readable shared ERROR/retry state, and
@@ -177,7 +177,14 @@ verifies production MediaPipe output assets during build. All twelve production
 Pose games remain on that route; detector and gameplay thresholds are
 unchanged. See [Shared Pose Camera Startup Fix](./SHARED_CAMERA_STARTUP_FIX.md).
 
-Current next implementation: **Batch G0 — Multiplayer Foundation**.
+12-game production startup matrix: **ENGINEERING SMOKE PASS**. Every Pose
+homepage route passed the reusable static startup matrix and production-build
+browser smoke at 1280×720 and 852×393, including the explicit startup CTA and
+intentional permission-denied ERROR/retry surface. Real-device camera
+validation is **PENDING**; see [Pose Startup Smoke Matrix](./POSE_STARTUP_SMOKE_MATRIX.md).
+
+Current next implementation: **Batch G0 — Multiplayer Foundation** (**NOT
+STARTED**).
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

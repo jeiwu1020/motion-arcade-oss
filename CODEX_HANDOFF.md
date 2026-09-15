@@ -1,6 +1,7 @@
 # Motion Arcade Handoff
 
-- Phase: shared Pose camera startup repair complete before G0.
+- Phase: shared Pose camera startup repair — **ENGINEERING VERIFIED**; G0 is
+  **NOT STARTED**.
 - Status: the shared production Pose path used by all twelve camera games now
   bounds camera permission (20 s), preview playback (8 s), Worker init (12 s),
   and MainThread fallback init (12 s). It distinguishes opening camera from
@@ -14,6 +15,12 @@
 - Regression boundary: all twelve Pose games still instantiate
   `PoseGameplayInputRuntime`; no gameplay, detector, baseline, accessibility,
   or microphone threshold changed. G0 is not started.
+- 12-game production startup matrix: **ENGINEERING SMOKE PASS** at 1280×720 and
+  852×393. Every route renders the initial CTA and passed the shared startup
+  state/error-retry contract. See
+  [Pose Startup Smoke Matrix](docs/POSE_STARTUP_SMOKE_MATRIX.md).
+- Real-device camera validation: **PENDING**. No physical-camera PASS is
+  claimed in this batch.
 - Physical checks still needed: Windows/iPhone permission and cold-start,
   denial/busy/retry, hidden/pagehide release, real front-camera preview,
   thermal behavior, and projector readability.
