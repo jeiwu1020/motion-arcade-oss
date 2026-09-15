@@ -90,6 +90,12 @@ const BaseballGameScreen = lazy(
       ? import('./games/baseball/BaseballGameScreen')
       : import('./games/baseball/BaseballPoseGameScreen'),
 )
+const VocalHopGameScreen = lazy(
+  () =>
+    import.meta.env.DEV
+      ? import('./games/vocal-hop/VocalHopGameScreen')
+      : import('./games/vocal-hop/VocalHopVoiceGameScreen'),
+)
 
 function screenFromLocation(): AppScreen {
   return screenFromHash(window.location.hash, {
@@ -223,6 +229,14 @@ function App() {
     )
   }
 
+  if (screen === 'VOCAL_HOP') {
+    return (
+      <Suspense fallback={<LabLoadingScreen />}>
+        <VocalHopGameScreen onExit={() => navigate('HOME')} />
+      </Suspense>
+    )
+  }
+
   return (
     <HomeScreen
       onOpenLab={() => navigate('TEST_LAB')}
@@ -239,6 +253,7 @@ function App() {
       onOpenHighJump={() => navigate('HIGH_JUMP')}
       onOpenLongJump={() => navigate('LONG_JUMP')}
       onOpenBaseball={() => navigate('BASEBALL')}
+      onOpenVocalHop={() => navigate('VOCAL_HOP')}
     />
   )
 }
@@ -258,6 +273,7 @@ function HomeScreen({
   onOpenHighJump,
   onOpenLongJump,
   onOpenBaseball,
+  onOpenVocalHop,
 }: {
   readonly onOpenLab: () => void
   readonly onOpenPoseLab: () => void
@@ -273,6 +289,7 @@ function HomeScreen({
   readonly onOpenHighJump: () => void
   readonly onOpenLongJump: () => void
   readonly onOpenBaseball: () => void
+  readonly onOpenVocalHop: () => void
 }) {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('SPORTS')
   const games = gameRegistry.filter((game) => game.category === selectedCategory)
@@ -340,6 +357,8 @@ function HomeScreen({
                         ? onOpenLongJump
                       : game.id === 'baseball'
                         ? onOpenBaseball
+                      : game.id === 'vocal-hop'
+                        ? onOpenVocalHop
                       : undefined
               }
             >

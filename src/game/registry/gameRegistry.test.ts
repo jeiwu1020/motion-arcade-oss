@@ -98,4 +98,23 @@ describe('production game registry', () => {
     })
     await expect(longJump?.load()).resolves.toMatchObject({ id: 'long-jump' })
   })
+
+  it('registers Vocal Hop as a single-player VOICE game without Pose or Hands', async () => {
+    const vocalHop = gameRegistry.find(({ id }) => id === 'vocal-hop')
+    expect(vocalHop).toMatchObject({
+      id: 'vocal-hop',
+      title: '聲控跳跳樂',
+      category: 'VOICE',
+      supportedTeams: [1],
+      simultaneousPlayers: { min: 1, max: 1 },
+      controlSchemes: [{
+        requiredActions: ['VOICE_LEVEL', 'VOICE_TRIGGER', 'VOICE_SUSTAINED_DURATION'],
+        inputTypes: ['VOICE'],
+        bodyAreas: ['VOICE'],
+        posture: ['STANDING'],
+        sensorRequirements: { pose: false, hands: false, audio: true },
+      }],
+    })
+    await expect(vocalHop?.load()).resolves.toMatchObject({ id: 'vocal-hop' })
+  })
 })

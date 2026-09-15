@@ -371,14 +371,23 @@ there is no duplicate volume semantic. Detailed record:
 
 **Game:** Vocal Hop
 
-**State:** `PLANNED`
+**State:** `ENGINEERING PASS`; `PHYSICAL QA PENDING`
 
 **Primary model:** Luna Max
 
-- Input: normalized `VOICE_LEVEL`; normalized pitch is optional and deferred.
-- Goals: volume controls jump/lift, pitch affects direction or bonus only if it
-  proves reliable, and live feedback remains highly visible.
-- Boundary: no speech recognition.
+- Input: the existing F0 `VOICE_LEVEL`, `VOICE_TRIGGER`, and
+  `VOICE_SUSTAINED_DURATION` actions only. `VOICE_PITCH` is not requested or
+  read.
+- Delivered: deterministic 3-second/60-second side-scrolling hop course with
+  LOW/HIGH/GAP obstacles and optional STAR gates; comfortable saturating voice
+  lift mapping; bounded early-hop boost physics; score/streak/result/replay;
+  camera-free Developer Test Mode; explicit microphone-start production route;
+  and no-shouting/no-speech-recognition privacy copy.
+- Boundary: F1 does not estimate pitch, recognize speech, record/store audio,
+  or claim that louder voice represents health, power, or a physical metric.
+- Physical status: microphone levels, timing, compact-space, fatigue, iPhone
+  Safari, and projector validation remain pending. No physical pass is claimed.
+- Detailed record: [Batch F1 — Vocal Hop](./PHASE_BATCH_F1_VOCAL_HOP.md).
 
 ### Batch F2 — Sound Cannon / 音波砲
 

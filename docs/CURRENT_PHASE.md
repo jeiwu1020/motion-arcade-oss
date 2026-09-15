@@ -154,7 +154,15 @@ request was added. Production `VOICE_PITCH` is deferred pending physical
 evidence; existing Developer pitch simulation remains available. Details are
 recorded in [Batch F0 — Voice Input Foundation](./PHASE_BATCH_F0_VOICE_INPUT_FOUNDATION.md).
 
-Current next implementation: **Batch F1 — Vocal Hop**.
+Batch F1 — Vocal Hop has completed its `ENGINEERING PASS` and is now
+`PHYSICAL QA PENDING`. It consumes only the existing F0
+`VOICE_LEVEL`, `VOICE_TRIGGER`, and `VOICE_SUSTAINED_DURATION` actions, uses a
+comfortable saturating lift curve and bounded hop physics, and keeps explicit
+microphone permission in the production route. `VOICE_PITCH` is not requested
+or read; no speech recognition, recording, storage, or shouting requirement is
+introduced. Details are recorded in [Batch F1 — Vocal Hop](./PHASE_BATCH_F1_VOCAL_HOP.md).
+
+Current next implementation: **Batch F2 — Sound Cannon**.
 
 The portfolio will be built to Engineering Prototype PASS before the separate
 physical QA/tuning sweep. Runner, Balloon Rally, and Reaction Arena are

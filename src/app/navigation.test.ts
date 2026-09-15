@@ -86,6 +86,13 @@ describe('application hash routing', () => {
     })).toBe('BASEBALL')
   })
 
+  it('opens Vocal Hop in production without developer gates', () => {
+    expect(screenFromHash('#game/vocal-hop', {
+      testInputEnabled: false,
+      realSensorLabEnabled: false,
+    })).toBe('VOCAL_HOP')
+  })
+
   it('keeps developer and real-sensor labs behind their existing gates', () => {
     const productionGates = {
       testInputEnabled: false,
