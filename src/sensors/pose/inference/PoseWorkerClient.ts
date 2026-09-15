@@ -1,3 +1,8 @@
+import {
+  POSE_STARTUP_TIMEOUTS,
+  type PoseStartupTimeoutPolicy,
+  withStartupTimeout,
+} from '../../startup/StartupTimeouts'
 import { PoseBackendError } from './PoseBackendError'
 import {
   POSE_MODEL_ASSET_URL,
@@ -17,43 +22,94 @@ interface PendingRequest {
   readonly reject: (error: PoseBackendError) => void
 }
 
+export interface PoseWorkerClientOptions {
+  readonly createWorker?: (() => Worker) | undefined
+  readonly initializationTimeoutMs?: number | undefined
+}
+
 export class PoseWorkerClient implements PoseInferenceBackend {
   readonly mode = 'WORKER' as const
   private worker: Worker | null = null
   private readyPromise: Promise<void> | null = null
   private resolveReady: (() => void) | null = null
   private rejectReady: ((error: PoseBackendError) => void) | null = null
-  private resolveClosed: (() => void) | null = null
+  private initializing = false
   private requestId = 0
   private readonly pending = new Map<number, PendingRequest>()
+  private readonly createWorker: () => Worker
+  private readonly initializationTimeoutMs: PoseStartupTimeoutPolicy['workerInitializationMs']
+
+  constructor(options: PoseWorkerClientOptions = {}) {
+    this.createWorker = options.createWorker ?? (() => new Worker(
+      new URL('./pose.worker.ts', import.meta.url),
+      { type: 'module', name: 'motion-arcade-pose' },
+    ))
+    this.initializationTimeoutMs =
+      options.initializationTimeoutMs ?? POSE_STARTUP_TIMEOUTS.workerInitializationMs
+  }
 
   initialize(): Promise<void> {
     if (this.readyPromise) return this.readyPromise
 
-    const worker = new Worker(new URL('./pose.worker.ts', import.meta.url), {
-      type: 'module',
-      name: 'motion-arcade-pose',
-    })
+    let worker: Worker
+    try {
+      worker = this.createWorker()
+    } catch {
+      return Promise.reject(
+        new PoseBackendError('WORKER_INIT_FAILED', 'Pose worker could not start.'),
+      )
+    }
     this.worker = worker
+    this.initializing = true
     worker.onmessage = this.handleMessage
     worker.onerror = () => {
       const error = new PoseBackendError(
-        'WORKER_INIT_FAILED',
-        'Pose worker could not start.',
+        this.initializing ? 'WORKER_INIT_FAILED' : 'INFERENCE_FAILED',
+        this.initializing
+          ? 'Pose worker could not start.'
+          : 'Pose worker stopped unexpectedly.',
       )
-      this.rejectReady?.(error)
-      this.rejectAll(error)
+      if (this.initializing) this.failInitialization(worker, error)
+      else this.failActiveWorker(worker, error)
     }
-    this.readyPromise = new Promise<void>((resolve, reject) => {
+
+    const ready = new Promise<void>((resolve, reject) => {
       this.resolveReady = resolve
       this.rejectReady = reject
     })
-    worker.postMessage({
-      type: 'INIT',
-      wasmBaseUrl: POSE_WASM_BASE_URL,
-      modelAssetUrl: POSE_MODEL_ASSET_URL,
+    const readyPromise = withStartupTimeout(
+      ready,
+      this.initializationTimeoutMs,
+      () => new PoseBackendError(
+        'WORKER_INIT_TIMEOUT',
+        'Pose worker initialization timed out.',
+      ),
+      () => this.failInitialization(
+        worker,
+        new PoseBackendError(
+          'WORKER_INIT_TIMEOUT',
+          'Pose worker initialization timed out.',
+        ),
+      ),
+    )
+    this.readyPromise = readyPromise
+    void readyPromise.catch(() => {
+      if (this.readyPromise === readyPromise) this.readyPromise = null
     })
-    return this.readyPromise
+
+    try {
+      worker.postMessage({
+        type: 'INIT',
+        wasmBaseUrl: POSE_WASM_BASE_URL,
+        modelAssetUrl: POSE_MODEL_ASSET_URL,
+      })
+    } catch {
+      this.failInitialization(
+        worker,
+        new PoseBackendError('WORKER_INIT_FAILED', 'Pose worker could not start.'),
+      )
+    }
+    return readyPromise
   }
 
   async infer(input: PoseInferenceInput): Promise<PoseInferenceResult> {
@@ -86,35 +142,32 @@ export class PoseWorkerClient implements PoseInferenceBackend {
       } catch {
         this.pending.delete(requestId)
         input.bitmap.close()
-        reject(
-          new PoseBackendError(
-            'INFERENCE_FAILED',
-            'The video frame could not be transferred to the pose worker.',
-          ),
-        )
+        reject(new PoseBackendError(
+          'INFERENCE_FAILED',
+          'The video frame could not be transferred to the pose worker.',
+        ))
       }
     })
   }
 
   async close(): Promise<void> {
     const worker = this.worker
-    const closedError = new PoseBackendError('CLOSED', 'Pose worker was closed.')
-    this.rejectReady?.(closedError)
     this.worker = null
     this.readyPromise = null
+    this.initializing = false
+    const closedError = new PoseBackendError('CLOSED', 'Pose worker was closed.')
+    this.rejectReady?.(closedError)
     this.resolveReady = null
     this.rejectReady = null
     this.rejectAll(closedError)
     if (!worker) return
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
-    const closed = new Promise<void>((resolve) => {
-      this.resolveClosed = resolve
-      timeoutId = setTimeout(resolve, 1_000)
-    })
-    worker.postMessage({ type: 'CLOSE' })
-    await closed
-    if (timeoutId !== undefined) clearTimeout(timeoutId)
-    this.resolveClosed = null
+    worker.onmessage = null
+    worker.onerror = null
+    try {
+      worker.postMessage({ type: 'CLOSE' })
+    } catch {
+      // Termination below is the deterministic cleanup path.
+    }
     worker.terminate()
   }
 
@@ -124,6 +177,7 @@ export class PoseWorkerClient implements PoseInferenceBackend {
     const message = event.data
     if (!isPoseWorkerOutboundMessage(message)) return
     if (message.type === 'READY') {
+      this.initializing = false
       this.resolveReady?.()
       this.resolveReady = null
       this.rejectReady = null
@@ -138,13 +192,7 @@ export class PoseWorkerClient implements PoseInferenceBackend {
       })
       return
     }
-    if (message.type === 'ERROR') {
-      this.handleError(message)
-      return
-    }
-    if (message.type === 'CLOSED') {
-      this.resolveClosed?.()
-    }
+    if (message.type === 'ERROR') this.handleError(message)
   }
 
   private handleError(message: PoseWorkerErrorMessage): void {
@@ -153,9 +201,35 @@ export class PoseWorkerClient implements PoseInferenceBackend {
       const request = this.pending.get(message.requestId)
       this.pending.delete(message.requestId)
       request?.reject(error)
-    } else {
-      this.rejectReady?.(error)
+      return
     }
+    if (this.initializing && this.worker) {
+      this.failInitialization(this.worker, error)
+      return
+    }
+    this.rejectAll(error)
+  }
+
+  private failInitialization(worker: Worker, error: PoseBackendError): void {
+    if (this.worker !== worker) return
+    this.worker = null
+    this.initializing = false
+    worker.onmessage = null
+    worker.onerror = null
+    worker.terminate()
+    this.rejectReady?.(error)
+    this.resolveReady = null
+    this.rejectReady = null
+    this.rejectAll(error)
+  }
+
+  private failActiveWorker(worker: Worker, error: PoseBackendError): void {
+    if (this.worker !== worker) return
+    this.worker = null
+    worker.onmessage = null
+    worker.onerror = null
+    worker.terminate()
+    this.rejectAll(error)
   }
 
   private rejectAll(error: PoseBackendError): void {

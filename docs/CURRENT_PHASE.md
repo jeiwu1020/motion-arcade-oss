@@ -1,6 +1,6 @@
 # Motion Arcade — Current Phase
 
-Updated: 2026-09-14
+Updated: 2026-09-16
 
 This file is the short live checkpoint. Long-term product and architecture are
 canonicalized in [Master Implementation Plan](./MASTER_IMPLEMENTATION_PLAN.md),
@@ -168,6 +168,14 @@ short comfort-shaped charge cycle, deterministic target timing, and explicit
 microphone-start production route. No pitch, shouting, endurance, recording,
 or physical microphone validation is claimed. Details are recorded in
 [Batch F2 — Sound Cannon](./PHASE_BATCH_F2_SOUND_CANNON.md).
+
+Shared Pose camera startup repair has completed before G0. The shared
+production path now reports camera opening separately from Pose preparation,
+bounds camera/preview/Worker/MainThread startup, falls back once from a timed
+out Worker to MainThread Pose, exposes readable shared ERROR/retry state, and
+verifies production MediaPipe output assets during build. All twelve production
+Pose games remain on that route; detector and gameplay thresholds are
+unchanged. See [Shared Pose Camera Startup Fix](./SHARED_CAMERA_STARTUP_FIX.md).
 
 Current next implementation: **Batch G0 — Multiplayer Foundation**.
 

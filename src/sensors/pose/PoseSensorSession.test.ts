@@ -108,6 +108,33 @@ describe('PoseSensorSession', () => {
     expect(session.getState()).toBe('STOPPED')
   })
 
+  it('reports camera then pose initialization stages before baselining can begin', async () => {
+    const cameraReady = deferred<MediaStream>()
+    const backendReady = deferred<undefined>()
+    const stages: string[] = []
+    const harness = createHarness()
+    harness.camera.start.mockReturnValueOnce(cameraReady.promise)
+    vi.mocked(harness.backend.initialize).mockReturnValueOnce(backendReady.promise)
+    const session = new PoseSensorSession({
+      camera: harness.camera,
+      createBackend: () => harness.backend,
+      createScheduler: () => harness.scheduler,
+      documentTarget: harness.documentTarget,
+      windowTarget: harness.windowTarget,
+      onStartupStageChange: (stage) => stages.push(stage),
+    })
+
+    const starting = session.start()
+    await Promise.resolve()
+    expect(stages).toEqual(['REQUESTING_CAMERA'])
+    cameraReady.resolve({} as MediaStream)
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(stages).toEqual(['REQUESTING_CAMERA', 'INITIALIZING_POSE'])
+    backendReady.resolve(undefined)
+    await starting
+  })
+
   it('releases camera if backend initialization fails', async () => {
     const { camera, backend, session } = createHarness()
     backend.initialize.mockRejectedValueOnce(new Error('model failed'))
@@ -128,6 +155,21 @@ describe('PoseSensorSession', () => {
     pendingCamera.resolve({} as MediaStream)
     await starting
 
+    expect(harness.session.getState()).toBe('STOPPED')
+  })
+
+  it('stops and releases a backend that finishes after startup was cancelled', async () => {
+    const pendingBackend = deferred<undefined>()
+    const harness = createHarness()
+    vi.mocked(harness.backend.initialize).mockReturnValueOnce(pendingBackend.promise)
+
+    const starting = harness.session.start()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    await harness.session.stop()
+    pendingBackend.resolve(undefined)
+    await starting
+
+    expect(harness.backend.close).toHaveBeenCalledOnce()
     expect(harness.session.getState()).toBe('STOPPED')
   })
 

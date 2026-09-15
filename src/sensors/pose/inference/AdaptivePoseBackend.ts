@@ -53,7 +53,8 @@ export class AdaptivePoseBackend implements PoseInferenceBackend {
       await workerBackend.close()
       if (
         error instanceof PoseBackendError &&
-        error.code === 'WORKER_INIT_FAILED'
+        (error.code === 'WORKER_INIT_FAILED' ||
+          error.code === 'WORKER_INIT_TIMEOUT')
       ) {
         await this.initializeFallback(error.message)
         return
@@ -79,9 +80,18 @@ export class AdaptivePoseBackend implements PoseInferenceBackend {
 
   private async initializeFallback(reason: string): Promise<void> {
     const fallback = this.createFallbackBackend()
-    await fallback.initialize()
-    this.backend = fallback
-    this.selectedMode = 'MAIN_THREAD_FALLBACK'
-    this.reportedFallbackReason = reason
+    try {
+      await fallback.initialize()
+      this.backend = fallback
+      this.selectedMode = 'MAIN_THREAD_FALLBACK'
+      this.reportedFallbackReason = reason
+    } catch (error) {
+      await fallback.close().catch(() => undefined)
+      if (error instanceof PoseBackendError) throw error
+      throw new PoseBackendError(
+        'MODEL_LOAD_FAILED',
+        'Pose fallback could not be initialized.',
+      )
+    }
   }
 }

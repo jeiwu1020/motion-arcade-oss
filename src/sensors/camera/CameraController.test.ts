@@ -26,6 +26,14 @@ function createVideo() {
   } as unknown as HTMLVideoElement
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
 describe('CameraController', () => {
   it('requests front-facing video with audio disabled and attaches the stream', async () => {
     const stream = createStream()
@@ -63,6 +71,22 @@ describe('CameraController', () => {
 
     await controller.start()
     await expect(controller.start()).resolves.toBe(stream)
+    expect(getUserMedia).toHaveBeenCalledOnce()
+  })
+
+  it('shares one pending permission request across rapid double starts', async () => {
+    const pendingStream = deferred<MediaStream>()
+    const getUserMedia = vi.fn(() => pendingStream.promise)
+    const controller = new CameraController(createVideo(), {
+      isSecureContext: true,
+      mediaDevices: { getUserMedia },
+    })
+
+    const first = controller.start()
+    const second = controller.start()
+    pendingStream.resolve(createStream())
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2)
     expect(getUserMedia).toHaveBeenCalledOnce()
   })
 
@@ -174,5 +198,97 @@ describe('CameraController', () => {
     })
     expect(track.stop).toHaveBeenCalledOnce()
     expect(video.srcObject).toBeNull()
+  })
+
+  it('cancels a pending permission request and releases a late stream after stop', async () => {
+    const pendingStream = deferred<MediaStream>()
+    const track = createTrack()
+    const controller = new CameraController(createVideo(), {
+      isSecureContext: true,
+      mediaDevices: { getUserMedia: vi.fn(() => pendingStream.promise) },
+    })
+
+    const starting = controller.start()
+    controller.stop()
+    pendingStream.resolve(createStream([track]))
+
+    await expect(starting).rejects.toMatchObject({ code: 'STOPPED' })
+    expect(track.stop).toHaveBeenCalledOnce()
+  })
+
+  it('does not detach a retried preview when a cancelled preview play resolves late', async () => {
+    const first = createStream()
+    const second = createStream()
+    const firstPlayback = deferred<void>()
+    const video = createVideo()
+    vi.mocked(video.play)
+      .mockReturnValueOnce(firstPlayback.promise)
+      .mockResolvedValueOnce(undefined)
+    const controller = new CameraController(video, {
+      isSecureContext: true,
+      mediaDevices: {
+        getUserMedia: vi
+          .fn<Pick<MediaDevices, 'getUserMedia'>['getUserMedia']>()
+          .mockResolvedValueOnce(first)
+          .mockResolvedValueOnce(second),
+      },
+    })
+
+    const firstStart = controller.start()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    controller.stop()
+    await expect(controller.start()).resolves.toBe(second)
+    firstPlayback.resolve(undefined)
+
+    await expect(firstStart).rejects.toMatchObject({ code: 'STOPPED' })
+    expect(video.srcObject).toBe(second)
+  })
+
+  it('bounds a permission request and allows a clean retry', async () => {
+    vi.useFakeTimers()
+    const pendingStream = deferred<MediaStream>()
+    const retryStream = createStream()
+    const getUserMedia = vi
+      .fn<() => Promise<MediaStream>>()
+      .mockReturnValueOnce(pendingStream.promise)
+      .mockResolvedValueOnce(retryStream)
+    const controller = new CameraController(
+      createVideo(),
+      { isSecureContext: true, mediaDevices: { getUserMedia } },
+      { cameraPermissionMs: 10, cameraPreviewMs: 10 },
+    )
+
+    const starting = controller.start()
+    await vi.advanceTimersByTimeAsync(10)
+
+    await expect(starting).rejects.toMatchObject({
+      code: 'CAMERA_PERMISSION_TIMEOUT',
+    })
+    await expect(controller.start()).resolves.toBe(retryStream)
+    vi.useRealTimers()
+  })
+
+  it('bounds preview playback and releases the acquired stream', async () => {
+    vi.useFakeTimers()
+    const track = createTrack()
+    const playback = deferred<void>()
+    const video = createVideo()
+    vi.mocked(video.play).mockReturnValueOnce(playback.promise)
+    const controller = new CameraController(
+      video,
+      {
+        isSecureContext: true,
+        mediaDevices: { getUserMedia: vi.fn(async () => createStream([track])) },
+      },
+      { cameraPermissionMs: 10, cameraPreviewMs: 10 },
+    )
+
+    const starting = controller.start()
+    await vi.advanceTimersByTimeAsync(10)
+
+    await expect(starting).rejects.toMatchObject({ code: 'VIDEO_START_TIMEOUT' })
+    expect(track.stop).toHaveBeenCalledOnce()
+    expect(video.srcObject).toBeNull()
+    vi.useRealTimers()
   })
 })

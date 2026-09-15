@@ -192,6 +192,21 @@ export function resolveCameraPresentation(
     })
   }
 
+  if (snapshot.status === 'POSE_INITIALIZING') {
+    return createPresentation({
+      mode: 'STARTING',
+      cameraTreatment: 'DOMINANT',
+      framingGuide: 'PROMINENT',
+      overlay: 'GUIDANCE',
+      statusLabel: '正在準備姿勢辨識',
+      eyebrow: '姿勢辨識',
+      headline: '正在準備姿勢辨識',
+      detail: '相機已開啟，正在確認姿勢辨識。',
+      actionLabel: null,
+      alert: false,
+    })
+  }
+
   if (snapshot.status === 'BASELINING') {
     return createPresentation({
       mode: 'BASELINING',

@@ -432,6 +432,39 @@ describe('PoseGameplayInputRuntime', () => {
     })
   })
 
+  it('clears a failed startup promise so the shared runtime can retry cleanly', async () => {
+    const harness = createHarness()
+    vi.mocked(harness.backend.initialize)
+      .mockRejectedValueOnce(new Error('backend startup failed'))
+      .mockResolvedValueOnce(undefined)
+
+    await expect(harness.runtime.start(POSE_REQUEST)).rejects.toThrow(
+      'backend startup failed',
+    )
+    expect(harness.runtime.getSnapshot()).toMatchObject({
+      status: 'ERROR',
+      error: { code: 'START_FAILED' },
+    })
+
+    await expect(harness.runtime.start(POSE_REQUEST)).resolves.toBeUndefined()
+    expect(harness.runtime.getSnapshot().status).toBe('BASELINING')
+    expect(harness.camera.start).toHaveBeenCalledTimes(2)
+  })
+
+  it('reports pose preparation after the preview is available and before baselining', async () => {
+    const harness = createHarness()
+    const backendReady = deferred<undefined>()
+    vi.mocked(harness.backend.initialize).mockReturnValueOnce(backendReady.promise)
+
+    const starting = harness.runtime.start(POSE_REQUEST)
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    expect(harness.runtime.getSnapshot().status).toBe('POSE_INITIALIZING')
+
+    backendReady.resolve(undefined)
+    await starting
+    expect(harness.runtime.getSnapshot().status).toBe('BASELINING')
+  })
+
   it('publishes normalized locomotion from the same inference result and clears it for stop, suspension, and error', async () => {
     const harness = createHarness()
     await harness.runtime.start(POSE_REQUEST)

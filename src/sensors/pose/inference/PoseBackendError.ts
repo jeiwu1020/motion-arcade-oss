@@ -1,6 +1,8 @@
 export type PoseBackendErrorCode =
   | 'MODEL_LOAD_FAILED'
+  | 'MODEL_LOAD_TIMEOUT'
   | 'WORKER_INIT_FAILED'
+  | 'WORKER_INIT_TIMEOUT'
   | 'INFERENCE_FAILED'
   | 'CLOSED'
 

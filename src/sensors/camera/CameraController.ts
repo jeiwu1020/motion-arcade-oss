@@ -4,6 +4,11 @@ import {
   type CameraErrorCode,
   type CameraSettings,
 } from './cameraTypes'
+import {
+  POSE_STARTUP_TIMEOUTS,
+  type PoseStartupTimeoutPolicy,
+  withStartupTimeout,
+} from '../startup/StartupTimeouts'
 
 const CAMERA_ERROR_MESSAGES: Readonly<Record<CameraErrorCode, string>> = {
   UNSUPPORTED: 'This browser does not provide camera access.',
@@ -11,7 +16,9 @@ const CAMERA_ERROR_MESSAGES: Readonly<Record<CameraErrorCode, string>> = {
   PERMISSION_DENIED: 'Camera permission was denied.',
   NO_CAMERA: 'No camera is available.',
   CAMERA_BUSY: 'The camera is unavailable or already in use.',
+  CAMERA_PERMISSION_TIMEOUT: 'Camera permission did not complete in time.',
   VIDEO_START_FAILED: 'The camera opened, but the preview could not start.',
+  VIDEO_START_TIMEOUT: 'The camera preview did not start in time.',
   CAMERA_START_FAILED: 'The camera could not be started.',
   STOPPED: 'Camera startup was cancelled.',
 }
@@ -55,13 +62,22 @@ export class CameraController {
   private lifecycleGeneration = 0
   private readonly video: HTMLVideoElement
   private readonly environment: CameraEnvironment
+  private readonly startupTimeouts: Pick<
+    PoseStartupTimeoutPolicy,
+    'cameraPermissionMs' | 'cameraPreviewMs'
+  >
 
   constructor(
     video: HTMLVideoElement,
     environment: CameraEnvironment = defaultEnvironment(),
+    startupTimeouts: Pick<
+      PoseStartupTimeoutPolicy,
+      'cameraPermissionMs' | 'cameraPreviewMs'
+    > = POSE_STARTUP_TIMEOUTS,
   ) {
     this.video = video
     this.environment = environment
+    this.startupTimeouts = startupTimeouts
   }
 
   start(): Promise<MediaStream> {
@@ -113,8 +129,11 @@ export class CameraController {
   private async acquireAndAttach(generation: number): Promise<MediaStream> {
     let acquiredStream: MediaStream
     try {
-      acquiredStream = await this.environment.mediaDevices!.getUserMedia(
-        CAMERA_CONSTRAINTS,
+      acquiredStream = await withStartupTimeout(
+        this.environment.mediaDevices!.getUserMedia(CAMERA_CONSTRAINTS),
+        this.startupTimeouts.cameraPermissionMs,
+        () => new CameraControllerError('CAMERA_PERMISSION_TIMEOUT'),
+        () => this.cancelGeneration(generation),
       )
     } catch (error) {
       throw mapCameraError(error)
@@ -131,18 +150,24 @@ export class CameraController {
     this.video.srcObject = acquiredStream
 
     try {
-      await this.video.play()
-    } catch {
+      await withStartupTimeout(
+        this.video.play(),
+        this.startupTimeouts.cameraPreviewMs,
+        () => new CameraControllerError('VIDEO_START_TIMEOUT'),
+        () => this.cancelGeneration(generation),
+      )
+    } catch (error) {
       this.stopStream(acquiredStream)
-      this.stream = null
-      this.video.srcObject = null
+      if (this.stream === acquiredStream) this.stream = null
+      if (this.video.srcObject === acquiredStream) this.video.srcObject = null
+      if (error instanceof CameraControllerError) throw error
       throw new CameraControllerError('VIDEO_START_FAILED')
     }
 
     if (generation !== this.lifecycleGeneration) {
       this.stopStream(acquiredStream)
       if (this.stream === acquiredStream) this.stream = null
-      this.video.srcObject = null
+      if (this.video.srcObject === acquiredStream) this.video.srcObject = null
       throw new CameraControllerError('STOPPED')
     }
 
@@ -151,5 +176,9 @@ export class CameraController {
 
   private stopStream(stream: MediaStream | null): void {
     for (const track of stream?.getTracks() ?? []) track.stop()
+  }
+
+  private cancelGeneration(generation: number): void {
+    if (this.lifecycleGeneration === generation) this.lifecycleGeneration += 1
   }
 }

@@ -27,6 +27,7 @@ import type {
 export type PoseGameplayInputStatus =
   | 'CAMERA_NOT_STARTED'
   | 'PERMISSION_STARTING'
+  | 'POSE_INITIALIZING'
   | 'BASELINING'
   | 'READY'
   | 'TRACKING_LOST'
@@ -103,7 +104,9 @@ function readableError(
       PERMISSION_DENIED: '相機權限遭拒，請允許後再重試。',
       NO_CAMERA: '找不到可使用的相機。',
       CAMERA_BUSY: '相機正在被其他程式使用。',
+      CAMERA_PERMISSION_TIMEOUT: '相機啟動逾時，請確認權限後再重試。',
       VIDEO_START_FAILED: '相機已開啟，但預覽無法啟動。',
+      VIDEO_START_TIMEOUT: '相機預覽啟動逾時，請重新啟動相機。',
       CAMERA_START_FAILED: '相機無法啟動，請稍後重試。',
       STOPPED: '相機啟動已取消。',
     }
@@ -337,6 +340,14 @@ export class PoseGameplayInputRuntime {
         ? { windowTarget: this.#options.windowTarget }
         : {}),
       onStateChange: (state) => this.#handleSessionStateChange(state),
+      onStartupStageChange: (stage) => {
+        this.#setSnapshot(
+          stage === 'REQUESTING_CAMERA'
+            ? 'PERMISSION_STARTING'
+            : 'POSE_INITIALIZING',
+          null,
+        )
+      },
     })
     return this.#session
   }

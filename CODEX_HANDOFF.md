@@ -1,5 +1,28 @@
 # Motion Arcade Handoff
 
+- Phase: shared Pose camera startup repair complete before G0.
+- Status: the shared production Pose path used by all twelve camera games now
+  bounds camera permission (20 s), preview playback (8 s), Worker init (12 s),
+  and MainThread fallback init (12 s). It distinguishes opening camera from
+  preparing Pose, routes failures into shared readable ERROR/retry UI, and
+  cleans stale streams, Workers, backends, and start promises across retry,
+  stop, hidden/pagehide, and unmount. See
+  [Shared Pose Camera Startup Fix](docs/SHARED_CAMERA_STARTUP_FIX.md).
+- MediaPipe: WASM remains generated at predev/prebuild; build now asserts the
+  required model, loader modules, and WASM binaries exist in `dist/`. No
+  generated WASM files were added to source control.
+- Regression boundary: all twelve Pose games still instantiate
+  `PoseGameplayInputRuntime`; no gameplay, detector, baseline, accessibility,
+  or microphone threshold changed. G0 is not started.
+- Physical checks still needed: Windows/iPhone permission and cold-start,
+  denial/busy/retry, hidden/pagehide release, real front-camera preview,
+  thermal behavior, and projector readability.
+- Next safest task: Batch G0 — Multiplayer Foundation, after the shared-camera
+  smoke/physical checks. Do not reopen individual game camera paths without
+  shared-route evidence.
+
+## Prior handoff — Batch F2 Sound Cannon
+
 - Phase: Portfolio Batch Build — Batch F2 Sound Cannon.
 - Status: F2 has an `ENGINEERING PASS` and is `PHYSICAL QA PENDING`. It adds
   a deterministic, camera-free target-blasting game consuming only the

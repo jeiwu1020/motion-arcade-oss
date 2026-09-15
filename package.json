@@ -8,7 +8,7 @@
     "predev": "npm run prepare:mediapipe",
     "dev": "vite",
     "prebuild": "npm run prepare:mediapipe",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/verify-mediapipe-build-assets.mjs",
     "lint": "oxlint",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",

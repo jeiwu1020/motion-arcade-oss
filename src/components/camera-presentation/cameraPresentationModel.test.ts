@@ -55,6 +55,17 @@ describe('camera presentation model', () => {
       },
     ],
     [
+      'POSE_INITIALIZING',
+      'COUNTDOWN',
+      {
+        mode: 'STARTING',
+        cameraTreatment: 'DOMINANT',
+        framingGuide: 'PROMINENT',
+        overlay: 'GUIDANCE',
+        headline: '正在準備姿勢辨識',
+      },
+    ],
+    [
       'BASELINING',
       'COUNTDOWN',
       {

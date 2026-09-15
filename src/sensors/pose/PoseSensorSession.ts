@@ -44,7 +44,12 @@ interface PoseSensorSessionOptions {
   readonly documentTarget?: LifecycleDocument
   readonly windowTarget?: LifecycleWindow
   readonly onStateChange?: ((state: PoseSessionState) => void) | undefined
+  readonly onStartupStageChange?: ((stage: PoseSessionStartupStage) => void) | undefined
 }
+
+export type PoseSessionStartupStage =
+  | 'REQUESTING_CAMERA'
+  | 'INITIALIZING_POSE'
 
 export class PoseSensorSession {
   private state: PoseSessionState = 'READY'
@@ -77,9 +82,11 @@ export class PoseSensorSession {
     const generation = ++this.operationGeneration
     this.setState('STARTING')
     try {
+      this.options.onStartupStageChange?.('REQUESTING_CAMERA')
       await this.options.camera.start()
       if (generation !== this.operationGeneration) return
 
+      this.options.onStartupStageChange?.('INITIALIZING_POSE')
       const backend = this.options.createBackend()
       this.backend = backend
       await backend.initialize()
