@@ -7,11 +7,8 @@ import {
   generateSoundCannonTargets,
   soundCannonCharge,
   soundCannonComfortLevel,
-  soundCannonFieldDirection,
-  soundCannonLaunchArc,
   soundCannonPhaseAt,
   soundCannonStreakBonus,
-  classifySoundCannonHit,
   soundCannonTimingGrade,
   type SoundCannonFireEvent,
   type SoundCannonState,
@@ -63,13 +60,7 @@ describe('Sound Cannon contact, result and scoring', () => {
     expect(soundCannonTimingGrade(431)).toBeNull()
   })
 
-  it('maps vectors and bounded hit outcomes without gating contact', () => {
-    expect(soundCannonFieldDirection(-0.25)).toBe('CENTER_FIELD')
-    expect(soundCannonFieldDirection(-0.26)).toBe('LEFT_FIELD')
-    expect(soundCannonFieldDirection(0.26)).toBe('RIGHT_FIELD')
-    expect(soundCannonLaunchArc(-1)).toBe(0.75)
-    expect(classifySoundCannonHit(0.89, 0.5)).toBe('HOME_RUN')
-    expect(classifySoundCannonHit(0.5, 0.5)).toBe('SINGLE')
+  it('applies streak bonuses', () => {
     expect(soundCannonStreakBonus(25)).toBe(50)
   })
 

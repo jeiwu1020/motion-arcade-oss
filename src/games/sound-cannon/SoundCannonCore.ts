@@ -171,7 +171,6 @@ const TARGET_TYPES: readonly SoundCannonTargetType[] = ['ORB', 'SHIELD', 'COMET'
 const TARGET_REGIONS: readonly SoundCannonTargetRegion[] = ['HIGH', 'CENTER', 'LOW']
 
 function clamp01(value: number): number { return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0)) }
-function clampVector(value: number): number { return Math.max(-1, Math.min(1, Number.isFinite(value) ? value : 0)) }
 function normalizedSeed(seed: number | undefined): number { return Number.isFinite(seed) ? Math.trunc(seed ?? DEFAULT_SEED) >>> 0 : DEFAULT_SEED }
 function nextRandom(randomState: number): readonly [number, number] {
   const nextState = (Math.imul(randomState, 1_664_525) + 1_013_904_223) >>> 0
@@ -202,20 +201,6 @@ export function soundCannonTimingGrade(offsetMs: number): SoundCannonContactGrad
   if (offset <= SOUND_CANNON_RULES.greatWindowMs) return 'GREAT'
   if (offset <= SOUND_CANNON_RULES.goodWindowMs) return 'GOOD'
   return null
-}
-export function soundCannonFieldDirection(vectorX: number): 'LEFT_FIELD' | 'CENTER_FIELD' | 'RIGHT_FIELD' {
-  const value = clampVector(vectorX)
-  if (value < -0.25) return 'LEFT_FIELD'
-  if (value > 0.25) return 'RIGHT_FIELD'
-  return 'CENTER_FIELD'
-}
-export function soundCannonLaunchArc(vectorY: number): number { return clamp01(0.5 + -clampVector(vectorY) * 0.25) }
-export function classifySoundCannonHit(contactQuality: number, launchArc: number): 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'HOME_RUN' {
-  const quality = clamp01(contactQuality)
-  if (quality >= 0.88 && clamp01(launchArc) >= 0.5) return 'HOME_RUN'
-  if (quality >= 0.78) return 'TRIPLE'
-  if (quality >= 0.68) return 'DOUBLE'
-  return 'SINGLE'
 }
 
 /** Seeded target data; first four encounters teach the target silhouettes. */
