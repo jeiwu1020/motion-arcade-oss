@@ -439,6 +439,8 @@
 
 .camera-presentation-foreground {
   z-index: 5;
+  /* Game-local setup guides must never block the shared start/retry CTA. */
+  pointer-events: none;
 }
 
 @media (max-height: 34rem) and (orientation: landscape) {

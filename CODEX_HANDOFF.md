@@ -7,7 +7,9 @@
   and MainThread fallback init (12 s). It distinguishes opening camera from
   preparing Pose, routes failures into shared readable ERROR/retry UI, and
   cleans stale streams, Workers, backends, and start promises across retry,
-  stop, hidden/pagehide, and unmount. See
+  stop, hidden/pagehide, and unmount. The shared foreground wrapper is
+  pointer-transparent, so game-local setup guides cannot intercept the
+  start/retry CTA. See
   [Shared Pose Camera Startup Fix](docs/SHARED_CAMERA_STARTUP_FIX.md).
 - MediaPipe: WASM remains generated at predev/prebuild; build now asserts the
   required model, loader modules, and WASM binaries exist in `dist/`. No

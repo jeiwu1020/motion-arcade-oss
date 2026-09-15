@@ -173,9 +173,11 @@ Shared Pose camera startup repair: **ENGINEERING VERIFIED**. The shared
 production path now reports camera opening separately from Pose preparation,
 bounds camera/preview/Worker/MainThread startup, falls back once from a timed
 out Worker to MainThread Pose, exposes readable shared ERROR/retry state, and
-verifies production MediaPipe output assets during build. All twelve production
-Pose games remain on that route; detector and gameplay thresholds are
-unchanged. See [Shared Pose Camera Startup Fix](./SHARED_CAMERA_STARTUP_FIX.md).
+verifies production MediaPipe output assets during build. The presentation
+foreground is pointer-transparent so game-local setup guides cannot block the
+shared start/retry action. All twelve production Pose games remain on that
+route; detector and gameplay thresholds are unchanged. See
+[Shared Pose Camera Startup Fix](./SHARED_CAMERA_STARTUP_FIX.md).
 
 12-game production startup matrix: **ENGINEERING SMOKE PASS**. Every Pose
 homepage route passed the reusable static startup matrix and production-build

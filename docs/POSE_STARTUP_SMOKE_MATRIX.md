@@ -17,6 +17,13 @@ prove navigation, rendering, CTA visibility, immediate startup feedback, and
 the intentional permission-denied ERROR/retry surface only. They do not claim
 real-camera success.
 
+The first pointer pass found one shared presentation defect: the
+`.camera-presentation-foreground` wrapper could intercept the start/retry
+button when a game supplied a setup guide. The wrapper now has
+`pointer-events: none`; game result controls that must remain interactive keep
+their explicit child override. The production matrix below was rerun after
+that fix.
+
 | Game | Category | Input family | Framing | Production route | Shared Pose runtime | Initial CTA | Startup-state smoke | Error/retry smoke | Browser 1280×720 | Browser 852×393 | Real-camera status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Balloon Rally / 氣球拍拍樂 | Pose · Spatial Hand | Spatial hand collision | UPPER_BODY | `#game/balloon-pop` | PASS | PASS — 啟動相機 | PASS — shared sequence | PASS — shared ERROR/retry | PASS | PASS | NOT PHYSICALLY TESTED | One shared Pose runtime; no Hands or microphone. |
@@ -44,15 +51,17 @@ real-camera success.
   `audio: false`.
 - Each production screen renders one camera preview and the shared
   `CameraPresentationStage` with the initial `啟動相機` action.
+- The shared foreground wrapper is pointer-transparent, so game-local setup
+  guides cannot block the start/retry action.
 
 ## Failure/retry coverage
 
 The shared automated suite covers permission denial, camera/startup failure,
 Worker error/timeout, MainThread fallback, fallback failure, stop/hidden
 lifecycle races, and a clean retry. The browser smoke intentionally exercised
-permission denial in Runner: the CTA immediately changed to `正在開啟相機`,
-then the bounded failure rendered readable `無法使用姿勢辨識` text and
-`重新啟動相機`.
+permission denial on every route: each CTA immediately changed to startup
+feedback, then the bounded failure rendered readable `無法使用姿勢辨識`
+text and `重新啟動相機`.
 
 ## Real-device boundary
 
