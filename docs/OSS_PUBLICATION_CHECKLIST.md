@@ -24,10 +24,13 @@ Status: preparing private repository for a future public alpha release and Codex
 - [x] Prove local-path sanitization in a second privacy-test mirror: replace historical `%USERPROFILE%\...` references in `docs/SKILLS_AND_RESEARCH.md` with `%USERPROFILE%\...`, preserve all 87 commits, leave no specific `%USERPROFILE%\...` paths, and keep gitleaks at 0 findings.
 - [x] Close the secret/privacy/history-metadata audit line for the dry run: no secrets, patient identifiers, institution identifiers, personal Gmail, or user-specific Windows paths remain in the tested public-history candidate.
 - [x] Verify the tracked MediaPipe Pose Landmarker Lite model against Google's official Pose Landmarker documentation/model card: exact Lite model source identified; the official BlazePose GHUM 3D model card covers Lite/Full/Heavy variants and licenses the model family under Apache-2.0. Record source/license in `ASSET_LICENSES.md` and `THIRD_PARTY_NOTICES.md`.
+- [x] Resolve homepage v2 provenance from the 2026-08-28 Motion Arcade project conversation plus maintainer confirmation: `home_lobby_bg_v2`, `category_sports_v2`, `category_party_v2`, `category_voice_v2`, and `category_hand_v2` are newly generated standalone ChatGPT/OpenAI image outputs for this project. Record this provenance in `ASSET_LICENSES.md`.
+- [x] Verify `motion_arcade_mark.svg` is project-controlled pure SVG vector markup with paths/gradients only and no embedded third-party image, external URL, or font dependency.
 
 ## Publication blockers
 
-- [ ] Resolve provenance / redistribution rights for all tracked homepage artwork in `public/assets/home/`.
+- [x] Resolve provenance for tracked homepage v2 artwork in `public/assets/home/`.
+- [ ] Finalize the public asset license/permission statement for the project-controlled homepage v2 artwork and `motion_arcade_mark.svg`; do not make broader copyright claims than necessary for AI-generated output.
 - [x] Verify that Pixabay MP3 files can be removed from the public OSS history without losing project history or core source files. The proven filter step is `git filter-repo --path public/audio --invert-paths --force`.
 - [ ] Apply the proven `public/audio/` history filter to the final sanitized public mirror after all other removal decisions are finalized.
 - [x] Verify the GitHub noreply identity and prove personal Gmail can be removed from all author/committer metadata without pruning history.
@@ -80,6 +83,15 @@ Status: preparing private repository for a future public alpha release and Codex
 - Local-path dry run: `%USERPROFILE%\...` reduced to 0 occurrences and generalized to `%USERPROFILE%\...`; no specific `%USERPROFILE%\...` paths remained.
 - Commit count stayed 87 after both privacy rewrites; no unexpected pruning occurred.
 - Original source repository, first sanitized mirror, and prior privacy-test mirrors remained unchanged; no push was performed.
+
+### Homepage v2 provenance
+
+- Project conversation date: 2026-08-28.
+- An earlier homepage-art pass produced cleaned/cropped production candidates.
+- The later canonical v2 pass explicitly replaced those with five newly generated standalone originals: `home_lobby_bg_v2`, `category_sports_v2`, `category_party_v2`, `category_voice_v2`, and `category_hand_v2`.
+- The maintainer confirms these v2 originals were generated through ChatGPT/OpenAI image generation under the maintainer's direction.
+- OpenAI Terms of Use state that, as between the user and OpenAI and to the extent permitted by applicable law, the user owns Output and OpenAI assigns any rights it has in Output to the user.
+- `motion_arcade_mark.svg` is pure project SVG vector markup and was introduced with the homepage v2 assets in commit `1dc8f3572eeb8e11208c0cb3f723de5bd4c89d37`.
 
 ### MediaPipe model licensing
 
