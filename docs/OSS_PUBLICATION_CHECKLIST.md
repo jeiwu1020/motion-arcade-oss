@@ -23,6 +23,7 @@ Status: preparing private repository for a future public alpha release and Codex
 - [x] Re-run gitleaks after the privacy-test email rewrite and confirm 0 findings.
 - [x] Prove local-path sanitization in a second privacy-test mirror: replace historical `%USERPROFILE%\...` references in `docs/SKILLS_AND_RESEARCH.md` with `%USERPROFILE%\...`, preserve all 87 commits, leave no specific `%USERPROFILE%\...` paths, and keep gitleaks at 0 findings.
 - [x] Close the secret/privacy/history-metadata audit line for the dry run: no secrets, patient identifiers, institution identifiers, personal Gmail, or user-specific Windows paths remain in the tested public-history candidate.
+- [x] Verify the tracked MediaPipe Pose Landmarker Lite model against Google's official Pose Landmarker documentation/model card: exact Lite model source identified; the official BlazePose GHUM 3D model card covers Lite/Full/Heavy variants and licenses the model family under Apache-2.0. Record source/license in `ASSET_LICENSES.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Publication blockers
 
@@ -31,7 +32,7 @@ Status: preparing private repository for a future public alpha release and Codex
 - [ ] Apply the proven `public/audio/` history filter to the final sanitized public mirror after all other removal decisions are finalized.
 - [x] Verify the GitHub noreply identity and prove personal Gmail can be removed from all author/committer metadata without pruning history.
 - [x] Verify historical local Windows account paths can be generalized to `%USERPROFILE%` throughout all public refs without pruning history.
-- [ ] Resolve authoritative redistribution terms for `public/vendor/mediapipe/models/pose_landmarker_lite.task`, or remove it from the public history and replace it with a documented setup/download step.
+- [x] Resolve redistribution terms for `public/vendor/mediapipe/models/pose_landmarker_lite.task`: Google official documentation/model card supports the exact Lite model family and specifies Apache License 2.0; preserve the upstream notice/provenance.
 - [ ] Produce an exact third-party dependency-license inventory from the final lockfile and preserve required notices.
 - [ ] Review the final post-license sanitized mirror for internal-only information after all asset decisions are applied.
 
@@ -80,6 +81,14 @@ Status: preparing private repository for a future public alpha release and Codex
 - Commit count stayed 87 after both privacy rewrites; no unexpected pruning occurred.
 - Original source repository, first sanitized mirror, and prior privacy-test mirrors remained unchanged; no push was performed.
 
+### MediaPipe model licensing
+
+- Tracked model: `public/vendor/mediapipe/models/pose_landmarker_lite.task`.
+- Official source: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`.
+- Official model family: BlazePose GHUM 3D Lite / Full / Heavy.
+- Official model card: `https://storage.googleapis.com/mediapipe-assets/Model%20Card%20BlazePose%20GHUM%203D.pdf`.
+- License: Apache License 2.0.
+
 ## Safety rule
 
-Do not interpret the presence of the MIT `LICENSE` as permission to redistribute media or third-party model assets. `ASSET_LICENSES.md` and upstream terms control those items.
+Do not interpret the presence of the MIT `LICENSE` as permission to redistribute media or third-party assets. `ASSET_LICENSES.md` and upstream terms control those items.
