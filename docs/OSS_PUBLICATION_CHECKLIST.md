@@ -29,11 +29,12 @@ Status: preparing private repository for a future public alpha release and Codex
 - [x] Run an exact lockfile dependency-license audit with `npm ci`: 59 unique packages, 53 permissive, 4 Apache-2.0/notice-review, 2 MPL-2.0 transitive build dependencies, 0 unknown/custom, and no GPL/LGPL/AGPL findings.
 - [x] Manually review `lightningcss@1.33.0` and `lightningcss-win32-x64-msvc@1.33.0`: both are transitive Vite build dependencies under MPL-2.0, are not vendored into the repository, and do not relicense unrelated Motion Arcade files. Record the disposition in `docs/DEPENDENCY_LICENSE_AUDIT.md` and `THIRD_PARTY_NOTICES.md`.
 - [x] Preserve the canonical Apache License 2.0 text at `third_party/licenses/Apache-2.0.txt` for Apache-licensed material redistributed with Motion Arcade, including MediaPipe model/runtime assets.
+- [x] License project-controlled homepage v2 visual assets under CC BY 4.0 to the extent project-controlled rights exist; apply the same copyright permission to `motion_arcade_mark.svg` while explicitly reserving trademark/brand rights.
 
 ## Publication blockers
 
 - [x] Resolve provenance for tracked homepage v2 artwork in `public/assets/home/`.
-- [ ] Finalize the public asset license/permission statement for the project-controlled homepage v2 artwork and `motion_arcade_mark.svg`; do not make broader copyright claims than necessary for AI-generated output.
+- [x] Finalize the public asset license/permission statement for the project-controlled homepage v2 artwork and `motion_arcade_mark.svg`: CC BY 4.0 for copyright/similar rights to the extent held, with Motion Arcade trademark/brand rights reserved.
 - [x] Verify that Pixabay MP3 files can be removed from the public OSS history without losing project history or core source files. The proven filter step is `git filter-repo --path public/audio --invert-paths --force`.
 - [ ] Apply the proven `public/audio/` history filter to the final sanitized public mirror after all other removal decisions are finalized.
 - [x] Verify the GitHub noreply identity and prove personal Gmail can be removed from all author/committer metadata without pruning history.
@@ -87,14 +88,15 @@ Status: preparing private repository for a future public alpha release and Codex
 - Commit count stayed 87 after both privacy rewrites; no unexpected pruning occurred.
 - Original source repository, first sanitized mirror, and prior privacy-test mirrors remained unchanged; no push was performed.
 
-### Homepage v2 provenance
+### Homepage v2 provenance and license
 
 - Project conversation date: 2026-08-28.
 - An earlier homepage-art pass produced cleaned/cropped production candidates.
 - The later canonical v2 pass explicitly replaced those with five newly generated standalone originals: `home_lobby_bg_v2`, `category_sports_v2`, `category_party_v2`, `category_voice_v2`, and `category_hand_v2`.
 - The maintainer confirms these v2 originals were generated through ChatGPT/OpenAI image generation under the maintainer's direction.
 - OpenAI Terms of Use state that, as between the user and OpenAI and to the extent permitted by applicable law, the user owns Output and OpenAI assigns any rights it has in Output to the user.
-- `motion_arcade_mark.svg` is pure project SVG vector markup and was introduced with the homepage v2 assets in commit `1dc8f3572eeb8e11208c0cb3f723de5bd4c89d37`.
+- Project-controlled rights in the v2 visual assets are licensed under CC BY 4.0 to the extent such rights exist.
+- `motion_arcade_mark.svg` is pure project SVG vector markup; its copyright/similar rights are also licensed under CC BY 4.0 while trademark/brand rights remain reserved.
 
 ### MediaPipe model licensing
 
