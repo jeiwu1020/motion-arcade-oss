@@ -8,7 +8,17 @@ Motion Arcade depends on third-party software listed in `package.json` / `packag
 
 `@mediapipe/tasks-vision` is pinned in the project. MediaPipe source code is published under Apache License 2.0. The project's privacy audit also documents SDK telemetry behavior and production-review requirements in `docs/MEDIAPIPE_PRIVACY_TELEMETRY.md`.
 
-The tracked `pose_landmarker_lite.task` model is being treated separately from the SDK source code. Its public-redistribution terms must be verified before the repository becomes public. See `ASSET_LICENSES.md`.
+### Pose Landmarker Lite model
+
+Motion Arcade includes:
+
+- `public/vendor/mediapipe/models/pose_landmarker_lite.task`
+- Official source: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`
+- Upstream model family: BlazePose GHUM 3D (Lite / Full / Heavy)
+- Official model card: `https://storage.googleapis.com/mediapipe-assets/Model%20Card%20BlazePose%20GHUM%203D.pdf`
+- License: Apache License 2.0
+
+The official BlazePose GHUM 3D model card explicitly lists Lite, Full, and Heavy variants and states that the model is licensed under the Apache License, Version 2.0. Redistribution must continue to comply with Apache-2.0 requirements.
 
 ## Other runtime dependencies
 
