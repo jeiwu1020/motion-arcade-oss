@@ -36,25 +36,25 @@ Status: preparing private repository for a future public alpha release and Codex
 - [x] Resolve provenance for tracked homepage v2 artwork in `public/assets/home/`.
 - [x] Finalize the public asset license/permission statement for the project-controlled homepage v2 artwork and `motion_arcade_mark.svg`: CC BY 4.0 for copyright/similar rights to the extent held, with Motion Arcade trademark/brand rights reserved.
 - [x] Verify that Pixabay MP3 files can be removed from the public OSS history without losing project history or core source files. The proven filter step is `git filter-repo --path public/audio --invert-paths --force`.
-- [ ] Apply the proven `public/audio/` history filter to the final sanitized public mirror after all other removal decisions are finalized.
+- [x] Apply the proven `public/audio/` history filter to the final sanitized public mirror after all other removal decisions are finalized.
 - [x] Verify the GitHub noreply identity and prove personal Gmail can be removed from all author/committer metadata without pruning history.
 - [x] Verify historical local Windows account paths can be generalized to `%USERPROFILE%` throughout all public refs without pruning history.
 - [x] Resolve redistribution terms for `public/vendor/mediapipe/models/pose_landmarker_lite.task`: Google official documentation/model card supports the exact Lite model family and specifies Apache License 2.0; preserve the upstream notice/provenance.
 - [x] Produce and manually review an exact third-party dependency-license inventory from the lockfile; no unresolved dependency license blocker remains for the current graph.
-- [ ] Review the final post-license sanitized mirror for internal-only information after all asset decisions are applied.
+- [x] Review the final post-license sanitized mirror for internal-only information after all asset decisions are applied.
 
 ## Final alpha-release checks
 
 - [ ] Rebase or merge the latest `main` into `oss-prep` and resolve documentation conflicts.
-- [ ] Run `npm ci`.
-- [ ] Run `npm run typecheck`.
-- [ ] Run `npm run lint`.
-- [ ] Run `npm test`.
-- [ ] Run `npm run build`.
-- [ ] Run final full-history gitleaks scan on the exact mirror that will become public and confirm 0 findings.
-- [ ] Confirm no personal Gmail or user-specific local Windows path remains in any public ref.
-- [ ] Confirm no tracked PENDING/BLOCKED asset remains without an explicit disposition.
-- [ ] Update package/package-lock version together for the selected alpha version.
+- [x] Run `npm ci`.
+- [x] Run `npm run typecheck`.
+- [x] Run `npm run lint`.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run final full-history gitleaks scan on the exact mirror that will become public and confirm 0 findings.
+- [x] Confirm no personal Gmail or user-specific local Windows path remains in any public ref.
+- [x] Confirm no tracked PENDING/BLOCKED asset remains without an explicit disposition.
+- [x] Update package/package-lock version together for the selected alpha version.
 - [ ] Change the sanitized repository visibility to Public only after every publication blocker above is closed.
 - [ ] Create the first public alpha release/tag.
 - [ ] Submit the Codex for OSS application using the public sanitized repository URL.
