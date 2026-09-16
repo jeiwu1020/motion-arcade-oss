@@ -2,6 +2,16 @@
   "name": "motion-arcade",
   "private": true,
   "version": "0.0.0",
+  "description": "Browser-based motion gaming platform for accessible and adaptive play.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeiwu1020/motion-arcade.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jeiwu1020/motion-arcade/issues"
+  },
+  "homepage": "https://github.com/jeiwu1020/motion-arcade#readme",
   "type": "module",
   "scripts": {
     "prepare:mediapipe": "node scripts/copy-mediapipe-wasm.mjs",
