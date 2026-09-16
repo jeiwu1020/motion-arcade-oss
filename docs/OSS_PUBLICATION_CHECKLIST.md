@@ -26,6 +26,9 @@ Status: preparing private repository for a future public alpha release and Codex
 - [x] Verify the tracked MediaPipe Pose Landmarker Lite model against Google's official Pose Landmarker documentation/model card: exact Lite model source identified; the official BlazePose GHUM 3D model card covers Lite/Full/Heavy variants and licenses the model family under Apache-2.0. Record source/license in `ASSET_LICENSES.md` and `THIRD_PARTY_NOTICES.md`.
 - [x] Resolve homepage v2 provenance from the 2026-08-28 Motion Arcade project conversation plus maintainer confirmation: `home_lobby_bg_v2`, `category_sports_v2`, `category_party_v2`, `category_voice_v2`, and `category_hand_v2` are newly generated standalone ChatGPT/OpenAI image outputs for this project. Record this provenance in `ASSET_LICENSES.md`.
 - [x] Verify `motion_arcade_mark.svg` is project-controlled pure SVG vector markup with paths/gradients only and no embedded third-party image, external URL, or font dependency.
+- [x] Run an exact lockfile dependency-license audit with `npm ci`: 59 unique packages, 53 permissive, 4 Apache-2.0/notice-review, 2 MPL-2.0 transitive build dependencies, 0 unknown/custom, and no GPL/LGPL/AGPL findings.
+- [x] Manually review `lightningcss@1.33.0` and `lightningcss-win32-x64-msvc@1.33.0`: both are transitive Vite build dependencies under MPL-2.0, are not vendored into the repository, and do not relicense unrelated Motion Arcade files. Record the disposition in `docs/DEPENDENCY_LICENSE_AUDIT.md` and `THIRD_PARTY_NOTICES.md`.
+- [x] Preserve the canonical Apache License 2.0 text at `third_party/licenses/Apache-2.0.txt` for Apache-licensed material redistributed with Motion Arcade, including MediaPipe model/runtime assets.
 
 ## Publication blockers
 
@@ -36,7 +39,7 @@ Status: preparing private repository for a future public alpha release and Codex
 - [x] Verify the GitHub noreply identity and prove personal Gmail can be removed from all author/committer metadata without pruning history.
 - [x] Verify historical local Windows account paths can be generalized to `%USERPROFILE%` throughout all public refs without pruning history.
 - [x] Resolve redistribution terms for `public/vendor/mediapipe/models/pose_landmarker_lite.task`: Google official documentation/model card supports the exact Lite model family and specifies Apache License 2.0; preserve the upstream notice/provenance.
-- [ ] Produce an exact third-party dependency-license inventory from the final lockfile and preserve required notices.
+- [x] Produce and manually review an exact third-party dependency-license inventory from the lockfile; no unresolved dependency license blocker remains for the current graph.
 - [ ] Review the final post-license sanitized mirror for internal-only information after all asset decisions are applied.
 
 ## Final alpha-release checks
@@ -100,6 +103,16 @@ Status: preparing private repository for a future public alpha release and Codex
 - Official model family: BlazePose GHUM 3D Lite / Full / Heavy.
 - Official model card: `https://storage.googleapis.com/mediapipe-assets/Model%20Card%20BlazePose%20GHUM%203D.pdf`.
 - License: Apache License 2.0.
+
+### Dependency license audit
+
+- Exact install: `npm ci` from the current lockfile.
+- Unique packages: 59.
+- Classification: 53 permissive, 4 Apache-2.0/notice-review, 2 MPL-2.0 transitive build packages, 0 unknown/custom.
+- Copyleft manual review: `lightningcss@1.33.0` and `lightningcss-win32-x64-msvc@1.33.0`; cleared for the current publication model because MPL is file-level copyleft and these packages remain transitive build dependencies rather than vendored Motion Arcade source.
+- No GPL/LGPL/AGPL dependency was found.
+- No package-local NOTICE file was found in the audited graph.
+- Canonical Apache-2.0 license text is preserved at `third_party/licenses/Apache-2.0.txt`.
 
 ## Safety rule
 
